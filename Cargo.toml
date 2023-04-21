@@ -10,5 +10,6 @@ edition = "2021"
 [workspace]
 members = [
     "macros",
-    "examples/baremetal-bl808-d0"
+    "examples/baremetal-bl808-d0",
+    "examples/baremetal-bl808-m0",
 ]
