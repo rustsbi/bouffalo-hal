@@ -13,3 +13,8 @@ members = [
     "examples/baremetal-bl808-d0",
     "examples/baremetal-bl808-m0",
 ]
+
+[features]
+bl808-m0 = []
+bl808-d0 = []
+bl808-lp = []
