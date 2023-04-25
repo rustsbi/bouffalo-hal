@@ -280,7 +280,9 @@ struct HalPatchCfg {
 mod tests {
     use crate::{
         HalBasicConfig, HalBootheader, HalCpuCfg, HalFlashConfig, HalPatchCfg, HalPllConfig,
+        HalSysClkConfig,
     };
+    use memoffset::offset_of;
 
     #[test]
     fn struct_lengths() {
@@ -291,5 +293,91 @@ mod tests {
         assert_eq!(size_of::<HalCpuCfg>(), 24);
         assert_eq!(size_of::<HalPatchCfg>(), 8);
         assert_eq!(size_of::<HalBootheader>(), 352);
+    }
+
+    #[test]
+    fn struct_hal_bootheader_offset() {
+        assert_eq!(offset_of!(HalBootheader, magic), 0x00);
+        assert_eq!(offset_of!(HalBootheader, revision), 0x04);
+        assert_eq!(offset_of!(HalBootheader, flash_cfg), 0x08);
+        assert_eq!(offset_of!(HalBootheader, clk_cfg), 0x64);
+        assert_eq!(offset_of!(HalBootheader, basic_cfg), 0x80);
+        assert_eq!(offset_of!(HalBootheader, cpu_cfg), 0xb0);
+        assert_eq!(offset_of!(HalBootheader, boot2_pt_table_0), 0xf8);
+        assert_eq!(offset_of!(HalBootheader, boot2_pt_table_1), 0xfc);
+        assert_eq!(offset_of!(HalBootheader, flash_cfg_table_addr), 0x100);
+        assert_eq!(offset_of!(HalBootheader, flash_cfg_table_len), 0x104);
+        assert_eq!(offset_of!(HalBootheader, patch_on_read), 0x108);
+        assert_eq!(offset_of!(HalBootheader, patch_on_jump), 0x128);
+        assert_eq!(offset_of!(HalBootheader, crc32), 0x15c);
+    }
+
+    #[test]
+    fn struct_hal_flash_config_offset() {
+        assert_eq!(offset_of!(HalFlashConfig, magic), 0x00);
+        assert_eq!(offset_of!(HalFlashConfig, cfg), 0x04);
+        assert_eq!(offset_of!(HalFlashConfig, crc32), 0x58);
+    }
+
+    #[test]
+    fn struct_hal_pll_config_offset() {
+        assert_eq!(offset_of!(HalPllConfig, magic), 0x00);
+        assert_eq!(offset_of!(HalPllConfig, cfg), 0x04);
+        assert_eq!(offset_of!(HalPllConfig, crc32), 0x18);
+    }
+
+    #[test]
+    fn struct_hal_sys_clk_config_offset() {
+        assert_eq!(offset_of!(HalSysClkConfig, xtal_type), 0x00);
+        assert_eq!(offset_of!(HalSysClkConfig, mcu_clk), 0x01);
+        assert_eq!(offset_of!(HalSysClkConfig, mcu_clk_div), 0x02);
+        assert_eq!(offset_of!(HalSysClkConfig, mcu_bclk_div), 0x03);
+
+        assert_eq!(offset_of!(HalSysClkConfig, mcu_pbclk_div), 0x04);
+        assert_eq!(offset_of!(HalSysClkConfig, lp_div), 0x05);
+        assert_eq!(offset_of!(HalSysClkConfig, dsp_clk), 0x06);
+        assert_eq!(offset_of!(HalSysClkConfig, dsp_clk_div), 0x07);
+
+        assert_eq!(offset_of!(HalSysClkConfig, dsp_bclk_div), 0x08);
+        assert_eq!(offset_of!(HalSysClkConfig, dsp_pbclk), 0x9);
+        assert_eq!(offset_of!(HalSysClkConfig, dsp_pbclk_div), 0x0a);
+        assert_eq!(offset_of!(HalSysClkConfig, emi_clk), 0x0b);
+
+        assert_eq!(offset_of!(HalSysClkConfig, emi_clk_div), 0x0c);
+        assert_eq!(offset_of!(HalSysClkConfig, flash_clk_type), 0x0d);
+        assert_eq!(offset_of!(HalSysClkConfig, flash_clk_div), 0x0e);
+        assert_eq!(offset_of!(HalSysClkConfig, wifipll_pu), 0x0f);
+
+        assert_eq!(offset_of!(HalSysClkConfig, aupll_pu), 0x10);
+        assert_eq!(offset_of!(HalSysClkConfig, cpupll_pu), 0x11);
+        assert_eq!(offset_of!(HalSysClkConfig, mipipll_pu), 0x12);
+        assert_eq!(offset_of!(HalSysClkConfig, uhspll_pu), 0x13);
+    }
+
+    #[test]
+    fn struct_hal_basic_config_offset() {
+        assert_eq!(offset_of!(HalBasicConfig, flag), 0x00);
+        assert_eq!(offset_of!(HalBasicConfig, group_image_offset), 0x04);
+        assert_eq!(offset_of!(HalBasicConfig, aes_region_len), 0x08);
+        assert_eq!(offset_of!(HalBasicConfig, img_len_cnt), 0x0c);
+        assert_eq!(offset_of!(HalBasicConfig, hash), 0x10);
+    }
+
+    #[test]
+    fn struct_hal_cpu_cfg_offset() {
+        assert_eq!(offset_of!(HalCpuCfg, config_enable), 0x00);
+        assert_eq!(offset_of!(HalCpuCfg, halt_cpu), 0x01);
+        assert_eq!(offset_of!(HalCpuCfg, cache_flags), 0x02);
+        assert_eq!(offset_of!(HalCpuCfg, cache_range_h), 0x04);
+        assert_eq!(offset_of!(HalCpuCfg, cache_range_l), 0x08);
+        assert_eq!(offset_of!(HalCpuCfg, image_address_offset), 0x0c);
+        assert_eq!(offset_of!(HalCpuCfg, boot_entry), 0x10);
+        assert_eq!(offset_of!(HalCpuCfg, msp_val), 0x14);
+    }
+
+    #[test]
+    fn struct_hal_patch_cfg_offset() {
+        assert_eq!(offset_of!(HalPatchCfg, addr), 0x00);
+        assert_eq!(offset_of!(HalPatchCfg, value), 0x04);
     }
 }
