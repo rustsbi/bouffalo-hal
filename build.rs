@@ -18,13 +18,37 @@ const LINKER_SCRIPT: &[u8] = b"
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
 MEMORY {
-    FLASH : ORIGIN = 0x58000000, LENGTH = 32M
+    PSEUDO_HEADER : ORIGIN = 0x58000000 - 0x1000, LENGTH = 4K
+    FLASH : ORIGIN = 0x58000000, LENGTH = 32M - 4K
     WRAM : ORIGIN = 0x62030000, LENGTH = 160K
 }
 SECTIONS {
     .head : ALIGN(4) { 
-        KEEP(*(.head .head.*))
-    } > FLASH
+        LONG(0x504E4642);
+        LONG(1);
+        KEEP(*(.head.flash));
+        KEEP(*(.head.clock));
+        KEEP(*(.head.base.flag));
+        LONG(ADDR(.text) - ORIGIN(PSEUDO_HEADER));
+        KEEP(*(.head.base.aes-region));
+        LONG(SIZEOF(.text));
+        KEEP(*(.head.base.hash));
+        KEEP(*(.head.cpu));
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        KEEP(*(.head.patch.on-read));
+        KEEP(*(.head.patch.on-jump));
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        KEEP(*(.head.crc32));
+        FILL(0xFFFFFFFF);
+        . = ORIGIN(PSEUDO_HEADER) + LENGTH(PSEUDO_HEADER);
+    } > PSEUDO_HEADER
     .text : ALIGN(4) {
         stext = .;
         *(.text .text.*)
@@ -36,14 +60,14 @@ SECTIONS {
         *(.srodata .srodata.*)
         . = ALIGN(4);
         erodata = .;
-    } > WRAM
+    } > FLASH
     .data : ALIGN(4) {
         sdata = .;
         *(.data .data.*)
         *(.sdata .sdata.*)
         . = ALIGN(4);
         edata = .;
-    } > WRAM
+    } > WRAM AT>FLASH
     sidata = LOADADDR(.data);
     .bss (NOLOAD) : ALIGN(4) {
         *(.bss.uninit)
@@ -62,13 +86,37 @@ const LINKER_SCRIPT: &[u8] = b"
 OUTPUT_ARCH(riscv)
 ENTRY(_start) 
 MEMORY {
+    PSEUDO_HEADER : ORIGIN = 0x58000000 - 0x1000, LENGTH = 4K
     FLASH : ORIGIN = 0x58000000, LENGTH = 32M
     DRAM : ORIGIN = 0x3EF80000, LENGTH = 512K 
 }
 SECTIONS {
     .head : ALIGN(8) { 
-        KEEP(*(.head .head.*))
-    } > FLASH
+        LONG(0x504E4642);
+        LONG(1);
+        KEEP(*(.head.flash));
+        KEEP(*(.head.clock));
+        KEEP(*(.head.base.flag));
+        LONG(ADDR(.text) - ORIGIN(PSEUDO_HEADER));
+        KEEP(*(.head.base.aes-region));
+        LONG(SIZEOF(.text));
+        KEEP(*(.head.base.hash));
+        KEEP(*(.head.cpu));
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        KEEP(*(.head.patch.on-read));
+        KEEP(*(.head.patch.on-jump));
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        KEEP(*(.head.crc32));
+        FILL(0xFFFFFFFF);
+        . = ORIGIN(PSEUDO_HEADER) + LENGTH(PSEUDO_HEADER);
+    } > PSEUDO_HEADER
     .text : ALIGN(8) {  
         *(.text .text.*)
     } > FLASH
@@ -78,14 +126,14 @@ SECTIONS {
         *(.srodata .srodata.*)
         . = ALIGN(8);  
         erodata = .;
-    } > DRAM  
+    } > FLASH  
     .data : ALIGN(8) { 
         sdata = .;
         *(.data .data.*)
         *(.sdata .sdata.*)
         . = ALIGN(8); 
         edata = .;
-    } > DRAM 
+    } > DRAM AT>FLASH
     sidata = LOADADDR(.data);
     .bss (NOLOAD) : ALIGN(8) {  
         *(.bss.uninit)
