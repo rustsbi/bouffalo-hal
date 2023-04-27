@@ -486,7 +486,7 @@ pub static BOOTHEADER: HalBootheader = HalBootheader {
 mod tests {
     use crate::{
         HalBasicConfig, HalBootheader, HalCpuCfg, HalFlashConfig, HalPatchCfg, HalPllConfig,
-        HalSysClkConfig,
+        HalSysClkConfig, SpiFlashCfgType,
     };
     use memoffset::offset_of;
 
@@ -499,6 +499,7 @@ mod tests {
         assert_eq!(size_of::<HalCpuCfg>(), 24);
         assert_eq!(size_of::<HalPatchCfg>(), 8);
         assert_eq!(size_of::<HalBootheader>(), 352);
+        assert_eq!(size_of::<SpiFlashCfgType>(), 84);
     }
 
     #[test]
@@ -523,6 +524,82 @@ mod tests {
         assert_eq!(offset_of!(HalFlashConfig, magic), 0x00);
         assert_eq!(offset_of!(HalFlashConfig, cfg), 0x04);
         assert_eq!(offset_of!(HalFlashConfig, crc32), 0x58);
+    }
+
+    #[test]
+    fn struct_spi_flash_config_offset() {
+        assert_eq!(offset_of!(SpiFlashCfgType, io_mode), 0x00);
+        assert_eq!(offset_of!(SpiFlashCfgType, c_read_support), 0x01);
+        assert_eq!(offset_of!(SpiFlashCfgType, clk_delay), 0x02);
+        assert_eq!(offset_of!(SpiFlashCfgType, clk_invert), 0x03);
+        assert_eq!(offset_of!(SpiFlashCfgType, reset_en_cmd), 0x04);
+        assert_eq!(offset_of!(SpiFlashCfgType, reset_cmd), 0x05);
+        assert_eq!(offset_of!(SpiFlashCfgType, reset_cread_cmd), 0x06);
+        assert_eq!(offset_of!(SpiFlashCfgType, reset_cread_cmd_size), 0x07);
+        assert_eq!(offset_of!(SpiFlashCfgType, jedec_id_cmd), 0x08);
+        assert_eq!(offset_of!(SpiFlashCfgType, jedec_id_cmd_dmy_clk), 0x09);
+        assert_eq!(offset_of!(SpiFlashCfgType, enter_32_bits_addr_cmd), 0x0a);
+        assert_eq!(offset_of!(SpiFlashCfgType, exit_32_bits_addr_cmd), 0x0b);
+        assert_eq!(offset_of!(SpiFlashCfgType, sector_size), 0x0c);
+        assert_eq!(offset_of!(SpiFlashCfgType, mid), 0x0d);
+        assert_eq!(offset_of!(SpiFlashCfgType, page_size), 0x0e);
+        assert_eq!(offset_of!(SpiFlashCfgType, chip_erase_cmd), 0x10);
+        assert_eq!(offset_of!(SpiFlashCfgType, sector_erase_cmd), 0x11);
+        assert_eq!(offset_of!(SpiFlashCfgType, blk32_erase_cmd), 0x12);
+        assert_eq!(offset_of!(SpiFlashCfgType, blk64_erase_cmd), 0x13);
+        assert_eq!(offset_of!(SpiFlashCfgType, write_enable_cmd), 0x14);
+        assert_eq!(offset_of!(SpiFlashCfgType, page_program_cmd), 0x15);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpage_program_cmd), 0x16);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpp_addr_mode), 0x17);
+        assert_eq!(offset_of!(SpiFlashCfgType, fast_read_cmd), 0x18);
+        assert_eq!(offset_of!(SpiFlashCfgType, fr_dmy_clk), 0x19);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpi_fast_read_cmd), 0x1a);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpi_fr_dmy_clk), 0x1b);
+        assert_eq!(offset_of!(SpiFlashCfgType, fast_read_do_cmd), 0x1c);
+        assert_eq!(offset_of!(SpiFlashCfgType, fr_do_dmy_clk), 0x1d);
+        assert_eq!(offset_of!(SpiFlashCfgType, fast_read_dio_cmd), 0x1e);
+        assert_eq!(offset_of!(SpiFlashCfgType, fr_dio_dmy_clk), 0x1f);
+        assert_eq!(offset_of!(SpiFlashCfgType, fast_read_qo_cmd), 0x20);
+        assert_eq!(offset_of!(SpiFlashCfgType, fr_qo_dmy_clk), 0x21);
+        assert_eq!(offset_of!(SpiFlashCfgType, fast_read_qio_cmd), 0x22);
+        assert_eq!(offset_of!(SpiFlashCfgType, fr_qio_dmy_clk), 0x23);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpi_fast_read_qio_cmd), 0x24);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpi_fr_qio_dmy_clk), 0x25);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpi_page_program_cmd), 0x26);
+        assert_eq!(offset_of!(SpiFlashCfgType, writev_reg_enable_cmd), 0x27);
+        assert_eq!(offset_of!(SpiFlashCfgType, wr_enable_index), 0x28);
+        assert_eq!(offset_of!(SpiFlashCfgType, qe_index), 0x29);
+        assert_eq!(offset_of!(SpiFlashCfgType, busy_index), 0x2a);
+        assert_eq!(offset_of!(SpiFlashCfgType, wr_enable_bit), 0x2b);
+        assert_eq!(offset_of!(SpiFlashCfgType, qe_bit), 0x2c);
+        assert_eq!(offset_of!(SpiFlashCfgType, busy_bit), 0x2d);
+        assert_eq!(offset_of!(SpiFlashCfgType, wr_enable_write_reg_len), 0x2e);
+        assert_eq!(offset_of!(SpiFlashCfgType, wr_enable_read_reg_len), 0x2f);
+        assert_eq!(offset_of!(SpiFlashCfgType, qe_write_reg_len), 0x30);
+        assert_eq!(offset_of!(SpiFlashCfgType, qe_read_reg_len), 0x31);
+        assert_eq!(offset_of!(SpiFlashCfgType, release_power_down), 0x32);
+        assert_eq!(offset_of!(SpiFlashCfgType, busy_read_reg_len), 0x33);
+        assert_eq!(offset_of!(SpiFlashCfgType, read_reg_cmd), 0x34);
+        assert_eq!(offset_of!(SpiFlashCfgType, write_reg_cmd), 0x38);
+        assert_eq!(offset_of!(SpiFlashCfgType, enter_qpi), 0x3c);
+        assert_eq!(offset_of!(SpiFlashCfgType, exit_qpi), 0x3d);
+        assert_eq!(offset_of!(SpiFlashCfgType, c_read_mode), 0x3e);
+        assert_eq!(offset_of!(SpiFlashCfgType, cr_exit), 0x3f);
+        assert_eq!(offset_of!(SpiFlashCfgType, burst_wrap_cmd), 0x40);
+        assert_eq!(offset_of!(SpiFlashCfgType, burst_wrap_cmd_dmy_clk), 0x41);
+        assert_eq!(offset_of!(SpiFlashCfgType, burst_wrap_data_mode), 0x42);
+        assert_eq!(offset_of!(SpiFlashCfgType, burst_wrap_data), 0x43);
+        assert_eq!(offset_of!(SpiFlashCfgType, de_burst_wrap_cmd), 0x44);
+        assert_eq!(offset_of!(SpiFlashCfgType, de_burst_wrap_cmd_dmy_clk), 0x45);
+        assert_eq!(offset_of!(SpiFlashCfgType, de_burst_wrap_data_mode), 0x46);
+        assert_eq!(offset_of!(SpiFlashCfgType, de_burst_wrap_data), 0x47);
+        assert_eq!(offset_of!(SpiFlashCfgType, time_e_sector), 0x48);
+        assert_eq!(offset_of!(SpiFlashCfgType, time_e_32k), 0x4a);
+        assert_eq!(offset_of!(SpiFlashCfgType, time_e_64k), 0x4c);
+        assert_eq!(offset_of!(SpiFlashCfgType, time_page_pgm), 0x4e);
+        assert_eq!(offset_of!(SpiFlashCfgType, time_ce), 0x50);
+        assert_eq!(offset_of!(SpiFlashCfgType, pd_delay), 0x52);
+        assert_eq!(offset_of!(SpiFlashCfgType, qe_data), 0x53);
     }
 
     #[test]
