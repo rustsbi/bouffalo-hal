@@ -3,7 +3,6 @@
 #![feature(naked_functions, asm_const)]
 #![no_std]
 #![no_main]
-use bl_rom_rt::BOOTHEADER;
 use core::arch::asm;
 use core::ptr;
 
@@ -25,10 +24,8 @@ unsafe extern "C" fn entry() -> ! {
             sw      zero, 0(t1)
             addi    t1, t1, 4
             j       1b
-            la      a0, {}
         1:",
         "   call    {main}",
-        sym BOOTHEADER,
         stack = sym STACK,
         hart_stack_size = const LEN_STACK_M0,
         main = sym main,

@@ -25,7 +25,7 @@ pub struct HalBootheader {
 }
 
 #[repr(C)]
-struct HalFlashConfig {
+pub struct HalFlashConfig {
     magic: u32,
     cfg: SpiFlashCfgType,
     crc32: u32,
@@ -180,7 +180,7 @@ struct SpiFlashCfgType {
 }
 
 #[repr(C)]
-struct HalPllConfig {
+pub struct HalPllConfig {
     magic: u32,
     cfg: HalSysClkConfig,
     crc32: u32,
@@ -250,7 +250,7 @@ struct HalBasicConfig {
 }
 
 #[repr(C)]
-struct HalCpuCfg {
+pub struct HalCpuCfg {
     /// Config this cpu.
     config_enable: u8,
     /// Halt this cpu.
@@ -288,205 +288,208 @@ impl HalCpuCfg {
 }
 
 #[repr(C)]
-struct HalPatchCfg {
+pub struct HalPatchCfg {
     addr: u32,
     value: u32,
 }
 
-#[link_section = ".head"]
-pub static BOOTHEADER: HalBootheader = HalBootheader {
-    magic: 0x504E4642,
-    revision: 1,
-    flash_cfg: HalFlashConfig {
-        magic: 0x47464346,
-        cfg: SpiFlashCfgType {
-            io_mode: 0x11,
-            c_read_support: 0x00,
-            clk_delay: 0x01,
-            clk_invert: 0x01,
-            reset_en_cmd: 0x66,
-            reset_cmd: 0x99,
-            reset_cread_cmd: 0xff,
-            reset_cread_cmd_size: 0x03,
-            jedec_id_cmd: 0x9f,
-            jedec_id_cmd_dmy_clk: 0x00,
-            enter_32_bits_addr_cmd: 0xb7,
-            exit_32_bits_addr_cmd: 0xe9,
-            sector_size: 0x04,
-            mid: 0x00,
-            page_size: 0x100,
-            chip_erase_cmd: 0xc7,
-            sector_erase_cmd: 0x20,
-            blk32_erase_cmd: 0x52,
-            blk64_erase_cmd: 0xd8,
-            write_enable_cmd: 0x06,
-            page_program_cmd: 0x02,
-            qpage_program_cmd: 0x32,
-            qpp_addr_mode: 0x00,
-            fast_read_cmd: 0x0b,
-            fr_dmy_clk: 0x01,
-            qpi_fast_read_cmd: 0x0b,
-            qpi_fr_dmy_clk: 0x01,
-            fast_read_do_cmd: 0x3b,
-            fr_do_dmy_clk: 0x01,
-            fast_read_dio_cmd: 0xbb,
-            fr_dio_dmy_clk: 0x00,
-            fast_read_qo_cmd: 0x6b,
-            fr_qo_dmy_clk: 0x01,
-            fast_read_qio_cmd: 0xeb,
-            fr_qio_dmy_clk: 0x02,
-            qpi_fast_read_qio_cmd: 0xeb,
-            qpi_fr_qio_dmy_clk: 0x02,
-            qpi_page_program_cmd: 0x02,
-            writev_reg_enable_cmd: 0x50,
-            wr_enable_index: 0x00,
-            qe_index: 0x01,
-            busy_index: 0x00,
-            wr_enable_bit: 0x01,
-            qe_bit: 0x01,
-            busy_bit: 0x00,
-            wr_enable_read_reg_len: 0x01,
-            wr_enable_write_reg_len: 0x02,
-            qe_write_reg_len: 0x02,
-            qe_read_reg_len: 0x01,
-            release_power_down: 0xab,
-            busy_read_reg_len: 0x01,
-            read_reg_cmd: [0x05, 0x35, 0x00, 0x00],
-            write_reg_cmd: [0x01, 0x01, 0x00, 0x00],
-            enter_qpi: 0x38,
-            exit_qpi: 0xff,
-            c_read_mode: 0x20,
-            cr_exit: 0xf0,
-            burst_wrap_cmd: 0x77,
-            burst_wrap_cmd_dmy_clk: 0x03,
-            burst_wrap_data_mode: 0x02,
-            burst_wrap_data: 0x40,
-            de_burst_wrap_cmd: 0x77,
-            de_burst_wrap_cmd_dmy_clk: 0x03,
-            de_burst_wrap_data_mode: 0x02,
-            de_burst_wrap_data: 0xf0,
-            time_e_sector: 300,
-            time_e_32k: 1200,
-            time_e_64k: 1200,
-            time_ce: 30000,
-            time_page_pgm: 50,
-            pd_delay: 20,
-            qe_data: 0,
-        },
-        crc32: 0xdeadbeef,
+#[link_section = ".head.flash"]
+pub static FLASH_CONFIG: HalFlashConfig = HalFlashConfig {
+    magic: 0x47464346,
+    cfg: SpiFlashCfgType {
+        io_mode: 0x11,
+        c_read_support: 0x00,
+        clk_delay: 0x01,
+        clk_invert: 0x01,
+        reset_en_cmd: 0x66,
+        reset_cmd: 0x99,
+        reset_cread_cmd: 0xff,
+        reset_cread_cmd_size: 0x03,
+        jedec_id_cmd: 0x9f,
+        jedec_id_cmd_dmy_clk: 0x00,
+        enter_32_bits_addr_cmd: 0xb7,
+        exit_32_bits_addr_cmd: 0xe9,
+        sector_size: 0x04,
+        mid: 0x00,
+        page_size: 0x100,
+        chip_erase_cmd: 0xc7,
+        sector_erase_cmd: 0x20,
+        blk32_erase_cmd: 0x52,
+        blk64_erase_cmd: 0xd8,
+        write_enable_cmd: 0x06,
+        page_program_cmd: 0x02,
+        qpage_program_cmd: 0x32,
+        qpp_addr_mode: 0x00,
+        fast_read_cmd: 0x0b,
+        fr_dmy_clk: 0x01,
+        qpi_fast_read_cmd: 0x0b,
+        qpi_fr_dmy_clk: 0x01,
+        fast_read_do_cmd: 0x3b,
+        fr_do_dmy_clk: 0x01,
+        fast_read_dio_cmd: 0xbb,
+        fr_dio_dmy_clk: 0x00,
+        fast_read_qo_cmd: 0x6b,
+        fr_qo_dmy_clk: 0x01,
+        fast_read_qio_cmd: 0xeb,
+        fr_qio_dmy_clk: 0x02,
+        qpi_fast_read_qio_cmd: 0xeb,
+        qpi_fr_qio_dmy_clk: 0x02,
+        qpi_page_program_cmd: 0x02,
+        writev_reg_enable_cmd: 0x50,
+        wr_enable_index: 0x00,
+        qe_index: 0x01,
+        busy_index: 0x00,
+        wr_enable_bit: 0x01,
+        qe_bit: 0x01,
+        busy_bit: 0x00,
+        wr_enable_read_reg_len: 0x01,
+        wr_enable_write_reg_len: 0x02,
+        qe_write_reg_len: 0x02,
+        qe_read_reg_len: 0x01,
+        release_power_down: 0xab,
+        busy_read_reg_len: 0x01,
+        read_reg_cmd: [0x05, 0x35, 0x00, 0x00],
+        write_reg_cmd: [0x01, 0x01, 0x00, 0x00],
+        enter_qpi: 0x38,
+        exit_qpi: 0xff,
+        c_read_mode: 0x20,
+        cr_exit: 0xf0,
+        burst_wrap_cmd: 0x77,
+        burst_wrap_cmd_dmy_clk: 0x03,
+        burst_wrap_data_mode: 0x02,
+        burst_wrap_data: 0x40,
+        de_burst_wrap_cmd: 0x77,
+        de_burst_wrap_cmd_dmy_clk: 0x03,
+        de_burst_wrap_data_mode: 0x02,
+        de_burst_wrap_data: 0xf0,
+        time_e_sector: 300,
+        time_e_32k: 1200,
+        time_e_64k: 1200,
+        time_ce: 30000,
+        time_page_pgm: 50,
+        pd_delay: 20,
+        qe_data: 0,
     },
-    clk_cfg: HalPllConfig {
-        magic: 0x47464350,
-        cfg: HalSysClkConfig {
-            xtal_type: 0x07,
-            mcu_clk: 0x04,
-            mcu_clk_div: 0x00,
-            mcu_bclk_div: 0x00,
-
-            mcu_pbclk_div: 0x03,
-            lp_div: 0x01,
-            dsp_clk: 0x03,
-            dsp_clk_div: 0x00,
-
-            dsp_bclk_div: 0x01,
-            dsp_pbclk: 0x02,
-            dsp_pbclk_div: 0x02,
-            emi_clk: 0x02,
-
-            emi_clk_div: 0x01,
-            flash_clk_type: 0x01,
-            flash_clk_div: 0x00,
-            wifipll_pu: 0x01,
-
-            aupll_pu: 0x01,
-            cpupll_pu: 0x01,
-            mipipll_pu: 0x01,
-            uhspll_pu: 0x01,
-        },
-        crc32: 0xdeadbeef,
-    },
-    basic_cfg: HalBasicConfig {
-        flag: 0x654c0100,
-        group_image_offset: 0,
-        aes_region_len: 0,
-        img_len_cnt: 0,
-        hash: [0xdeadbeaf; 8],
-    },
-    cpu_cfg: [
-        #[cfg(feature = "bl808-m0")]
-        HalCpuCfg {
-            config_enable: 1,
-            halt_cpu: 0,
-            cache_flags: 0,
-            _rsvd: 0,
-            cache_range_h: 0,
-            cache_range_l: 0,
-            image_address_offset: 0,
-            boot_entry: 0x58000000,
-            msp_val: 0,
-        },
-        #[cfg(not(feature = "bl808-m0"))]
-        HalCpuCfg::disabled(),
-        #[cfg(feature = "bl808-d0")]
-        HalCpuCfg {
-            config_enable: 1,
-            halt_cpu: 0,
-            cache_flags: 0,
-            _rsvd: 0,
-            cache_range_h: 0,
-            cache_range_l: 0,
-            image_address_offset: 0,
-            boot_entry: 0x58000000,
-            msp_val: 0,
-        },
-        #[cfg(not(feature = "bl808-d0"))]
-        HalCpuCfg::disabled(),
-        #[cfg(feature = "bl808-lp")]
-        HalCpuCfg {
-            config_enable: 1,
-            halt_cpu: 0,
-            cache_flags: 0,
-            _rsvd: 0,
-            cache_range_h: 0,
-            cache_range_l: 0,
-            image_address_offset: 0,
-            boot_entry: 0,
-            msp_val: 0,
-        },
-        #[cfg(not(feature = "bl808-lp"))]
-        HalCpuCfg::disabled(),
-    ],
-    boot2_pt_table_0: 0,
-    boot2_pt_table_1: 0,
-    flash_cfg_table_addr: 0,
-    flash_cfg_table_len: 0,
-    patch_on_read: [
-        HalPatchCfg { addr: 0, value: 0 },
-        HalPatchCfg { addr: 0, value: 0 },
-        HalPatchCfg { addr: 0, value: 0 },
-        HalPatchCfg { addr: 0, value: 0 },
-    ],
-    patch_on_jump: [
-        HalPatchCfg {
-            addr: 0x20000320,
-            value: 0x0,
-        },
-        HalPatchCfg {
-            addr: 0x2000F038,
-            value: 0x18000000,
-        },
-        HalPatchCfg { addr: 0, value: 0 },
-        HalPatchCfg { addr: 0, value: 0 },
-    ],
-    _reserved: [0; 5],
     crc32: 0xdeadbeef,
 };
+
+#[link_section = ".head.clock"]
+pub static CLOCK_CONFIG: HalPllConfig = HalPllConfig {
+    magic: 0x47464350,
+    cfg: HalSysClkConfig {
+        xtal_type: 0x07,
+        mcu_clk: 0x04,
+        mcu_clk_div: 0x00,
+        mcu_bclk_div: 0x00,
+
+        mcu_pbclk_div: 0x03,
+        lp_div: 0x01,
+        dsp_clk: 0x03,
+        dsp_clk_div: 0x00,
+
+        dsp_bclk_div: 0x01,
+        dsp_pbclk: 0x02,
+        dsp_pbclk_div: 0x02,
+        emi_clk: 0x02,
+
+        emi_clk_div: 0x01,
+        flash_clk_type: 0x01,
+        flash_clk_div: 0x00,
+        wifipll_pu: 0x01,
+
+        aupll_pu: 0x01,
+        cpupll_pu: 0x01,
+        mipipll_pu: 0x01,
+        uhspll_pu: 0x01,
+    },
+    crc32: 0xdeadbeef,
+};
+
+#[link_section = ".head.base.flag"]
+pub static BASIC_CONFIG_FLAGS: u32 = 0x654c0100;
+
+#[link_section = ".head.base.aes-region"]
+pub static BASIC_AES_REGION: u32 = 0;
+
+#[link_section = ".head.base.hash"]
+pub static BASIC_HASH: [u32; 8] = [0xdeadbeef; 8];
+
+#[link_section = ".head.cpu"]
+pub static CPU_CONFIG: [HalCpuCfg; 3] = [
+    #[cfg(feature = "bl808-m0")]
+    HalCpuCfg {
+        config_enable: 1,
+        halt_cpu: 0,
+        cache_flags: 0,
+        _rsvd: 0,
+        cache_range_h: 0,
+        cache_range_l: 0,
+        image_address_offset: 0,
+        boot_entry: 0x58000000,
+        msp_val: 0,
+    },
+    #[cfg(not(feature = "bl808-m0"))]
+    HalCpuCfg::disabled(),
+    #[cfg(feature = "bl808-d0")]
+    HalCpuCfg {
+        config_enable: 1,
+        halt_cpu: 0,
+        cache_flags: 0,
+        _rsvd: 0,
+        cache_range_h: 0,
+        cache_range_l: 0,
+        image_address_offset: 0,
+        boot_entry: 0x58000000,
+        msp_val: 0,
+    },
+    #[cfg(not(feature = "bl808-d0"))]
+    HalCpuCfg::disabled(),
+    #[cfg(feature = "bl808-lp")]
+    HalCpuCfg {
+        config_enable: 1,
+        halt_cpu: 0,
+        cache_flags: 0,
+        _rsvd: 0,
+        cache_range_h: 0,
+        cache_range_l: 0,
+        image_address_offset: 0,
+        boot_entry: 0,
+        msp_val: 0,
+    },
+    #[cfg(not(feature = "bl808-lp"))]
+    HalCpuCfg::disabled(),
+];
+
+#[link_section = ".head.patch.on-read"]
+pub static PATCH_ON_READ: [HalPatchCfg; 4] = [
+    HalPatchCfg { addr: 0, value: 0 },
+    HalPatchCfg { addr: 0, value: 0 },
+    HalPatchCfg { addr: 0, value: 0 },
+    HalPatchCfg { addr: 0, value: 0 },
+];
+
+#[link_section = ".head.patch.on-jump"]
+pub static PATCH_ON_JUMP: [HalPatchCfg; 4] = [
+    HalPatchCfg {
+        addr: 0x20000320,
+        value: 0x0,
+    },
+    HalPatchCfg {
+        addr: 0x2000F038,
+        value: 0x18000000,
+    },
+    HalPatchCfg { addr: 0, value: 0 },
+    HalPatchCfg { addr: 0, value: 0 },
+];
+
+#[link_section = ".head.crc32"]
+pub static CRC32: u32 = 0xdeadbeef;
 
 #[cfg(test)]
 mod tests {
     use crate::{
         HalBasicConfig, HalBootheader, HalCpuCfg, HalFlashConfig, HalPatchCfg, HalPllConfig,
-        HalSysClkConfig,
+        HalSysClkConfig, SpiFlashCfgType,
     };
     use memoffset::offset_of;
 
@@ -499,6 +502,7 @@ mod tests {
         assert_eq!(size_of::<HalCpuCfg>(), 24);
         assert_eq!(size_of::<HalPatchCfg>(), 8);
         assert_eq!(size_of::<HalBootheader>(), 352);
+        assert_eq!(size_of::<SpiFlashCfgType>(), 84);
     }
 
     #[test]
@@ -523,6 +527,82 @@ mod tests {
         assert_eq!(offset_of!(HalFlashConfig, magic), 0x00);
         assert_eq!(offset_of!(HalFlashConfig, cfg), 0x04);
         assert_eq!(offset_of!(HalFlashConfig, crc32), 0x58);
+    }
+
+    #[test]
+    fn struct_spi_flash_config_offset() {
+        assert_eq!(offset_of!(SpiFlashCfgType, io_mode), 0x00);
+        assert_eq!(offset_of!(SpiFlashCfgType, c_read_support), 0x01);
+        assert_eq!(offset_of!(SpiFlashCfgType, clk_delay), 0x02);
+        assert_eq!(offset_of!(SpiFlashCfgType, clk_invert), 0x03);
+        assert_eq!(offset_of!(SpiFlashCfgType, reset_en_cmd), 0x04);
+        assert_eq!(offset_of!(SpiFlashCfgType, reset_cmd), 0x05);
+        assert_eq!(offset_of!(SpiFlashCfgType, reset_cread_cmd), 0x06);
+        assert_eq!(offset_of!(SpiFlashCfgType, reset_cread_cmd_size), 0x07);
+        assert_eq!(offset_of!(SpiFlashCfgType, jedec_id_cmd), 0x08);
+        assert_eq!(offset_of!(SpiFlashCfgType, jedec_id_cmd_dmy_clk), 0x09);
+        assert_eq!(offset_of!(SpiFlashCfgType, enter_32_bits_addr_cmd), 0x0a);
+        assert_eq!(offset_of!(SpiFlashCfgType, exit_32_bits_addr_cmd), 0x0b);
+        assert_eq!(offset_of!(SpiFlashCfgType, sector_size), 0x0c);
+        assert_eq!(offset_of!(SpiFlashCfgType, mid), 0x0d);
+        assert_eq!(offset_of!(SpiFlashCfgType, page_size), 0x0e);
+        assert_eq!(offset_of!(SpiFlashCfgType, chip_erase_cmd), 0x10);
+        assert_eq!(offset_of!(SpiFlashCfgType, sector_erase_cmd), 0x11);
+        assert_eq!(offset_of!(SpiFlashCfgType, blk32_erase_cmd), 0x12);
+        assert_eq!(offset_of!(SpiFlashCfgType, blk64_erase_cmd), 0x13);
+        assert_eq!(offset_of!(SpiFlashCfgType, write_enable_cmd), 0x14);
+        assert_eq!(offset_of!(SpiFlashCfgType, page_program_cmd), 0x15);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpage_program_cmd), 0x16);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpp_addr_mode), 0x17);
+        assert_eq!(offset_of!(SpiFlashCfgType, fast_read_cmd), 0x18);
+        assert_eq!(offset_of!(SpiFlashCfgType, fr_dmy_clk), 0x19);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpi_fast_read_cmd), 0x1a);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpi_fr_dmy_clk), 0x1b);
+        assert_eq!(offset_of!(SpiFlashCfgType, fast_read_do_cmd), 0x1c);
+        assert_eq!(offset_of!(SpiFlashCfgType, fr_do_dmy_clk), 0x1d);
+        assert_eq!(offset_of!(SpiFlashCfgType, fast_read_dio_cmd), 0x1e);
+        assert_eq!(offset_of!(SpiFlashCfgType, fr_dio_dmy_clk), 0x1f);
+        assert_eq!(offset_of!(SpiFlashCfgType, fast_read_qo_cmd), 0x20);
+        assert_eq!(offset_of!(SpiFlashCfgType, fr_qo_dmy_clk), 0x21);
+        assert_eq!(offset_of!(SpiFlashCfgType, fast_read_qio_cmd), 0x22);
+        assert_eq!(offset_of!(SpiFlashCfgType, fr_qio_dmy_clk), 0x23);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpi_fast_read_qio_cmd), 0x24);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpi_fr_qio_dmy_clk), 0x25);
+        assert_eq!(offset_of!(SpiFlashCfgType, qpi_page_program_cmd), 0x26);
+        assert_eq!(offset_of!(SpiFlashCfgType, writev_reg_enable_cmd), 0x27);
+        assert_eq!(offset_of!(SpiFlashCfgType, wr_enable_index), 0x28);
+        assert_eq!(offset_of!(SpiFlashCfgType, qe_index), 0x29);
+        assert_eq!(offset_of!(SpiFlashCfgType, busy_index), 0x2a);
+        assert_eq!(offset_of!(SpiFlashCfgType, wr_enable_bit), 0x2b);
+        assert_eq!(offset_of!(SpiFlashCfgType, qe_bit), 0x2c);
+        assert_eq!(offset_of!(SpiFlashCfgType, busy_bit), 0x2d);
+        assert_eq!(offset_of!(SpiFlashCfgType, wr_enable_write_reg_len), 0x2e);
+        assert_eq!(offset_of!(SpiFlashCfgType, wr_enable_read_reg_len), 0x2f);
+        assert_eq!(offset_of!(SpiFlashCfgType, qe_write_reg_len), 0x30);
+        assert_eq!(offset_of!(SpiFlashCfgType, qe_read_reg_len), 0x31);
+        assert_eq!(offset_of!(SpiFlashCfgType, release_power_down), 0x32);
+        assert_eq!(offset_of!(SpiFlashCfgType, busy_read_reg_len), 0x33);
+        assert_eq!(offset_of!(SpiFlashCfgType, read_reg_cmd), 0x34);
+        assert_eq!(offset_of!(SpiFlashCfgType, write_reg_cmd), 0x38);
+        assert_eq!(offset_of!(SpiFlashCfgType, enter_qpi), 0x3c);
+        assert_eq!(offset_of!(SpiFlashCfgType, exit_qpi), 0x3d);
+        assert_eq!(offset_of!(SpiFlashCfgType, c_read_mode), 0x3e);
+        assert_eq!(offset_of!(SpiFlashCfgType, cr_exit), 0x3f);
+        assert_eq!(offset_of!(SpiFlashCfgType, burst_wrap_cmd), 0x40);
+        assert_eq!(offset_of!(SpiFlashCfgType, burst_wrap_cmd_dmy_clk), 0x41);
+        assert_eq!(offset_of!(SpiFlashCfgType, burst_wrap_data_mode), 0x42);
+        assert_eq!(offset_of!(SpiFlashCfgType, burst_wrap_data), 0x43);
+        assert_eq!(offset_of!(SpiFlashCfgType, de_burst_wrap_cmd), 0x44);
+        assert_eq!(offset_of!(SpiFlashCfgType, de_burst_wrap_cmd_dmy_clk), 0x45);
+        assert_eq!(offset_of!(SpiFlashCfgType, de_burst_wrap_data_mode), 0x46);
+        assert_eq!(offset_of!(SpiFlashCfgType, de_burst_wrap_data), 0x47);
+        assert_eq!(offset_of!(SpiFlashCfgType, time_e_sector), 0x48);
+        assert_eq!(offset_of!(SpiFlashCfgType, time_e_32k), 0x4a);
+        assert_eq!(offset_of!(SpiFlashCfgType, time_e_64k), 0x4c);
+        assert_eq!(offset_of!(SpiFlashCfgType, time_page_pgm), 0x4e);
+        assert_eq!(offset_of!(SpiFlashCfgType, time_ce), 0x50);
+        assert_eq!(offset_of!(SpiFlashCfgType, pd_delay), 0x52);
+        assert_eq!(offset_of!(SpiFlashCfgType, qe_data), 0x53);
     }
 
     #[test]
