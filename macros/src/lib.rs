@@ -35,7 +35,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
 
     if !valid_signature {
         return parse::Error::new(
-            f.span(),
+            f.sig.span(),
             "`#[entry]` function must have signature `[unsafe] fn() -> !`",
         )
         .to_compile_error()
