@@ -6,15 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-memoffset = "0.8.0"
 bl-rom-rt-macros = { path = "macros" }
 
-[workspace]
-members = [
-    "macros",
-]
+[dev-dependencies]
+memoffset = "0.8.0"
 
 [features]
 bl808-m0 = []
 bl808-d0 = []
 bl808-lp = []
+
+[workspace]
+members = [
+    "macros",
+]

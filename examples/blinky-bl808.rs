@@ -1,17 +1,15 @@
 // Build this example with:
-// m0: 
+// m0:
 // cargo build --example blinky-bl808 --features bl808-m0 --target riscv32imac-unknown-none-elf --release
 // d0:
 // cargo build --example blinky-bl808 --features bl808-d0 --target riscv64imac-unknown-none-elf --release
-
 #![no_std]
 #![no_main]
-use core::arch::asm;
-use core::ptr;
 
-use bl_rom_rt;
+use bl_rom_rt::entry;
+use core::{arch::asm, ptr};
 
-#[bl_rom_rt::entry]
+#[entry]
 fn main() -> ! {
     unsafe {
         ptr::write_volatile(
