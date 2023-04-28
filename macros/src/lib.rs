@@ -1,4 +1,3 @@
-#![feature(box_patterns)]
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
@@ -32,7 +31,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
         && f.sig.generics.params.is_empty()
         && f.sig.generics.where_clause.is_none()
         && f.sig.variadic.is_none()
-        && matches!(f.sig.output, ReturnType::Type(_, box Type::Never(_)));
+        && matches!(f.sig.output, ReturnType::Type(_, ref t) if matches!(t.as_ref(), &Type::Never(_)));
 
     if !valid_signature {
         return parse::Error::new(
