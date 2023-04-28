@@ -12,8 +12,6 @@ bl-rom-rt-macros = { path = "macros" }
 [workspace]
 members = [
     "macros",
-    # "examples/baremetal-bl808-d0",
-    "examples/baremetal-bl808-m0",
 ]
 
 [features]

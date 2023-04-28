@@ -1,8 +1,15 @@
-#![feature(naked_functions, asm_const)]
+// Build this example with:
+// m0: 
+// cargo build --example blinky-bl808 --features bl808-m0 --target riscv32imac-unknown-none-elf --release
+// d0:
+// cargo build --example blinky-bl808 --features bl808-d0 --target riscv64imac-unknown-none-elf --release
+
 #![no_std]
 #![no_main]
 use core::arch::asm;
 use core::ptr;
+
+use bl_rom_rt;
 
 #[bl_rom_rt::entry]
 fn main() -> ! {
@@ -40,10 +47,7 @@ fn main() -> ! {
     }
 }
 
-#[cfg_attr(test, allow(unused))]
-#[cfg_attr(not(test), panic_handler)]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
-    loop {
-        core::hint::spin_loop();
-    }
+#[panic_handler]
+fn panic(_: &core::panic::PanicInfo) -> ! {
+    loop {}
 }
