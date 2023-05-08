@@ -1,8 +1,11 @@
 // Build this example with:
 // m0:
+// rustup target install riscv32imac-unknown-none-elf
 // cargo build --example blinky-bl808 --features bl808-m0 --target riscv32imac-unknown-none-elf --release
 // d0:
+// rustup target install riscv64imac-unknown-none-elf
 // cargo build --example blinky-bl808 --features bl808-d0 --target riscv64imac-unknown-none-elf --release
+
 #![no_std]
 #![no_main]
 

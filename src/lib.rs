@@ -32,7 +32,7 @@ unsafe extern "C" fn start() -> ! {
             add     sp, sp, t0",
         "   la      t1, sbss
             la      t2, ebss
-    	1:  bgeu    t1, t2, 1f
+        1:  bgeu    t1, t2, 1f
             sw      zero, 0(t1)
             addi    t1, t1, 4
             j       1b
@@ -56,13 +56,13 @@ unsafe extern "C" fn start() -> ! {
         "   la      sp, {stack}
             li      t0, {hart_stack_size}
             add     sp, sp, t0",
-        "	la  	t1, sbss
-        	la   	t2, ebss
-    	1:  bgeu 	t1, t2, 1f
-        	sd   	zero, 0(t1) 
-        	addi 	t1, t1, 8 
-        	j    	1b
-    	1:",
+        "   la      t1, sbss
+            la      t2, ebss
+        1:  bgeu    t1, t2, 1f
+            sd      zero, 0(t1) 
+            addi    t1, t1, 8 
+            j       1b
+        1:",
         "   call    {main}",
         stack = sym STACK,
         hart_stack_size = const LEN_STACK_D0,

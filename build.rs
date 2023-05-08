@@ -31,7 +31,7 @@ SECTIONS {
         KEEP(*(.head.base.flag));
         LONG(ADDR(.text) - ORIGIN(PSEUDO_HEADER));
         KEEP(*(.head.base.aes-region));
-        LONG(SIZEOF(.text));
+        LONG(SIZEOF(.text) + SIZEOF(.rodata) + SIZEOF(.data));
         KEEP(*(.head.base.hash));
         KEEP(*(.head.cpu));
         LONG(0);
@@ -99,7 +99,7 @@ SECTIONS {
         KEEP(*(.head.base.flag));
         LONG(ADDR(.text) - ORIGIN(PSEUDO_HEADER));
         KEEP(*(.head.base.aes-region));
-        LONG(SIZEOF(.text));
+        LONG(SIZEOF(.text) + SIZEOF(.rodata) + SIZEOF(.data));
         KEEP(*(.head.base.hash));
         KEEP(*(.head.cpu));
         LONG(0);
