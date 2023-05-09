@@ -1,4 +1,7 @@
+use byteorder::{BigEndian, ReadBytesExt};
 use clap::Parser;
+use std::fs::File;
+use std::io::{Seek, SeekFrom};
 
 /// Bouffalo ROM image helper
 #[derive(Parser, Debug)]
@@ -11,9 +14,38 @@ struct Args {
     output: Option<String>,
 }
 
+const HEAD_MAGIC: u32 = 0x42464e50;
+const FLASH_MAGIC: u32 = 0x46434647;
+const CLK_MAGIC: u32 = 0x50434647;
+
 fn main() {
     let args = Args::parse();
+    let mut f = File::open(args.input).unwrap();
 
-    println!("Input file name: {}!", args.input);
-    println!("Output file name: {:?}!", args.output);
+    f.seek(SeekFrom::Start(0x00)).unwrap();
+    let head_magic = f.read_u32::<BigEndian>().unwrap();
+
+    if head_magic != HEAD_MAGIC {
+        println!("error: incorrect magic number!");
+        return;
+    }
+
+    f.seek(SeekFrom::Start(0x08)).unwrap();
+    let flash_magic = f.read_u32::<BigEndian>().unwrap();
+
+    if flash_magic != FLASH_MAGIC {
+        println!("error: incorrect flash config magic!");
+        return;
+    }
+
+    f.seek(SeekFrom::Start(0x64)).unwrap();
+    let clk_magic = f.read_u32::<BigEndian>().unwrap();
+
+    if clk_magic != CLK_MAGIC {
+        println!("error: incorrect clock config magic!");
+        return;
+    }
+
+    // println!("Input file name: {}!", args.input);
+    // println!("Output file name: {:?}!", args.output);
 }
