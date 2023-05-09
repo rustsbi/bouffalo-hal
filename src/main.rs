@@ -1,7 +1,7 @@
-use byteorder::{BigEndian, ReadBytesExt};
+use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use clap::Parser;
 use std::fs::File;
-use std::io::{Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom};
 
 /// Bouffalo ROM image helper
 #[derive(Parser, Debug)]
@@ -45,6 +45,19 @@ fn main() {
         println!("error: incorrect clock config magic!");
         return;
     }
+
+    f.seek(SeekFrom::Start(0x84)).unwrap();
+    let group_magic_offset = f.read_u32::<LittleEndian>().unwrap();
+
+    f.seek(SeekFrom::Start(0x8C)).unwrap();
+    let img_len_cnt = f.read_u32::<LittleEndian>().unwrap();
+
+    f.seek(SeekFrom::Start(group_magic_offset as u64)).unwrap();
+    let mut buffer = vec![0; img_len_cnt as usize];
+
+    let _ = f.read(&mut buffer).unwrap();
+
+    println!("image content: {:?}", buffer);
 
     // println!("Input file name: {}!", args.input);
     // println!("Output file name: {:?}!", args.output);
