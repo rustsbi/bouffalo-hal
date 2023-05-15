@@ -257,6 +257,47 @@ pub struct HalPllConfig {
     crc32: u32,
 }
 
+impl HalPllConfig {
+    /// Create this structure with magic number and CRC32 filled in compile time.
+    #[inline]
+    const fn new(cfg: HalSysClkConfig) -> Self {
+        let mut buf = [0u8; 20];
+
+        buf[0] = cfg.xtal_type;
+        buf[1] = cfg.mcu_clk;
+        buf[2] = cfg.mcu_clk_div;
+        buf[3] = cfg.mcu_bclk_div;
+
+        buf[4] = cfg.mcu_pbclk_div;
+        buf[5] = cfg.lp_div;
+        buf[6] = cfg.dsp_clk;
+        buf[7] = cfg.dsp_clk_div;
+
+        buf[8] = cfg.dsp_bclk_div;
+        buf[9] = cfg.dsp_pbclk;
+        buf[10] = cfg.dsp_pbclk_div;
+        buf[11] = cfg.emi_clk;
+
+        buf[12] = cfg.emi_clk_div;
+        buf[13] = cfg.flash_clk_type;
+        buf[14] = cfg.flash_clk_div;
+        buf[15] = cfg.wifipll_pu;
+
+        buf[16] = cfg.aupll_pu;
+        buf[17] = cfg.cpupll_pu;
+        buf[18] = cfg.mipipll_pu;
+        buf[19] = cfg.uhspll_pu;
+
+        let crc32 = crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(&buf);
+
+        HalPllConfig {
+            magic: 0x47464350,
+            cfg,
+            crc32,
+        }
+    }
+}
+
 #[repr(C)]
 struct HalSysClkConfig {
     xtal_type: u8,
@@ -445,36 +486,32 @@ pub static FLASH_CONFIG: HalFlashConfig = HalFlashConfig {
 };
 
 #[link_section = ".head.clock"]
-pub static CLOCK_CONFIG: HalPllConfig = HalPllConfig {
-    magic: 0x47464350,
-    cfg: HalSysClkConfig {
-        xtal_type: 0x07,
-        mcu_clk: 0x04,
-        mcu_clk_div: 0x00,
-        mcu_bclk_div: 0x00,
+pub static CLOCK_CONFIG: HalPllConfig = HalPllConfig::new(HalSysClkConfig {
+    xtal_type: 0x07,
+    mcu_clk: 0x04,
+    mcu_clk_div: 0x00,
+    mcu_bclk_div: 0x00,
 
-        mcu_pbclk_div: 0x03,
-        lp_div: 0x01,
-        dsp_clk: 0x03,
-        dsp_clk_div: 0x00,
+    mcu_pbclk_div: 0x03,
+    lp_div: 0x01,
+    dsp_clk: 0x03,
+    dsp_clk_div: 0x00,
 
-        dsp_bclk_div: 0x01,
-        dsp_pbclk: 0x02,
-        dsp_pbclk_div: 0x02,
-        emi_clk: 0x02,
+    dsp_bclk_div: 0x01,
+    dsp_pbclk: 0x02,
+    dsp_pbclk_div: 0x02,
+    emi_clk: 0x02,
 
-        emi_clk_div: 0x01,
-        flash_clk_type: 0x01,
-        flash_clk_div: 0x00,
-        wifipll_pu: 0x01,
+    emi_clk_div: 0x01,
+    flash_clk_type: 0x01,
+    flash_clk_div: 0x00,
+    wifipll_pu: 0x01,
 
-        aupll_pu: 0x01,
-        cpupll_pu: 0x01,
-        mipipll_pu: 0x01,
-        uhspll_pu: 0x01,
-    },
-    crc32: 0xdeadbeef,
-};
+    aupll_pu: 0x01,
+    cpupll_pu: 0x01,
+    mipipll_pu: 0x01,
+    uhspll_pu: 0x01,
+});
 
 #[link_section = ".head.base.flag"]
 pub static BASIC_CONFIG_FLAGS: u32 = 0x654c0100;
@@ -574,6 +611,35 @@ mod tests {
         assert_eq!(size_of::<HalPatchCfg>(), 8);
         assert_eq!(size_of::<HalBootheader>(), 352);
         assert_eq!(size_of::<SpiFlashCfgType>(), 84);
+    }
+
+    #[test]
+    fn magic_crc32_hal_pll_config() {
+        let test_sys_clk_config = HalSysClkConfig {
+            xtal_type: 4,
+            mcu_clk: 4,
+            mcu_clk_div: 0,
+            mcu_bclk_div: 0,
+            mcu_pbclk_div: 3,
+            lp_div: 1,
+            dsp_clk: 3,
+            dsp_clk_div: 0,
+            dsp_bclk_div: 1,
+            dsp_pbclk: 2,
+            dsp_pbclk_div: 0,
+            emi_clk: 2,
+            emi_clk_div: 1,
+            flash_clk_type: 1,
+            flash_clk_div: 0,
+            wifipll_pu: 1,
+            aupll_pu: 1,
+            cpupll_pu: 1,
+            mipipll_pu: 1,
+            uhspll_pu: 1,
+        };
+        let test_config = HalPllConfig::new(test_sys_clk_config);
+        assert_eq!(test_config.magic, 0x47464350);
+        assert_eq!(test_config.crc32, 0x29e2c4c0);
     }
 
     #[test]
