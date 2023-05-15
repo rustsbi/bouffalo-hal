@@ -1,6 +1,10 @@
 [package]
 name = "bl-soc"
 version = "0.1.0"
+authors = [
+    "Mingrui Ma <m202271767@hust.edu.cn>",
+    "Zeqing Qin <zeqing@hust.edu.cn>"
+]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

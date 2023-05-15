@@ -1,4 +1,8 @@
-use crate::{glb::Function, GLB};
+//! General Purpose Input/Output.
+use crate::{
+    glb::{Drive, Function, InterruptMode, Mode, Pull},
+    GLB,
+};
 use base_address::BaseAddress;
 use core::marker::PhantomData;
 use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
@@ -25,6 +29,9 @@ pub struct Output<MODE> {
     _mode: PhantomData<MODE>,
 }
 
+/// Disabled (type state)
+pub struct Disabled;
+
 /// Pulled down (type state)
 pub struct PullDown;
 
@@ -39,6 +46,10 @@ impl<MODE> Alternate for Input<MODE> {
 }
 
 impl<MODE> Alternate for Output<MODE> {
+    const F: Function = Function::Gpio;
+}
+
+impl Alternate for Disabled {
     const F: Function = Function::Gpio;
 }
 
@@ -87,4 +98,158 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
         let config = self.base.gpio_config[N].read().disable_schmitt();
         self.base.gpio_config[N].write(config);
     }
+    /// Clear interrupt flag.
+    #[inline]
+    pub fn clear_interrupt(&mut self) {
+        let config = self.base.gpio_config[N].read().clear_interrupt();
+        self.base.gpio_config[N].write(config);
+    }
+    /// Check if interrupt flag is set.
+    #[inline]
+    pub fn has_interrupt(&self) -> bool {
+        self.base.gpio_config[N].read().has_interrupt()
+    }
+    /// Mask interrupt.
+    #[inline]
+    pub fn mask_interrupt(&mut self) {
+        let config = self.base.gpio_config[N].read().mask_interrupt();
+        self.base.gpio_config[N].write(config);
+    }
+    /// Unmask interrupt.
+    #[inline]
+    pub fn unmask_interrupt(&mut self) {
+        let config = self.base.gpio_config[N].read().unmask_interrupt();
+        self.base.gpio_config[N].write(config);
+    }
+    /// Get interrupt mode.
+    #[inline]
+    pub fn interrupt_mode(&self) -> InterruptMode {
+        self.base.gpio_config[N].read().interrupt_mode()
+    }
+    /// Set interrupt mode.
+    #[inline]
+    pub fn set_interrupt_mode(&mut self, val: InterruptMode) {
+        let config = self.base.gpio_config[N].read().set_interrupt_mode(val);
+        self.base.gpio_config[N].write(config);
+    }
+}
+
+impl<A: BaseAddress, const N: usize, M> Pin<A, N, Output<M>> {
+    /// Get drive strength of this pin.
+    #[inline]
+    pub fn drive(&self) -> Drive {
+        self.base.gpio_config[N].read().drive()
+    }
+    /// Set drive strength of this pin.
+    #[inline]
+    pub fn set_drive(&mut self, val: Drive) {
+        let config = self.base.gpio_config[N].read().set_drive(val);
+        self.base.gpio_config[N].write(config);
+    }
+}
+
+impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+    /// Configures the pin to operate as a pull up output pin.
+    #[inline]
+    pub fn into_pull_up_output(self) -> Pin<A, N, Output<PullUp>> {
+        let config = self.base.gpio_config[N]
+            .read()
+            .set_function(Function::Gpio)
+            .set_mode(Mode::SetClear)
+            .disable_input()
+            .enable_output()
+            .set_pull(Pull::Up);
+        self.base.gpio_config[N].write(config);
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    /// Configures the pin to operate as a pull down output pin.
+    #[inline]
+    pub fn into_pull_down_output(self) -> Pin<A, N, Output<PullDown>> {
+        let config = self.base.gpio_config[N]
+            .read()
+            .set_function(Function::Gpio)
+            .set_mode(Mode::SetClear)
+            .disable_input()
+            .enable_output()
+            .set_pull(Pull::Down);
+        self.base.gpio_config[N].write(config);
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    /// Configures the pin to operate as a floating output pin.
+    #[inline]
+    pub fn into_floating_output(self) -> Pin<A, N, Output<Floating>> {
+        let config = self.base.gpio_config[N]
+            .read()
+            .set_function(Function::Gpio)
+            .set_mode(Mode::SetClear)
+            .disable_input()
+            .enable_output()
+            .set_pull(Pull::None);
+        self.base.gpio_config[N].write(config);
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    /// Configures the pin to operate as a pull up input pin.
+    #[inline]
+    pub fn into_pull_up_input(self) -> Pin<A, N, Input<PullUp>> {
+        let config = self.base.gpio_config[N]
+            .read()
+            .set_function(Function::Gpio)
+            .set_mode(Mode::SetClear)
+            .enable_input()
+            .disable_output()
+            .set_pull(Pull::Up);
+        self.base.gpio_config[N].write(config);
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    /// Configures the pin to operate as a pull down input pin.
+    #[inline]
+    pub fn into_pull_down_input(self) -> Pin<A, N, Input<PullDown>> {
+        let config = self.base.gpio_config[N]
+            .read()
+            .set_function(Function::Gpio)
+            .set_mode(Mode::SetClear)
+            .enable_input()
+            .disable_output()
+            .set_pull(Pull::Down);
+        self.base.gpio_config[N].write(config);
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    /// Configures the pin to operate as a floating input pin.
+    #[inline]
+    pub fn into_floating_input(self) -> Pin<A, N, Input<Floating>> {
+        let config = self.base.gpio_config[N]
+            .read()
+            .set_function(Function::Gpio)
+            .set_mode(Mode::SetClear)
+            .enable_input()
+            .disable_output()
+            .set_pull(Pull::None);
+        self.base.gpio_config[N].write(config);
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+}
+
+/// Available GPIO pins.
+pub struct Pins<A: BaseAddress> {
+    pub io8: Pin<A, 8, Disabled>,
+    pub io22: Pin<A, 22, Disabled>,
+    pub io23: Pin<A, 23, Disabled>,
 }
