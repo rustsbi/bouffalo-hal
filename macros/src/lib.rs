@@ -15,10 +15,21 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let f = parse_macro_input!(input as ItemFn);
 
+    #[cfg(not(feature = "rom-peripherals"))]
     if f.sig.inputs.len() != 0 {
         return parse::Error::new(
             f.sig.inputs.span(),
-            "`#[entry]` function should not include any parameter",
+            "`#[entry]` function without rom peripherals should not include any parameter",
+        )
+        .to_compile_error()
+        .into();
+    }
+
+    #[cfg(feature = "rom-peripherals")]
+    if f.sig.inputs.len() > 1 {
+        return parse::Error::new(
+            f.sig.inputs.span(),
+            "`#[entry]` function with rom peripherlas should include zero or one parameter",
         )
         .to_compile_error()
         .into();
@@ -34,9 +45,17 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
         && matches!(f.sig.output, ReturnType::Type(_, ref t) if matches!(t.as_ref(), &Type::Never(_)));
 
     if !valid_signature {
+        #[cfg(not(feature = "rom-peripherals"))]
         return parse::Error::new(
             f.sig.span(),
             "`#[entry]` function must have signature `[unsafe] fn() -> !`",
+        )
+        .to_compile_error()
+        .into();
+        #[cfg(feature = "rom-peripherals")]
+        return parse::Error::new(
+            f.sig.span(),
+            "`#[entry]` function must have signature `[unsafe] fn([p: Peripherals]) -> !`",
         )
         .to_compile_error()
         .into();
@@ -45,14 +64,28 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     let attrs = f.attrs;
     let unsafety = f.sig.unsafety;
     let stmts = f.block.stmts;
+    #[cfg(feature = "rom-peripherals")]
+    let inputs = f.sig.inputs;
 
-    quote!(
-        #[allow(non_snake_case)]
-        #[export_name = "main"]
-        #(#attrs)*
-        pub #unsafety fn __bl_rom_rt__main() -> ! {
-            #(#stmts)*
-        }
-    )
+    match () {
+        #[cfg(not(feature = "rom-peripherals"))]
+        () => quote!(
+            #[allow(non_snake_case)]
+            #[export_name = "main"]
+            #(#attrs)*
+            pub #unsafety fn __bl_rom_rt__main() -> ! {
+                #(#stmts)*
+            }
+        ),
+        #[cfg(feature = "rom-peripherals")]
+        () => quote!(
+            #[allow(non_snake_case)]
+            #[export_name = "main"]
+            #(#attrs)*
+            pub #unsafety fn __bl_rom_rt__main(#inputs) -> ! {
+                #(#stmts)*
+            }
+        ),
+    }
     .into()
 }
