@@ -8,14 +8,19 @@ edition = "2021"
 [dependencies]
 bl-rom-rt-macros = { path = "macros" }
 crc = "3.0.1"
+bl-soc = { git = "https://gitee.com/rustsbi/bl-soc", rev = "2852a4e", optional = true }
+base-address = { version = "0.0.0", optional = true }
 
 [dev-dependencies]
 memoffset = "0.8.0"
+embedded-hal = "1.0.0-alpha.10"
 
 [features]
+default = ["rom-peripherals"]
 bl808-m0 = []
 bl808-d0 = []
 bl808-lp = []
+rom-peripherals = ["bl-rom-rt-macros/rom-peripherals", "dep:bl-soc", "dep:base-address"]
 
 [workspace]
 members = [

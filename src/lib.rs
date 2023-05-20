@@ -1,6 +1,9 @@
 #![feature(naked_functions, asm_const)]
 #![no_std]
 
+#[cfg(feature = "rom-peripherals")]
+use base_address::Static;
+
 #[cfg(any(feature = "bl808-m0", feature = "bl808-d0"))]
 use core::arch::asm;
 
@@ -676,6 +679,15 @@ pub static PATCH_ON_JUMP: [HalPatchCfg; 4] = [
 
 #[link_section = ".head.crc32"]
 pub static CRC32: u32 = 0xdeadbeef;
+
+/// Peripherals available on ROM start.
+#[cfg(feature = "rom-peripherals")]
+pub struct Peripherals {
+    /// Global configuration peripheral.
+    pub glb: bl_soc::GLB<Static<0x20000000>>,
+    /// General Purpose Input/Output pins.
+    pub gpio: bl_soc::gpio::Pins<Static<0x20000000>>,
+}
 
 #[cfg(test)]
 mod tests {
