@@ -9,42 +9,21 @@
 #![no_std]
 #![no_main]
 
-use bl_rom_rt::entry;
-use core::{arch::asm, ptr};
+use bl_rom_rt::{entry, Peripherals};
+use embedded_hal::digital::OutputPin;
 
 #[entry]
-fn main() -> ! {
-    unsafe {
-        ptr::write_volatile(
-            0x200008e4 as *mut u32,
-            (ptr::read_volatile(0x200008e4 as *mut u32) & 0x3fffffae) | 0x40000050,
-        )
-    };
-    unsafe {
-        ptr::write_volatile(
-            0x200008e4 as *mut u32,
-            ptr::read_volatile(0x200008e4 as *mut u32) & 0xfdffffff,
-        )
-    };
+fn main(p: Peripherals) -> ! {
+    let mut led = p.gpio.io8.into_floating_output();
     loop {
+        led.set_low().ok();
         for _ in 0..100_000 {
-            unsafe { asm!("nop") };
+            unsafe { core::arch::asm!("nop") }
         }
-        unsafe {
-            ptr::write_volatile(
-                0x200008e4 as *mut u32,
-                ptr::read_volatile(0x200008e4 as *mut u32) | 0x02000000,
-            )
-        };
+        led.set_high().ok();
         for _ in 0..100_000 {
-            unsafe { asm!("nop") };
+            unsafe { core::arch::asm!("nop") }
         }
-        unsafe {
-            ptr::write_volatile(
-                0x200008e4 as *mut u32,
-                ptr::read_volatile(0x200008e4 as *mut u32) | 0x04000000,
-            )
-        };
     }
 }
 
