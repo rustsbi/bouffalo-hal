@@ -5,6 +5,7 @@ use core::ops;
 
 pub mod glb;
 pub mod gpio;
+pub mod jtag;
 
 /// Global register.
 pub struct GLB<A: BaseAddress> {

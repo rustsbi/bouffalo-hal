@@ -253,6 +253,8 @@ impl GpioConfig {
     pub const fn set_pull(self, val: Pull) -> Self {
         Self((self.0 & !Self::PULL) | ((val as u32) << 4))
     }
+    /// Reset value of GPIO_CONFIG register.
+    pub(crate) const RESET_VALUE: Self = Self(0x0040_0b02);
 }
 
 /// Pin drive strength.

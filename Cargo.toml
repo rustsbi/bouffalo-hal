@@ -13,3 +13,12 @@ edition = "2021"
 base-address = "0.0.0"
 volatile-register = "0.2.1"
 embedded-hal = "1.0.0-alpha.10"
+
+[dev-dependencies]
+panic-halt = "0.2.0"
+
+[dev-dependencies.bl-rom-rt]
+git = "https://gitee.com/rustsbi/bl-rom-rt"
+branch = "main"
+default-features = false
+features = ["bl808-d0"]

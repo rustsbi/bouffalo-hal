@@ -9,8 +9,8 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 
 /// Individual GPIO pin.
 pub struct Pin<A: BaseAddress, const N: usize, M: Alternate> {
-    base: GLB<A>,
-    _mode: PhantomData<M>,
+    pub(crate) base: GLB<A>,
+    pub(crate) _mode: PhantomData<M>,
 }
 
 /// Alternate type state.
@@ -249,7 +249,18 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
 
 /// Available GPIO pins.
 pub struct Pins<A: BaseAddress> {
+    // GPIO I/O 0.
+    pub io0: Pin<A, 0, Disabled>,
+    // GPIO I/O 1.
+    pub io1: Pin<A, 1, Disabled>,
+    // GPIO I/O 2.
+    pub io2: Pin<A, 2, Disabled>,
+    // GPIO I/O 3.
+    pub io3: Pin<A, 3, Disabled>,
+    // GPIO I/O 8.
     pub io8: Pin<A, 8, Disabled>,
+    // GPIO I/O 22.
     pub io22: Pin<A, 22, Disabled>,
+    // GPIO I/O 23.
     pub io23: Pin<A, 23, Disabled>,
 }
