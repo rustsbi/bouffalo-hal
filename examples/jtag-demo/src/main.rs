@@ -1,6 +1,6 @@
 // Build this example with:
 // rustup target install riscv64imac-unknown-none-elf
-// cargo build --example jtag-bl808-d0 --target riscv64imac-unknown-none-elf --release
+// cargo build --target riscv64imac-unknown-none-elf --release -p bl-soc-example-jtag-demo
 
 #![no_std]
 #![no_main]
