@@ -335,3 +335,18 @@ pub enum Pull {
     Up = 1,
     Down = 2,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::RegisterBlock;
+    use memoffset::offset_of;
+
+    #[test]
+    fn struct_register_block_offset() {
+        assert_eq!(offset_of!(RegisterBlock, gpio_config), 0x8c4);
+        assert_eq!(offset_of!(RegisterBlock, gpio_input), 0xac4);
+        assert_eq!(offset_of!(RegisterBlock, gpio_output), 0xae4);
+        assert_eq!(offset_of!(RegisterBlock, gpio_set), 0xaec);
+        assert_eq!(offset_of!(RegisterBlock, gpio_clear), 0xaf4);
+    }
+}
