@@ -1,3 +1,4 @@
+//! Bouffalo chip ROM runtime library.
 #![feature(naked_functions, asm_const)]
 #![no_std]
 
@@ -22,13 +23,21 @@ extern "Rust" {
     fn main() -> !;
 }
 
+/// RISC-V program stack.
+///
+/// In standard RISC-V ABI specification, the stack grows downward and
+/// the stack pointer is always kept 16-byte aligned.
+#[cfg(any(feature = "bl808-m0", feature = "bl808-d0"))]
+#[repr(align(16))]
+struct Stack<const N: usize>([u8; N]);
+
 #[cfg(feature = "bl808-m0")]
 #[naked]
 #[link_section = ".text.entry"]
 #[export_name = "_start"]
 unsafe extern "C" fn start() -> ! {
     #[link_section = ".bss.uninit"]
-    static mut STACK: [u8; crate::LEN_STACK_M0] = [0; LEN_STACK_M0];
+    static mut STACK: Stack<LEN_STACK_M0> = Stack([0; LEN_STACK_M0]);
     asm!(
         "   la      sp, {stack}
             li      t0, {hart_stack_size}
@@ -38,6 +47,16 @@ unsafe extern "C" fn start() -> ! {
         1:  bgeu    t1, t2, 1f
             sw      zero, 0(t1)
             addi    t1, t1, 4
+            j       1b
+        1:",
+        "   la      t3, sidata
+            la      t4, sdata
+            la      t5, edata
+        1:  bgeu    t4, t5, 1f
+            lw      t6, 0(t3)
+            sw      t6, 0(t4)
+            addi    t3, t3, 4
+            addi    t4, t4, 4
             j       1b
         1:",
         "   call  {main}",
@@ -54,7 +73,7 @@ unsafe extern "C" fn start() -> ! {
 #[export_name = "_start"]
 unsafe extern "C" fn start() -> ! {
     #[link_section = ".bss.uninit"]
-    static mut STACK: [u8; LEN_STACK_D0] = [0; LEN_STACK_D0];
+    static mut STACK: Stack<LEN_STACK_D0> = Stack([0; LEN_STACK_D0]);
     asm!(
         "   la      sp, {stack}
             li      t0, {hart_stack_size}
@@ -62,8 +81,18 @@ unsafe extern "C" fn start() -> ! {
         "   la      t1, sbss
             la      t2, ebss
         1:  bgeu    t1, t2, 1f
-            sd      zero, 0(t1) 
+            sd      zero, 0(t1)
             addi    t1, t1, 8 
+            j       1b
+        1:",
+        "   la      t3, sidata
+            la      t4, sdata
+            la      t5, edata
+        1:  bgeu    t4, t5, 1f
+            ld      t6, 0(t3)
+            sd      t6, 0(t4)
+            addi    t3, t3, 8
+            addi    t4, t4, 8
             j       1b
         1:",
         "   call    {main}",
@@ -74,6 +103,7 @@ unsafe extern "C" fn start() -> ! {
     )
 }
 
+/// Full ROM bootloading header.
 #[repr(C)]
 pub struct HalBootheader {
     magic: u32,
@@ -98,6 +128,7 @@ pub struct HalBootheader {
     crc32: u32,
 }
 
+/// Flash configuration in ROM header.
 #[repr(C)]
 pub struct HalFlashConfig {
     magic: u32,
@@ -341,6 +372,7 @@ struct SpiFlashCfgType {
     qe_data: u8,
 }
 
+/// Clock configuration in ROM header.
 #[repr(C)]
 pub struct HalPllConfig {
     magic: u32,
@@ -452,6 +484,7 @@ struct HalBasicConfig {
     hash: [u32; 8],
 }
 
+/// Processor core configuration in ROM header.
 #[repr(C)]
 pub struct HalCpuCfg {
     /// Config this cpu.
@@ -490,12 +523,14 @@ impl HalCpuCfg {
     }
 }
 
+/// Program or ROM code patches.
 #[repr(C)]
 pub struct HalPatchCfg {
     addr: u32,
     value: u32,
 }
 
+/// Flash configuration at boot-time.
 #[link_section = ".head.flash"]
 pub static FLASH_CONFIG: HalFlashConfig = HalFlashConfig::new(SpiFlashCfgType {
     io_mode: 0x11,
@@ -572,6 +607,7 @@ pub static FLASH_CONFIG: HalFlashConfig = HalFlashConfig::new(SpiFlashCfgType {
     qe_data: 0,
 });
 
+/// Clock configuration at boot-time.
 #[link_section = ".head.clock"]
 pub static CLOCK_CONFIG: HalPllConfig = HalPllConfig::new(HalSysClkConfig {
     xtal_type: 0x07,
@@ -600,15 +636,25 @@ pub static CLOCK_CONFIG: HalPllConfig = HalPllConfig::new(HalSysClkConfig {
     uhspll_pu: 0x01,
 });
 
+/// Miscellaneous image flags.
 #[link_section = ".head.base.flag"]
 pub static BASIC_CONFIG_FLAGS: u32 = 0x654c0100;
 
+/// Decrypt-on-fly region length.
+///
+/// Fixed at 0 by now.
 #[link_section = ".head.base.aes-region"]
 pub static BASIC_AES_REGION: u32 = 0;
 
+/// Image payload hash value.
+///
+/// It filles in 8 values of `0xdeadbeef` for we don't have method to emit
+/// hash value in compilation stages. The real value should be filled by
+/// following ROM image processing programs.
 #[link_section = ".head.base.hash"]
 pub static BASIC_HASH: [u32; 8] = [0xdeadbeef; 8];
 
+/// Processor core configuration.
 #[link_section = ".head.cpu"]
 pub static CPU_CONFIG: [HalCpuCfg; 3] = [
     #[cfg(feature = "bl808-m0")]
@@ -655,6 +701,7 @@ pub static CPU_CONFIG: [HalCpuCfg; 3] = [
     HalCpuCfg::disabled(),
 ];
 
+/// Code patches on flash reading.
 #[link_section = ".head.patch.on-read"]
 pub static PATCH_ON_READ: [HalPatchCfg; 4] = [
     HalPatchCfg { addr: 0, value: 0 },
@@ -663,6 +710,7 @@ pub static PATCH_ON_READ: [HalPatchCfg; 4] = [
     HalPatchCfg { addr: 0, value: 0 },
 ];
 
+/// Code patches on jump and run stage.
 #[link_section = ".head.patch.on-jump"]
 pub static PATCH_ON_JUMP: [HalPatchCfg; 4] = [
     HalPatchCfg {
@@ -677,6 +725,9 @@ pub static PATCH_ON_JUMP: [HalPatchCfg; 4] = [
     HalPatchCfg { addr: 0, value: 0 },
 ];
 
+/// Checksum of image header.
+///
+/// Real value should be fixed by ROM image processing programs.
 #[link_section = ".head.crc32"]
 pub static CRC32: u32 = 0xdeadbeef;
 
