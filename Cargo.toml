@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 byteorder = "1.4.3"
 clap = { version = "4.2.7", features = ["derive"] }
+crc = "3.0.1"
 sha2 = "0.10.6"
 thiserror = "1.0.40"
 
