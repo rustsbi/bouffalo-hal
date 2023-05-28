@@ -23,7 +23,7 @@ MEMORY {
     WRAM : ORIGIN = 0x62030000, LENGTH = 160K
 }
 SECTIONS {
-    .head : ALIGN(4) { 
+    .head : ALIGN(4) {
         LONG(0x504E4642);
         LONG(1);
         KEEP(*(.head.flash));
@@ -51,7 +51,9 @@ SECTIONS {
     } > PSEUDO_HEADER
     .text : ALIGN(4) {
         stext = .;
+        KEEP(*(.text.entry))
         *(.text .text.*)
+        . = ALIGN(4);
         etext = .;
     } > FLASH
     .rodata : ALIGN(4) {
@@ -87,11 +89,12 @@ OUTPUT_ARCH(riscv)
 ENTRY(_start) 
 MEMORY {
     PSEUDO_HEADER : ORIGIN = 0x58000000 - 0x1000, LENGTH = 4K
-    FLASH : ORIGIN = 0x58000000, LENGTH = 32M
-    DRAM : ORIGIN = 0x3EF80000, LENGTH = 512K 
+    FLASH : ORIGIN = 0x58000000, LENGTH = 32M - 4K
+    DRAM : ORIGIN = 0x3EFF7000, LENGTH = 4K
+    VRAM : ORIGIN = 0x3F000000, LENGTH = 32K
 }
 SECTIONS {
-    .head : ALIGN(8) { 
+    .head : ALIGN(8) {
         LONG(0x504E4642);
         LONG(1);
         KEEP(*(.head.flash));
@@ -117,31 +120,35 @@ SECTIONS {
         FILL(0xFFFFFFFF);
         . = ORIGIN(PSEUDO_HEADER) + LENGTH(PSEUDO_HEADER);
     } > PSEUDO_HEADER
-    .text : ALIGN(8) {  
+    .text : ALIGN(8) {
+        stext = .;
+        KEEP(*(.text.entry))
         *(.text .text.*)
+        . = ALIGN(8);
+        etext = .;
     } > FLASH
-    .rodata : ALIGN(8) { 
+    .rodata : ALIGN(8) {
         srodata = .;
         *(.rodata .rodata.*)
         *(.srodata .srodata.*)
-        . = ALIGN(8);  
+        . = ALIGN(8);
         erodata = .;
-    } > FLASH  
-    .data : ALIGN(8) { 
+    } > FLASH
+    .data : ALIGN(8) {
         sdata = .;
         *(.data .data.*)
         *(.sdata .sdata.*)
-        . = ALIGN(8); 
+        . = ALIGN(8);
         edata = .;
-    } > DRAM AT>FLASH
+    } > VRAM AT>FLASH
     sidata = LOADADDR(.data);
-    .bss (NOLOAD) : ALIGN(8) {  
+    .bss (NOLOAD) : ALIGN(8) {
         *(.bss.uninit)
         sbss = .;
         *(.bss .bss.*)
         *(.sbss .sbss.*)
         ebss = .;
-    } > DRAM  
+    } > VRAM
     /DISCARD/ : {
         *(.eh_frame)
     }
