@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 bl-rom-rt-macros = { path = "macros" }
 crc = "3.0.1"
-bl-soc = { git = "https://gitee.com/rustsbi/bl-soc", rev = "2852a4e", optional = true }
+bl-soc = { git = "https://gitee.com/rustsbi/bl-soc", branch = "main", optional = true }
 base-address = { version = "0.0.0", optional = true }
 
 [dev-dependencies]
