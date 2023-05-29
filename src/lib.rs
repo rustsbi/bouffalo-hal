@@ -91,7 +91,7 @@ pub fn check(f: &mut File) -> Result<Operations> {
     // read hash values from file
     f.seek(SeekFrom::Start(0x90))?;
     let mut read_hash = vec![0; 32];
-    let _ = f.read(&mut read_hash)?;
+    f.read_exact(&mut read_hash)?;
 
     // calculate hash
     f.seek(SeekFrom::Start(group_image_offset as u64))?;
@@ -125,7 +125,7 @@ pub fn check(f: &mut File) -> Result<Operations> {
 
     f.seek(SeekFrom::Start(0x00))?;
     let mut buf = vec![0u8; 0x15C];
-    let _ = f.read(&mut buf)?;
+    f.read_exact(&mut buf)?;
     let calculated_header_crc = crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(&buf);
 
     f.seek(SeekFrom::Start(0x15C))?;
