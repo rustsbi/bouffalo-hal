@@ -10,7 +10,7 @@ fn error_magic_number() {
     f.seek(SeekFrom::Start(0x0)).expect("seek to magic number");
     f.write_all(&[0x11, 0x22, 0x33, 0x44])
         .expect("prepare wrong magic number");
-    let ans = blri::process(&mut f);
+    let ans = blri::check(&mut f);
     if let Err(Error::MagicNumber { wrong_magic }) = ans {
         assert_eq!(wrong_magic, 0x11223344);
     } else {
