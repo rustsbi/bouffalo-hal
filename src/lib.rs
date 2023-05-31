@@ -17,9 +17,9 @@ pub enum Error {
     #[error("File is too short to include an image header, should include {HEAD_LENGTH} but only {wrong_length}")]
     HeadLength { wrong_length: u64 },
     #[error("Wrong flash config magic")]
-    FlashConfigMagic,
+    FlashConfigMagic { wrong_magic: u32 },
     #[error("Wrong clock config magic")]
-    ClockConfigMagic,
+    ClockConfigMagic { wrong_magic: u32 },
     #[error("Image offset overflow, offset {wrong_image_offset} and length {wrong_image_length} expected, but file length is {file_length}")]
     ImageOffsetOverflow {
         file_length: u64,
@@ -27,7 +27,7 @@ pub enum Error {
         wrong_image_length: u32,
     },
     #[error("Wrong sha256 checksum")]
-    Sha256Checksum,
+    Sha256Checksum { wrong_checksum: Vec<u8> },
 }
 
 /// Process operations.
@@ -65,13 +65,17 @@ pub fn check(f: &mut File) -> Result<Operations> {
     f.seek(SeekFrom::Start(0x08))?;
     let flash_magic = f.read_u32::<BigEndian>()?;
     if flash_magic != FLASH_MAGIC {
-        return Err(Error::FlashConfigMagic);
+        return Err(Error::FlashConfigMagic {
+            wrong_magic: flash_magic,
+        });
     }
 
     f.seek(SeekFrom::Start(0x64))?;
     let clk_magic = f.read_u32::<BigEndian>()?;
     if clk_magic != CLOCK_MAGIC {
-        return Err(Error::ClockConfigMagic);
+        return Err(Error::ClockConfigMagic {
+            wrong_magic: clk_magic,
+        });
     }
 
     f.seek(SeekFrom::Start(0x84))?;
@@ -115,7 +119,9 @@ pub fn check(f: &mut File) -> Result<Operations> {
             vec3[4 * i..4 * (i + 1)].copy_from_slice(&[0xef, 0xbe, 0xad, 0xde]);
         }
         if read_hash != vec2 && read_hash != vec3 {
-            return Err(Error::Sha256Checksum);
+            return Err(Error::Sha256Checksum {
+                wrong_checksum: read_hash,
+            });
         }
         Some(Vec::from(calculated_hash))
     } else {

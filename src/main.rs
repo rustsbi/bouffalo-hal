@@ -21,19 +21,19 @@ fn main() {
         Ok(ops) => ops,
         Err(e) => match e {
             Error::MagicNumber { wrong_magic } => {
-                println!("error: incorrect magic number {wrong_magic}!");
+                println!("error: incorrect magic number 0x{wrong_magic:08x}!");
                 return;
             }
             Error::HeadLength { wrong_length } => {
                 println!("File is too short to include an image header, it only includes {wrong_length} bytes");
                 return;
             }
-            Error::FlashConfigMagic => {
-                println!("error: incorrect flash config magic!");
+            Error::FlashConfigMagic { wrong_magic } => {
+                println!("error: incorrect flash config magic 0x{wrong_magic:08x}!");
                 return;
             }
-            Error::ClockConfigMagic => {
-                println!("error: incorrect clock config magic!");
+            Error::ClockConfigMagic { wrong_magic } => {
+                println!("error: incorrect clock config magic 0x{wrong_magic:08x}!");
                 return;
             }
             Error::ImageOffsetOverflow {
@@ -47,8 +47,12 @@ fn main() {
                 );
                 return;
             }
-            Error::Sha256Checksum => {
-                println!("error: wrong sha256 verification.");
+            Error::Sha256Checksum { wrong_checksum } => {
+                let mut wrong_checksum_hex = String::new();
+                for i in wrong_checksum {
+                    wrong_checksum_hex.push_str(&format!("{:02x}", i));
+                }
+                println!("error: wrong sha256 verification: {}.", wrong_checksum_hex);
                 return;
             }
             Error::Io(source) => {
