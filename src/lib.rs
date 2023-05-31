@@ -71,10 +71,10 @@ pub fn check(f: &mut File) -> Result<Operations> {
     }
 
     f.seek(SeekFrom::Start(0x64))?;
-    let clk_magic = f.read_u32::<BigEndian>()?;
-    if clk_magic != CLOCK_MAGIC {
+    let clock_magic = f.read_u32::<BigEndian>()?;
+    if clock_magic != CLOCK_MAGIC {
         return Err(Error::ClockConfigMagic {
-            wrong_magic: clk_magic,
+            wrong_magic: clock_magic,
         });
     }
 
@@ -82,45 +82,45 @@ pub fn check(f: &mut File) -> Result<Operations> {
     let group_image_offset = f.read_u32::<LittleEndian>()?;
 
     f.seek(SeekFrom::Start(0x8C))?;
-    let img_len_cnt = f.read_u32::<LittleEndian>()?;
+    let image_body_length = f.read_u32::<LittleEndian>()?;
 
-    if group_image_offset as u64 + img_len_cnt as u64 > file_length {
+    if group_image_offset as u64 + image_body_length as u64 > file_length {
         return Err(Error::ImageOffsetOverflow {
             file_length,
             wrong_image_offset: group_image_offset,
-            wrong_image_length: img_len_cnt,
+            wrong_image_length: image_body_length,
         });
     }
 
     // read hash values from file
     f.seek(SeekFrom::Start(0x90))?;
-    let mut read_hash = vec![0; 32];
-    f.read_exact(&mut read_hash)?;
+    let mut actual_hash = vec![0; 32];
+    f.read_exact(&mut actual_hash)?;
 
     // calculate hash
     f.seek(SeekFrom::Start(group_image_offset as u64))?;
     let mut hasher = Sha256::new();
-    let mut buffer = vec![0; img_len_cnt as usize];
+    let mut buffer = vec![0; image_body_length as usize];
     loop {
-        let n = f.read(&mut buffer)?;
-        if n == 0 {
+        let length_read = f.read(&mut buffer)?;
+        if length_read == 0 {
             break;
         }
-        hasher.update(&buffer[..n]);
+        hasher.update(&buffer[..length_read]);
     }
 
     let calculated_hash = &hasher.finalize()[..];
 
-    let refill_hash = if calculated_hash != read_hash {
-        let mut vec2 = vec![0u8; 32];
-        vec2[..4].copy_from_slice(&[0xef, 0xbe, 0xad, 0xde]);
-        let mut vec3 = vec![0u8; 32];
+    let refill_hash_operation = if calculated_hash != actual_hash {
+        let mut candidate_hash_1 = vec![0u8; 32];
+        candidate_hash_1[..4].copy_from_slice(&[0xef, 0xbe, 0xad, 0xde]);
+        let mut candidate_hash_2 = vec![0u8; 32];
         for i in 0..8 {
-            vec3[4 * i..4 * (i + 1)].copy_from_slice(&[0xef, 0xbe, 0xad, 0xde]);
+            candidate_hash_2[4 * i..4 * (i + 1)].copy_from_slice(&[0xef, 0xbe, 0xad, 0xde]);
         }
-        if read_hash != vec2 && read_hash != vec3 {
+        if actual_hash != candidate_hash_1 && actual_hash != candidate_hash_2 {
             return Err(Error::Sha256Checksum {
-                wrong_checksum: read_hash,
+                wrong_checksum: actual_hash,
             });
         }
         Some(Vec::from(calculated_hash))
@@ -137,15 +137,16 @@ pub fn check(f: &mut File) -> Result<Operations> {
     f.seek(SeekFrom::Start(0x15C))?;
     let read_head_crc = f.read_u32::<LittleEndian>()?;
 
-    let refill_header_crc = if read_head_crc != calculated_header_crc || refill_hash.is_some() {
-        Some(calculated_header_crc)
-    } else {
-        None
-    };
+    let refill_header_crc_operation =
+        if read_head_crc != calculated_header_crc || refill_hash_operation.is_some() {
+            Some(calculated_header_crc)
+        } else {
+            None
+        };
 
     Ok(Operations {
-        refill_hash,
-        refill_header_crc,
+        refill_hash: refill_hash_operation,
+        refill_header_crc: refill_header_crc_operation,
     })
 }
 
