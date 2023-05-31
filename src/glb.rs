@@ -6,19 +6,161 @@ use volatile_register::{RO, RW, WO};
 /// Generic Purpose Input/Output registers.
 #[repr(C)]
 pub struct RegisterBlock {
-    _reserved0: [u8; 0x8c4],
-    /// Generic Purpose Input/Output config
+    _reserved0: [u8; 0x150],
+    /// Universal Asynchronous Receiver/Transmitter clock and mode configurations.
+    pub uart_config: UART_CONFIG,
+    /// Universal Asynchronous Receiver/Transmitter signal multiplexer.
+    pub uart_mux_group: [UART_MUX_GROUP; 2],
+    _reserved1: [u8; 0x768],
+    /// Generic Purpose Input/Output config.
     pub gpio_config: [GPIO_CONFIG; 46],
-    _reserved1: [u8; 0x148],
-    /// Read value from Generic Purpose Input/Output pins
+    _reserved2: [u8; 0x148],
+    /// Read value from Generic Purpose Input/Output pins.
     pub gpio_input: [RO<u32>; 2],
-    _reserved2: [u8; 0x18],
-    /// Write value to Generic Purpose Input/Output pins
+    _reserved3: [u8; 0x18],
+    /// Write value to Generic Purpose Input/Output pins.
     pub gpio_output: [RW<u32>; 2],
-    /// Set pin output value to high
+    /// Set pin output value to high.
     pub gpio_set: [WO<u32>; 2],
-    /// Clear pin output value to low
+    /// Clear pin output value to low.
     pub gpio_clear: [WO<u32>; 2],
+}
+
+/// Universal Asynchronous Receiver/Transmitter clock and mode configuration.
+#[allow(non_camel_case_types)]
+#[repr(transparent)]
+pub struct UART_CONFIG(UnsafeCell<u32>);
+
+/// Configuration structure for Universal Asynchronous Receiver/Transmitter clock and mode configuration.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct UartConfig(u32);
+
+impl UART_CONFIG {
+    /// Read UART config.
+    #[inline]
+    pub fn read(&self) -> UartConfig {
+        UartConfig(unsafe { self.0.get().read_volatile() })
+    }
+    /// Write UART config.
+    #[inline]
+    pub fn write(&self, val: UartConfig) {
+        unsafe { self.0.get().write_volatile(val.0) }
+    }
+}
+
+impl UartConfig {
+    const CLOCK_DIVIDE: u32 = 0x3 << 0;
+    const CLOCK_ENABLE: u32 = 0x1 << 4;
+
+    /// Set peripheral clock divide factor.
+    #[inline]
+    pub const fn set_clock_divide(self, val: u8) -> Self {
+        Self(self.0 & !Self::CLOCK_DIVIDE | (val as u32))
+    }
+    /// Get peripheral clock divide factor.
+    #[inline]
+    pub const fn clock_divide(self) -> u8 {
+        (self.0 & Self::CLOCK_DIVIDE) as u8
+    }
+    /// Enable peripheral level clock gate.
+    #[inline]
+    pub const fn enable_clock(self) -> Self {
+        Self(self.0 | Self::CLOCK_ENABLE)
+    }
+    /// Disable peripheral level clock gate.
+    #[inline]
+    pub const fn disable_clock(self) -> Self {
+        Self(self.0 & !Self::CLOCK_ENABLE)
+    }
+    /// Check if peripheral level clock gate is enabled.
+    #[inline]
+    pub const fn is_clock_enabled(self) -> bool {
+        self.0 & Self::CLOCK_ENABLE != 0
+    }
+}
+
+/// Universal Asynchronous Receiver/Transmitter signal configuration register.
+#[allow(non_camel_case_types)]
+#[repr(transparent)]
+pub struct UART_MUX_GROUP(UnsafeCell<u32>);
+
+/// Configuration structure for UART signal multiplexer group.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct UartMuxGroup(u32);
+
+impl UART_MUX_GROUP {
+    /// Read UART signal multiplexer group configuration.
+    #[inline]
+    pub fn read(&self) -> UartMuxGroup {
+        UartMuxGroup(unsafe { self.0.get().read_volatile() })
+    }
+    /// Write UART signal multiplexer group configuration.
+    #[inline]
+    pub fn write(&self, val: UartMuxGroup) {
+        unsafe { self.0.get().write_volatile(val.0) }
+    }
+}
+
+/// UART multiplexer signal configuration.
+#[repr(u8)]
+pub enum UartSignal {
+    /// UART0 Request-to-Send signal.
+    Rts0 = 0,
+    /// UART0 Clear-to-Send signal.
+    Cts0 = 1,
+    /// UART0 Transmit signal.
+    Txd0 = 2,
+    /// UART0 Receive signal.
+    Rxd0 = 3,
+    /// UART1 Request-to-Send signal.
+    Rts1 = 4,
+    /// UART1 Clear-to-Send signal.
+    Cts1 = 5,
+    /// UART1 Transmit signal.
+    Txd1 = 6,
+    /// UART1 Receive signal.
+    Rxd1 = 7,
+    /// UART2 Request-to-Send signal.
+    Rts2 = 8,
+    /// UART2 Clear-to-Send signal.
+    Cts2 = 9,
+    /// UART2 Transmit signal.
+    Txd2 = 10,
+    /// UART2 Receive signal.
+    Rxd2 = 11,
+}
+
+impl UartMuxGroup {
+    const SIGNAL: u32 = 0xf;
+
+    /// Set signal for UART multiplexer.
+    #[inline]
+    pub const fn set_signal(self, idx: usize, val: UartSignal) -> Self {
+        assert!(idx <= 7);
+        Self((self.0 & !(Self::SIGNAL << (idx * 4))) | ((val as u32) << (idx * 4)))
+    }
+    /// Get signal for UART multiplexer.
+    #[inline]
+    pub const fn signal(self, idx: usize) -> UartSignal {
+        assert!(idx <= 7);
+        match (self.0 & (Self::SIGNAL << (idx * 4))) >> (idx * 4) {
+            0 => UartSignal::Rts0,
+            1 => UartSignal::Cts0,
+            2 => UartSignal::Txd0,
+            3 => UartSignal::Rxd0,
+            4 => UartSignal::Rts1,
+            5 => UartSignal::Cts1,
+            6 => UartSignal::Txd1,
+            7 => UartSignal::Rxd1,
+            8 => UartSignal::Rts2,
+            9 => UartSignal::Cts2,
+            10 => UartSignal::Txd2,
+            11 => UartSignal::Rxd2,
+            _ => unreachable!(),
+        }
+    }
 }
 
 /// Generic Purpose Input/Output Configuration register.
@@ -111,7 +253,7 @@ impl GpioConfig {
     pub const fn mask_interrupt(self) -> Self {
         Self(self.0 | Self::INTERRUPT_MASK)
     }
-    /// Disable interrupt function of current pin.    
+    /// Disable interrupt function of current pin.
     #[inline]
     pub const fn unmask_interrupt(self) -> Self {
         Self(self.0 & !Self::INTERRUPT_MASK)
@@ -131,7 +273,7 @@ impl GpioConfig {
     pub const fn input(self) -> bool {
         self.0 & Self::INPUT != 0
     }
-    /// Check if current pin has interrupt function
+    /// Check if current pin has interrupt function.
     #[inline]
     pub const fn has_interrupt(self) -> bool {
         self.0 & Self::HAS_INTERRUPT != 0
@@ -343,6 +485,8 @@ mod tests {
 
     #[test]
     fn struct_register_block_offset() {
+        assert_eq!(offset_of!(RegisterBlock, uart_config), 0x150);
+        assert_eq!(offset_of!(RegisterBlock, uart_mux_group), 0x154);
         assert_eq!(offset_of!(RegisterBlock, gpio_config), 0x8c4);
         assert_eq!(offset_of!(RegisterBlock, gpio_input), 0xac4);
         assert_eq!(offset_of!(RegisterBlock, gpio_output), 0xae4);

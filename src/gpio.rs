@@ -19,26 +19,26 @@ pub trait Alternate {
     const F: Function;
 }
 
-/// Input mode (type state)
+/// Input mode (type state).
 pub struct Input<MODE> {
     _mode: PhantomData<MODE>,
 }
 
-/// Output mode (type state)
+/// Output mode (type state).
 pub struct Output<MODE> {
     _mode: PhantomData<MODE>,
 }
 
-/// Disabled (type state)
+/// Disabled (type state).
 pub struct Disabled;
 
-/// Pulled down (type state)
+/// Pulled down (type state).
 pub struct PullDown;
 
-/// Pulled up (type state)
+/// Pulled up (type state).
 pub struct PullUp;
 
-/// Floating (type state)
+/// Floating (type state).
 pub struct Floating;
 
 impl<MODE> Alternate for Input<MODE> {
