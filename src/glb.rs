@@ -50,13 +50,14 @@ impl UART_CONFIG {
 }
 
 impl UartConfig {
+    /// TODO: make divide factors a new type(enum), like UartSignal
     const CLOCK_DIVIDE: u32 = 0x3 << 0;
     const CLOCK_ENABLE: u32 = 0x1 << 4;
 
     /// Set peripheral clock divide factor.
     #[inline]
     pub const fn set_clock_divide(self, val: u8) -> Self {
-        Self(self.0 & !Self::CLOCK_DIVIDE | (val as u32))
+        Self(self.0 & !Self::CLOCK_DIVIDE | ((val as u32 ) << 0) & Self::CLOCK_DIVIDE)
     }
     /// Get peripheral clock divide factor.
     #[inline]
@@ -104,6 +105,7 @@ impl UART_MUX_GROUP {
 }
 
 /// UART multiplexer signal configuration.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum UartSignal {
     /// UART0 Request-to-Send signal.
@@ -480,7 +482,8 @@ pub enum Pull {
 
 #[cfg(test)]
 mod tests {
-    use super::RegisterBlock;
+    use super::{Drive, Function, GpioConfig, UartConfig, UartMuxGroup,
+        InterruptMode, Mode, Pull, RegisterBlock, UartSignal};
     use memoffset::offset_of;
 
     #[test]
@@ -492,5 +495,151 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, gpio_output), 0xae4);
         assert_eq!(offset_of!(RegisterBlock, gpio_set), 0xaec);
         assert_eq!(offset_of!(RegisterBlock, gpio_clear), 0xaf4);
+    }
+
+    #[test]
+    fn struct_gpio_config_functions() {
+        let mut val = GpioConfig(0x0);
+
+        val = val.enable_input();
+        assert_eq!(val.0, 0x00000001);
+        assert!(val.is_input_enabled());
+        val = val.disable_input();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_input_enabled());
+
+        val = val.enable_schmitt();
+        assert_eq!(val.0, 0x00000002);
+        assert!(val.is_schmitt_enabled());
+        val = val.disable_schmitt();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_schmitt_enabled());
+
+        val = val.enable_output();
+        assert_eq!(val.0, 0x00000040);
+        assert!(val.is_output_enabled());
+        val = val.disable_output();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_output_enabled());
+
+        val = val.mask_interrupt();
+        assert_eq!(val.0, 0x00400000);
+        assert!(val.is_interrupt_masked());
+        val = val.unmask_interrupt();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_interrupt_masked());
+
+        assert!(GpioConfig(0x01000000).output());
+        assert!(!GpioConfig(0x00000000).output());
+
+        assert!(GpioConfig(0x10000000).input());
+        assert!(!GpioConfig(0x00000000).input());
+
+        assert!(GpioConfig(0x00200000).has_interrupt());
+        assert!(!GpioConfig(0x00000000).has_interrupt());
+
+        assert_eq!(GpioConfig(0x0).set(), GpioConfig(0x02000000));
+        assert_eq!(GpioConfig(0x0).clear(), GpioConfig(0x04000000));
+
+        assert_eq!(GpioConfig(0x0).clear_interrupt(), GpioConfig(0x00100000));
+
+        let mut val = GpioConfig(0x0);
+        val = val.set_drive(Drive::Drive0);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.drive(), Drive::Drive0);
+        val = val.set_drive(Drive::Drive1);
+        assert_eq!(val.0, 0x00000004);
+        assert_eq!(val.drive(), Drive::Drive1);
+        val = val.set_drive(Drive::Drive2);
+        assert_eq!(val.0, 0x00000008);
+        assert_eq!(val.drive(), Drive::Drive2);
+        val = val.set_drive(Drive::Drive3);
+        assert_eq!(val.0, 0x0000000c);
+        assert_eq!(val.drive(), Drive::Drive3);
+
+        let mut val = GpioConfig(0x0);
+        val = val.set_function(Function::Gpio);
+        assert_eq!(val.0, 0x00000b00);
+        assert_eq!(val.function(), Function::Gpio);
+
+        let mut val = GpioConfig(0x0);
+        val = val.set_interrupt_mode(InterruptMode::AsyncFallingEdge);
+        assert_eq!(val.0, 0x00080000);
+        assert_eq!(val.interrupt_mode(), InterruptMode::AsyncFallingEdge);
+
+        let mut val = GpioConfig(0x0);
+        val = val.set_mode(Mode::Normal);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.mode(), Mode::Normal);
+        val = val.set_mode(Mode::SetClear);
+        assert_eq!(val.0, 0x40000000);
+        assert_eq!(val.mode(), Mode::SetClear);
+        val = val.set_mode(Mode::Programmable);
+        assert_eq!(val.0, 0x80000000);
+        assert_eq!(val.mode(), Mode::Programmable);
+        val = val.set_mode(Mode::BufferedSetClear);
+        assert_eq!(val.0, 0xc0000000);
+        assert_eq!(val.mode(), Mode::BufferedSetClear);
+
+        let mut val = GpioConfig(0x0);
+        val = val.set_pull(Pull::None);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.pull(), Pull::None);
+        val = val.set_pull(Pull::Up);
+        assert_eq!(val.0, 0x00000010);
+        assert_eq!(val.pull(), Pull::Up);
+        val = val.set_pull(Pull::Down);
+        assert_eq!(val.0, 0x00000020);
+        assert_eq!(val.pull(), Pull::Down);
+    }
+
+    #[test]
+    fn struct_uart_config_functions() {
+        let mut config = UartConfig(0x0);
+        config = config.set_clock_divide(1);
+        assert_eq!(config.0, 1);
+        assert_eq!(config.clock_divide(), 1);
+
+        config = UartConfig(0x0);
+        config = config.set_clock_divide(7);
+        assert_eq!(config.0, 0x00000003);
+        assert_eq!(config.clock_divide(), 0x03);
+
+        config = UartConfig(0x8);
+        config = config.set_clock_divide(1);
+        assert_eq!(config.0, 9);
+        assert_eq!(config.clock_divide(), 1);
+
+        config = UartConfig(0x8);
+        config = config.set_clock_divide(7);
+        assert_eq!(config.0, 0x0000000b);
+        assert_eq!(config.clock_divide(), 0x03);
+
+        config = UartConfig(0x0);
+        config = config.enable_clock();
+        assert_eq!(config.0, 0x00000010);
+        assert!(config.is_clock_enabled());
+
+        config = config.disable_clock();
+        assert_eq!(config.0, 0x0);
+        assert!(!config.is_clock_enabled());
+    }
+
+    #[test]
+    fn struct_uart_mux_group_functions() {
+        let mut val = UartMuxGroup(0x0);
+        val = val.set_signal(0, UartSignal::Rts0);
+        assert_eq!(val.0, UartSignal::Rts0 as u32);
+        assert_eq!(val.signal(0), UartSignal::Rts0);
+
+        val = UartMuxGroup(0x0);
+        val = val.set_signal(1, UartSignal::Rxd2);
+        assert_eq!(val.0, (UartSignal::Rxd2 as u32) << 4);
+        assert_eq!(val.signal(1), UartSignal::Rxd2);
+
+        val = UartMuxGroup(0xFF);
+        val = val.set_signal(2, UartSignal::Txd2);
+        assert_eq!(val.0, 0xFF | (UartSignal::Txd2 as u32) << 8);
+        assert_eq!(val.signal(2), UartSignal::Txd2);
     }
 }
