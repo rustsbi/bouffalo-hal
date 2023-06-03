@@ -85,6 +85,10 @@ impl<A: BaseAddress, const N: usize, M> OutputPin for Pin<A, N, Output<M>> {
     }
 }
 
+// We do not support StatefulOutputPin and ToggleableOutputPin here, because the hardware does not 
+// have such functionality to read back the previously set pin state.
+// It is recommended that users add a variable to store the pin state if necessary; see examples/gpio-demo.
+
 impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
     /// Enable schmitt trigger.
     #[inline]
