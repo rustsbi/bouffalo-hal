@@ -85,7 +85,7 @@ impl<A: BaseAddress, const N: usize, M> OutputPin for Pin<A, N, Output<M>> {
     }
 }
 
-// We do not support StatefulOutputPin and ToggleableOutputPin here, because the hardware does not 
+// We do not support StatefulOutputPin and ToggleableOutputPin here, because the hardware does not
 // have such functionality to read back the previously set pin state.
 // It is recommended that users add a variable to store the pin state if necessary; see examples/gpio-demo.
 
@@ -263,6 +263,10 @@ pub struct Pins<A: BaseAddress> {
     pub io3: Pin<A, 3, Disabled>,
     // GPIO I/O 8.
     pub io8: Pin<A, 8, Disabled>,
+    // GPIO I/O 14.
+    pub io14: Pin<A, 14, Disabled>,
+    // GPIO I/O 15.
+    pub io15: Pin<A, 15, Disabled>,
     // GPIO I/O 22.
     pub io22: Pin<A, 22, Disabled>,
     // GPIO I/O 23.

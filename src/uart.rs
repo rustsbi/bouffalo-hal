@@ -1,11 +1,13 @@
 //! Universal Asynchronous Receiver/Transmitter.
 use crate::{
-    glb::{Function, UartSignal},
+    clocks::Clocks,
+    glb::{self, Function, UartSignal},
     gpio::{Alternate, Pin},
-    GLB,
+    GLB, UART,
 };
 use base_address::BaseAddress;
 use core::{cell::UnsafeCell, marker::PhantomData};
+use embedded_time::rate::Baud;
 
 /// UART alternate (type state).
 pub struct Uart;
@@ -30,6 +32,8 @@ pub struct RegisterBlock {
     _reserved3: [u8; 0x50],
     /// First-in first-out queue configuration 1.
     pub fifo_config_1: FIFO_CONFIG_1,
+    /// Write data into first-in first-out queue.
+    pub data_write: DATA_WRITE,
 }
 
 /// Transmit configuration register.
@@ -71,17 +75,17 @@ impl TransmitConfig {
 
     /// Enable transmit.
     #[inline]
-    pub const fn enable(self) -> Self {
+    pub const fn enable_txd(self) -> Self {
         Self(self.0 | Self::ENABLE)
     }
     /// Disable transmit.
     #[inline]
-    pub const fn disable(self) -> Self {
+    pub const fn disable_txd(self) -> Self {
         Self(self.0 & !Self::ENABLE)
     }
     /// Check if transmit is enabled.
     #[inline]
-    pub const fn is_enabled(self) -> bool {
+    pub const fn is_txd_enabled(self) -> bool {
         self.0 & Self::ENABLE != 0
     }
     /// Enable Clear-to-Send signal.
@@ -655,7 +659,7 @@ pub trait Pins<const U: usize> {
 }
 
 impl<A1, A2, const I: usize, const U: usize, const N: usize> Pins<U>
-    for (UartMux<A1, I, MuxTxd<U>>, Pin<A2, N, Uart>)
+    for (Pin<A1, N, Uart>, UartMux<A2, I, MuxTxd<U>>)
 where
     A1: BaseAddress,
     A2: BaseAddress,
@@ -679,8 +683,8 @@ impl<
         const N2: usize,
     > Pins<U>
     for (
-        (UartMux<A1, I1, MuxTxd<U>>, Pin<A2, N1, Uart>),
-        (UartMux<A3, I2, MuxRxd<U>>, Pin<A4, N2, Uart>),
+        (Pin<A1, N1, Uart>, UartMux<A2, I1, MuxTxd<U>>),
+        (Pin<A3, N2, Uart>, UartMux<A4, I2, MuxRxd<U>>),
     )
 where
     A1: BaseAddress,
@@ -708,8 +712,8 @@ impl<
         const N2: usize,
     > Pins<U>
     for (
-        (UartMux<A1, I1, MuxTxd<U>>, Pin<A2, N1, Uart>),
-        (UartMux<A3, I2, MuxCts<U>>, Pin<A4, N2, Uart>),
+        (Pin<A1, N1, Uart>, UartMux<A2, I1, MuxTxd<U>>),
+        (Pin<A3, N2, Uart>, UartMux<A4, I2, MuxCts<U>>),
     )
 where
     A1: BaseAddress,
@@ -745,10 +749,10 @@ impl<
         const N4: usize,
     > Pins<U>
     for (
-        (UartMux<A1, I1, MuxTxd<U>>, Pin<A2, N1, Uart>),
-        (UartMux<A3, I2, MuxRxd<U>>, Pin<A4, N2, Uart>),
-        (UartMux<A5, I3, MuxRts<U>>, Pin<A6, N3, Uart>),
-        (UartMux<A7, I4, MuxCts<U>>, Pin<A8, N4, Uart>),
+        (Pin<A1, N1, Uart>, UartMux<A2, I1, MuxTxd<U>>),
+        (Pin<A3, N2, Uart>, UartMux<A4, I2, MuxRxd<U>>),
+        (Pin<A5, N3, Uart>, UartMux<A6, I3, MuxRts<U>>),
+        (Pin<A7, N4, Uart>, UartMux<A8, I4, MuxCts<U>>),
     )
 where
     A1: BaseAddress,
@@ -768,6 +772,140 @@ where
     const CTS: bool = true;
     const TXD: bool = true;
     const RXD: bool = false;
+}
+
+/// Data writing register.
+#[allow(non_camel_case_types)]
+#[repr(transparent)]
+pub struct DATA_WRITE(UnsafeCell<u8>);
+
+/// Write data into first-in first-out queue.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct DataWrite(u8);
+
+impl DATA_WRITE {
+    /// Write a byte to first-in first-out queue.
+    #[inline]
+    pub fn write_u8(&self, val: u8) {
+        unsafe { self.0.get().write_volatile(val) }
+    }
+}
+
+/// Managed serial peripheral.
+pub struct Serial<A: BaseAddress, PINS> {
+    uart: UART<A>,
+    pins: PINS,
+}
+
+impl<A: BaseAddress, PINS> Serial<A, PINS> {
+    /// Creates a serial instance with same baudrate for transmit and receive.
+    #[inline]
+    pub fn new<const U: usize>(
+        uart: UART<A>,
+        config: Config,
+        baudrate: Baud,
+        pins: PINS,
+        clocks: &Clocks,
+        glb: &GLB<impl BaseAddress>,
+    ) -> Self
+    where
+        PINS: Pins<U>,
+    {
+        // Enable clock
+        let val = glb.uart_config.read().enable_clock();
+        glb.uart_config.write(val);
+
+        // Calculate transmit interval
+        let uart_clock = clocks.uart_clock();
+        let interval = uart_clock.0 / baudrate.0;
+        if !(1..=65535).contains(&interval) {
+            panic!("Impossible baudrate!");
+        }
+        let val = BitPeriod(0)
+            .set_transmit_time_interval(interval as u16)
+            .set_receive_time_interval(interval as u16);
+        uart.bit_period.write(val);
+
+        // Write bit order
+        let val = DataConfig(0).set_bit_order(config.bit_order);
+        uart.data_config.write(val);
+
+        // Config transmit
+        let mut val = TransmitConfig(0)
+            .enable_freerun()
+            .set_parity(config.parity)
+            .set_stop_bits(config.stop_bits)
+            .set_word_length(config.word_length);
+        if PINS::TXD {
+            val = val.enable_txd();
+        }
+        if PINS::CTS {
+            val = val.enable_cts();
+        }
+        uart.transmit_config.write(val);
+
+        Self { uart, pins }
+    }
+
+    /// Release serial instance and return its peripheral and pins.
+    #[inline]
+    pub fn free(self, glb: &GLB<impl BaseAddress>) -> (UART<A>, PINS) {
+        let val = glb.uart_config.read().disable_clock();
+        glb.uart_config.write(val);
+
+        (self.uart, self.pins)
+    }
+}
+
+impl embedded_hal::serial::Error for Error {
+    fn kind(&self) -> embedded_hal::serial::ErrorKind {
+        use embedded_hal::serial::ErrorKind;
+        match self {
+            Error::Framing => ErrorKind::FrameFormat,
+            Error::Noise => ErrorKind::Noise,
+            Error::Overrun => ErrorKind::Overrun,
+            Error::Parity => ErrorKind::Parity,
+        }
+    }
+}
+
+impl<A: BaseAddress, PINS> embedded_hal::serial::ErrorType for Serial<A, PINS> {
+    type Error = Error;
+}
+
+impl<A: BaseAddress, PINS> embedded_hal::serial::Write for Serial<A, PINS> {
+    fn write(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
+        for &word in buffer {
+            self.uart.data_write.write_u8(word);
+        }
+        Ok(())
+    }
+
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
+}
+
+// requires to set `.set_function(Function::Uart)` before use.
+const UART_GPIO_CONFIG: glb::GpioConfig = glb::GpioConfig::RESET_VALUE
+    .enable_input()
+    .enable_output()
+    .enable_schmitt()
+    .set_drive(glb::Drive::Drive0)
+    .set_pull(glb::Pull::Up);
+
+impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+    /// Configures the pin to operate as UART signal.
+    #[inline]
+    pub fn into_uart(self) -> Pin<A, N, Uart> {
+        let config = UART_GPIO_CONFIG.set_function(Function::Uart);
+        self.base.gpio_config[N].write(config);
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
 }
 
 /// Serial configuration.
@@ -855,5 +993,6 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, data_config), 0x0c);
         assert_eq!(offset_of!(RegisterBlock, bus_state), 0x30);
         assert_eq!(offset_of!(RegisterBlock, fifo_config_1), 0x84);
+        assert_eq!(offset_of!(RegisterBlock, data_write), 0x88);
     }
 }

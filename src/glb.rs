@@ -57,7 +57,7 @@ impl UartConfig {
     /// Set peripheral clock divide factor.
     #[inline]
     pub const fn set_clock_divide(self, val: u8) -> Self {
-        Self(self.0 & !Self::CLOCK_DIVIDE | ((val as u32 ) << 0) & Self::CLOCK_DIVIDE)
+        Self(self.0 & !Self::CLOCK_DIVIDE | ((val as u32) << 0) & Self::CLOCK_DIVIDE)
     }
     /// Get peripheral clock divide factor.
     #[inline]
@@ -482,8 +482,10 @@ pub enum Pull {
 
 #[cfg(test)]
 mod tests {
-    use super::{Drive, Function, GpioConfig, UartConfig, UartMuxGroup,
-        InterruptMode, Mode, Pull, RegisterBlock, UartSignal};
+    use super::{
+        Drive, Function, GpioConfig, InterruptMode, Mode, Pull, RegisterBlock, UartConfig,
+        UartMuxGroup, UartSignal,
+    };
     use memoffset::offset_of;
 
     #[test]

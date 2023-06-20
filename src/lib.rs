@@ -3,11 +3,12 @@
 use base_address::BaseAddress;
 use core::ops;
 
+pub mod clocks;
 pub mod glb;
 pub mod gpio;
+pub mod hbn;
 pub mod jtag;
 pub mod uart;
-pub mod hbn;
 
 /// Global register.
 pub struct GLB<A: BaseAddress> {

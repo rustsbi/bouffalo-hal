@@ -1,24 +1,20 @@
 [package]
-name = "bl-soc"
+name = "uart-demo"
 version = "0.1.0"
-authors = [
-    "Mingrui Ma <m202271767@hust.edu.cn>",
-    "Zeqing Qin <zeqing@hust.edu.cn>"
-]
 edition = "2021"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+bl-soc = { path = "../.." }
 base-address = "0.0.0"
-volatile-register = "0.2.1"
+panic-halt = "0.2.0"
 embedded-hal = "1.0.0-alpha.10"
 embedded-time = "0.12.1"
 
-[dev-dependencies]
-memoffset = "0.9.0"
-
-[workspace]
-members = [
-    "examples/*"
-]
+[dependencies.bl-rom-rt]
+git = "https://gitee.com/rustsbi/bl-rom-rt"
+branch = "main"
+default-features = false
+features = ["bl808-d0"]
