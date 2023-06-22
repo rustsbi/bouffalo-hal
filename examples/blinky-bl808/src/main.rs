@@ -1,16 +1,17 @@
 // Build this example with:
 // m0:
 // rustup target install riscv32imac-unknown-none-elf
-// cargo build --example blinky-bl808 --features bl808-m0 --target riscv32imac-unknown-none-elf --release
+// cargo build -p blinky-bl808 --features bl808-m0 --no-default-features --target riscv32imac-unknown-none-elf --release
 // d0:
 // rustup target install riscv64imac-unknown-none-elf
-// cargo build --example blinky-bl808 --features bl808-d0 --target riscv64imac-unknown-none-elf --release
+// cargo build -p blinky-bl808 --features bl808-d0 --target riscv64imac-unknown-none-elf --release
 
 #![no_std]
 #![no_main]
 
 use bl_rom_rt::{entry, Peripherals};
 use embedded_hal::digital::OutputPin;
+use panic_halt as _;
 
 #[entry]
 fn main(p: Peripherals) -> ! {
@@ -25,9 +26,4 @@ fn main(p: Peripherals) -> ! {
             unsafe { core::arch::asm!("nop") }
         }
     }
-}
-
-#[panic_handler]
-fn panic(_: &core::panic::PanicInfo) -> ! {
-    loop {}
 }
