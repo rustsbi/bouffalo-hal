@@ -420,14 +420,14 @@ impl FifoConfig1 {
     const TRANSMIT_THRESHOLD: u32 = 0x1f << 16;
     const RECEIVE_THRESHOLD: u32 = 0x1f << 24;
 
-    /// Get count of available data in transmit FIFO.
+    /// Get number of empty spaces remained in transmit FIFO queue.
     #[inline]
-    pub const fn transmit_count(self) -> u8 {
+    pub const fn transmit_available_bytes(self) -> u8 {
         (self.0 & Self::TRANSMIT_COUNT) as u8
     }
-    /// Get count of available data in receive FIFO.
+    /// Get number of available bytes received in receive FIFO queue.
     #[inline]
-    pub const fn receive_count(self) -> u8 {
+    pub const fn receive_available_bytes(self) -> u8 {
         ((self.0 & Self::RECEIVE_COUNT) >> 8) as u8
     }
     /// Set transmit FIFO threshold.
@@ -877,30 +877,37 @@ impl<A: BaseAddress, PINS> embedded_hal::serial::ErrorType for Serial<A, PINS> {
 impl<A: BaseAddress, PINS> embedded_hal::serial::Write for Serial<A, PINS> {
     fn write(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
         for &word in buffer {
+            while self.uart.fifo_config_1.read().transmit_available_bytes() == 0 {
+                core::hint::spin_loop();
+            }
             self.uart.data_write.write_u8(word);
         }
         Ok(())
     }
 
     fn flush(&mut self) -> Result<(), Self::Error> {
+        // There are maximum 32 bytes in transmit FIFO queue, wait until all bytes are available,
+        // meaning that all data in queue has been sent into UART bus.
+        while self.uart.fifo_config_1.read().transmit_available_bytes() != 32 {
+            core::hint::spin_loop();
+        }
         Ok(())
     }
 }
 
-// requires to set `.set_function(Function::Uart)` before use.
 const UART_GPIO_CONFIG: glb::GpioConfig = glb::GpioConfig::RESET_VALUE
     .enable_input()
     .enable_output()
     .enable_schmitt()
     .set_drive(glb::Drive::Drive0)
-    .set_pull(glb::Pull::Up);
+    .set_pull(glb::Pull::Up)
+    .set_function(Function::Uart);
 
 impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     /// Configures the pin to operate as UART signal.
     #[inline]
     pub fn into_uart(self) -> Pin<A, N, Uart> {
-        let config = UART_GPIO_CONFIG.set_function(Function::Uart);
-        self.base.gpio_config[N].write(config);
+        self.base.gpio_config[N].write(UART_GPIO_CONFIG);
         Pin {
             base: self.base,
             _mode: PhantomData,
