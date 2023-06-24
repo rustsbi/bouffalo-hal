@@ -1,3 +1,5 @@
+//! System-on-Chip clock configuration.
+
 use embedded_time::rate::Hertz;
 
 /// Clock settings for current chip.

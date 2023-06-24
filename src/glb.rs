@@ -1,9 +1,9 @@
-//! Global peripheral.
+//! Global configuration peripheral.
 use core::cell::UnsafeCell;
 
 use volatile_register::{RO, RW, WO};
 
-/// Generic Purpose Input/Output registers.
+/// Global configuration registers.
 #[repr(C)]
 pub struct RegisterBlock {
     _reserved0: [u8; 0x150],

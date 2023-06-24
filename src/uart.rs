@@ -391,23 +391,23 @@ impl BusState {
     }
 }
 
-/// FIFO configuration register 1.
+/// First-in first-out queue configuration 1.
 #[allow(non_camel_case_types)]
 #[repr(transparent)]
 pub struct FIFO_CONFIG_1(UnsafeCell<u32>);
 
-/// Configuration structure for FIFO configuration 1.
+/// Configuration structure for first-in first-out queue register 1.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct FifoConfig1(u32);
 
 impl FIFO_CONFIG_1 {
-    /// Read FIFO config.
+    /// Read first-in first-out queue configuration register 1.
     #[inline]
     pub fn read(&self) -> FifoConfig1 {
         FifoConfig1(unsafe { self.0.get().read_volatile() })
     }
-    /// Write FIFO config.
+    /// Write first-in first-out queue configuration register 1.
     #[inline]
     pub fn write(&self, val: FifoConfig1) {
         unsafe { self.0.get().write_volatile(val.0) }

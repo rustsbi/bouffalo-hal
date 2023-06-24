@@ -10,7 +10,7 @@ pub mod hbn;
 pub mod jtag;
 pub mod uart;
 
-/// Global register.
+/// Global configuration registers.
 pub struct GLB<A: BaseAddress> {
     base: A,
 }
