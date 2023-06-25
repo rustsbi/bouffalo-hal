@@ -1,3 +1,11 @@
+//! SoC peripheral support for bouffalolab chips.
+//!
+//! This package is built under the concept of componentized drivers. It is designed to be
+//! used in kernels, firmwares and embedded development with both dynamic and static base
+//! address support.
+//!
+//! Most of `bl-soc` structures have `embedded-hal` traits implemented. Users may combine
+//! this package with `embedded-hal` ecosystem drivers to provide abundant amount of features.
 #![no_std]
 
 use base_address::BaseAddress;

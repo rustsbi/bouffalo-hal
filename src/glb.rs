@@ -51,7 +51,7 @@ impl UART_CONFIG {
 
 impl UartConfig {
     /// TODO: make divide factors a new type(enum), like UartSignal
-    const CLOCK_DIVIDE: u32 = 0x3 << 0;
+    const CLOCK_DIVIDE: u32 = 0x7 << 0;
     const CLOCK_ENABLE: u32 = 0x1 << 4;
 
     /// Set peripheral clock divide factor.
@@ -64,6 +64,7 @@ impl UartConfig {
     pub const fn clock_divide(self) -> u8 {
         (self.0 & Self::CLOCK_DIVIDE) as u8
     }
+
     /// Enable peripheral level clock gate.
     #[inline]
     pub const fn enable_clock(self) -> Self {
@@ -603,19 +604,19 @@ mod tests {
         assert_eq!(config.clock_divide(), 1);
 
         config = UartConfig(0x0);
-        config = config.set_clock_divide(7);
-        assert_eq!(config.0, 0x00000003);
-        assert_eq!(config.clock_divide(), 0x03);
+        config = config.set_clock_divide(0x0F);
+        assert_eq!(config.0, 0x00000007);
+        assert_eq!(config.clock_divide(), 0x07);
 
         config = UartConfig(0x8);
         config = config.set_clock_divide(1);
         assert_eq!(config.0, 9);
         assert_eq!(config.clock_divide(), 1);
 
-        config = UartConfig(0x8);
-        config = config.set_clock_divide(7);
-        assert_eq!(config.0, 0x0000000b);
-        assert_eq!(config.clock_divide(), 0x03);
+        config = UartConfig(0x10);
+        config = config.set_clock_divide(0x0F);
+        assert_eq!(config.0, 0x00000017);
+        assert_eq!(config.clock_divide(), 0x07);
 
         config = UartConfig(0x0);
         config = config.enable_clock();
