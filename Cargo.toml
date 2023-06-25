@@ -29,5 +29,6 @@ rom-peripherals = ["bl-rom-rt-macros/rom-peripherals", "dep:bl-soc", "dep:base-a
 [workspace]
 members = [
     "macros",
-    "examples/*",
+    # "examples/blinky-bl808",
+    "examples/blinky-bl616",
 ]
