@@ -295,45 +295,6 @@ struct HalBasicConfig {
     hash: [u32; 8],
 }
 
-/// Processor core configuration in ROM header.
-#[repr(C)]
-pub struct HalCpuCfg {
-    /// Config this cpu.
-    config_enable: u8,
-    /// Halt this cpu.
-    halt_cpu: u8,
-    /// Cache setting.
-    cache_flags: u8,
-    _rsvd: u8,
-    /// Cache range high.
-    cache_range_h: u32,
-    /// Cache range low.
-    cache_range_l: u32,
-    /// Image address on flash.
-    image_address_offset: u32,
-    /// Entry point of the m0 image.
-    boot_entry: u32,
-    /// Msp value.
-    msp_val: u32,
-}
-
-impl HalCpuCfg {
-    #[inline]
-    const fn disabled() -> HalCpuCfg {
-        HalCpuCfg {
-            config_enable: 0,
-            halt_cpu: 0,
-            cache_flags: 0,
-            _rsvd: 0,
-            cache_range_h: 0,
-            cache_range_l: 0,
-            image_address_offset: 0,
-            boot_entry: 0x0,
-            msp_val: 0,
-        }
-    }
-}
-
 /// Program or ROM code patches.
 #[repr(C)]
 pub struct HalPatchCfg {
@@ -444,7 +405,7 @@ pub static CRC32: u32 = 0xdeadbeef;
 
 #[cfg(test)]
 mod tests {
-    use crate::{HalBasicConfig, HalCpuCfg, HalFlashConfig, HalPatchCfg, SpiFlashCfgType};
+    use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg, SpiFlashCfgType};
     use memoffset::offset_of;
 
     #[test]
@@ -452,7 +413,6 @@ mod tests {
         use core::mem::size_of;
         assert_eq!(size_of::<HalFlashConfig>(), 92);
         assert_eq!(size_of::<HalBasicConfig>(), 48);
-        assert_eq!(size_of::<HalCpuCfg>(), 24);
         assert_eq!(size_of::<HalPatchCfg>(), 8);
         assert_eq!(size_of::<SpiFlashCfgType>(), 84);
     }
@@ -628,18 +588,6 @@ mod tests {
         assert_eq!(offset_of!(HalBasicConfig, aes_region_len), 0x08);
         assert_eq!(offset_of!(HalBasicConfig, img_len_cnt), 0x0c);
         assert_eq!(offset_of!(HalBasicConfig, hash), 0x10);
-    }
-
-    #[test]
-    fn struct_hal_cpu_cfg_offset() {
-        assert_eq!(offset_of!(HalCpuCfg, config_enable), 0x00);
-        assert_eq!(offset_of!(HalCpuCfg, halt_cpu), 0x01);
-        assert_eq!(offset_of!(HalCpuCfg, cache_flags), 0x02);
-        assert_eq!(offset_of!(HalCpuCfg, cache_range_h), 0x04);
-        assert_eq!(offset_of!(HalCpuCfg, cache_range_l), 0x08);
-        assert_eq!(offset_of!(HalCpuCfg, image_address_offset), 0x0c);
-        assert_eq!(offset_of!(HalCpuCfg, boot_entry), 0x10);
-        assert_eq!(offset_of!(HalCpuCfg, msp_val), 0x14);
     }
 
     #[test]
