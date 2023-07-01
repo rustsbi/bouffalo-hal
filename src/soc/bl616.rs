@@ -1,6 +1,7 @@
 //! BL616/BL618 one-core Wi-Fi 6, Bluetooth 5.3, Zigbee AIoT system-on-chip.
 
 use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
+use base_address::Static;
 
 #[cfg(feature = "bl616")]
 use crate::Stack;
@@ -84,7 +85,7 @@ pub static CPU_CONFIG: [HalCpuCfg; 1] = [HalCpuCfg {
     cache_flags: 0,
     _rsvd: 0,
     image_address_offset: 0,
-    _rsvd1: 0,
+    _rsvd1: 0xA0000000,
     msp_val: 0,
 }];
 
@@ -213,6 +214,14 @@ pub struct HalCpuCfg {
     _rsvd1: u32,
     /// Msp value.
     msp_val: u32,
+}
+
+/// Peripherals available on ROM start.
+pub struct Peripherals {
+    /// Global configuration peripheral.
+    pub glb: bl_soc::GLB<Static<0x20000000>>,
+    /// General Purpose Input/Output pins.
+    pub gpio: bl_soc::gpio::Pins<Static<0x20000000>>,
 }
 
 #[cfg(test)]

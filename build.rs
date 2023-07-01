@@ -5,18 +5,18 @@ fn main() {
     let ld = &out.join("bl-rom-rt.ld");
 
     #[cfg(feature = "bl808-m0")]
-    std::fs::write(ld, LINKER_SCRIPT).unwrap();
+    std::fs::write(ld, LINKER_SCRIPT_BL808_M0).unwrap();
     #[cfg(feature = "bl808-d0")]
-    std::fs::write(ld, LINKER_SCRIPT).unwrap();
+    std::fs::write(ld, LINKER_SCRIPT_BL808_D0).unwrap();
     #[cfg(feature = "bl616")]
-    std::fs::write(ld, LINKER_SCRIPT).unwrap();
+    std::fs::write(ld, LINKER_SCRIPT_BL616).unwrap();
 
     println!("cargo:rustc-link-arg=-T{}", ld.display());
     println!("cargo:rustc-link-search={}", out.display());
 }
 
 #[cfg(feature = "bl808-m0")]
-const LINKER_SCRIPT: &[u8] = b"
+const LINKER_SCRIPT_BL808_M0: &[u8] = b"
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
 MEMORY {
@@ -86,7 +86,7 @@ SECTIONS {
 }";
 
 #[cfg(feature = "bl808-d0")]
-const LINKER_SCRIPT: &[u8] = b"
+const LINKER_SCRIPT_BL808_D0: &[u8] = b"
 OUTPUT_ARCH(riscv)
 ENTRY(_start) 
 MEMORY {
@@ -157,7 +157,7 @@ SECTIONS {
 }";
 
 #[cfg(feature = "bl616")]
-const LINKER_SCRIPT: &[u8] = b"
+const LINKER_SCRIPT_BL616: &[u8] = b"
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
 MEMORY {
@@ -183,10 +183,6 @@ SECTIONS {
         LONG(0);
         KEEP(*(.head.patch.on-read));
         KEEP(*(.head.patch.on-jump));
-        LONG(0);
-        LONG(0);
-        LONG(0);
-        LONG(0);
         LONG(0);
         KEEP(*(.head.crc32));
         FILL(0xFFFFFFFF);

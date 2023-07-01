@@ -9,6 +9,9 @@ pub mod soc;
 #[cfg(any(feature = "bl808-m0", feature = "bl808-d0"))]
 pub use soc::bl808::Peripherals;
 
+#[cfg(feature = "bl616")]
+pub use soc::bl616::Peripherals;
+
 /// RISC-V program stack.
 ///
 /// In standard RISC-V ABI specification, the stack grows downward and
@@ -304,6 +307,7 @@ pub struct HalPatchCfg {
 
 /// Flash configuration at boot-time.
 #[link_section = ".head.flash"]
+#[used]
 pub static FLASH_CONFIG: HalFlashConfig = HalFlashConfig::new(SpiFlashCfgType {
     io_mode: 0x11,
     c_read_support: 0x00,

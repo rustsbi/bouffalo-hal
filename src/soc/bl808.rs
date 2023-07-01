@@ -358,7 +358,7 @@ impl HalCpuCfg {
 
 #[cfg(test)]
 mod tests {
-    use super::{HalBootheader, HalPllConfig, HalSysClkConfig, HalCpuCfg};
+    use super::{HalBootheader, HalCpuCfg, HalPllConfig, HalSysClkConfig};
     use memoffset::offset_of;
 
     #[test]
@@ -419,7 +419,6 @@ mod tests {
         assert_eq!(offset_of!(HalPllConfig, cfg), 0x04);
         assert_eq!(offset_of!(HalPllConfig, crc32), 0x18);
     }
-
 
     #[test]
     fn struct_hal_cpu_cfg_offset() {

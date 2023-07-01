@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 bl-rom-rt = { path = "../.." }
+embedded-hal = "1.0.0-alpha.10"
 panic-halt = "0.2.0"
 
 [features]
