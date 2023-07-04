@@ -144,7 +144,7 @@ impl TransmitConfig {
     }
     /// Get parity check mode.
     #[inline]
-    pub const fn get_parity(self) -> Parity {
+    pub const fn parity(self) -> Parity {
         if self.0 & Self::PARITY_ENABLE == 0 {
             Parity::None
         } else if self.0 & Self::PARITY_MODE == 0 {
@@ -990,7 +990,7 @@ pub enum Error {
 
 #[cfg(test)]
 mod tests {
-    use super::RegisterBlock;
+    use super::{Parity, RegisterBlock, TransmitConfig};
     use memoffset::offset_of;
 
     #[test]
@@ -1001,5 +1001,66 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, bus_state), 0x30);
         assert_eq!(offset_of!(RegisterBlock, fifo_config_1), 0x84);
         assert_eq!(offset_of!(RegisterBlock, data_write), 0x88);
+    }
+
+    #[test]
+    fn struct_transmit_config_functions() {
+        let mut val: TransmitConfig = TransmitConfig(0x0);
+
+        val = val.enable_txd();
+        assert_eq!(val.0, 0x00000001);
+        assert!(val.is_txd_enabled());
+        val = val.disable_txd();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_txd_enabled());
+
+        val = val.enable_cts();
+        assert_eq!(val.0, 0x00000002);
+        assert!(val.is_cts_enabled());
+        val = val.disable_cts();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_cts_enabled());
+
+        val = val.enable_freerun();
+        assert_eq!(val.0, 0x00000004);
+        assert!(val.is_freerun_enabled());
+        val = val.disable_freerun();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_freerun_enabled());
+
+        val = val.enable_lin_transmit();
+        assert_eq!(val.0, 0x00000008);
+        assert!(val.is_lin_transmit_enabled());
+        val = val.disable_lin_transmit();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_lin_transmit_enabled());
+
+        val = val.set_parity(Parity::Even);
+        assert_eq!(val.0, 0x00000010);
+        assert_eq!(val.parity(), Parity::Even);
+        val = val.set_parity(Parity::Odd);
+        assert_eq!(val.0, 0x00000030);
+        assert_eq!(val.parity(), Parity::Odd);
+        val = val.set_parity(Parity::None);
+        assert_eq!(val.0 & 0x00000010, 0x00000000);
+        assert_eq!(val.parity(), Parity::None);
+
+        let mut val: TransmitConfig = TransmitConfig(0x0);
+
+        val = val.enable_ir_transmit();
+        assert_eq!(val.0, 0x00000040);
+        assert!(val.is_ir_transmit_enabled());
+        val = val.disable_ir_transmit();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_ir_transmit_enabled());
+
+        val = val.enable_ir_inverse();
+        assert_eq!(val.0, 0x00000080);
+        assert!(val.is_ir_inverse_enabled());
+        val = val.disable_ir_inverse();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_ir_inverse_enabled());
+
+        // TODO: test procedure of remaining fields
     }
 }
