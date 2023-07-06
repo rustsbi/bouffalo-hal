@@ -59,16 +59,23 @@ impl TRANSMIT_CONFIG {
     }
 }
 
+// TODO: inherent associated types is unstable, put aliases here as WAR
+/// Register fields aliases, defining the bit field shift and bit length
+mod transmit_config {
+    use crate::BitField;
+
+    pub(crate) type Enable = BitField<1, 0, u32>;
+    pub(crate) type ParityEnable = BitField<1, 4, u32>;
+    pub(crate) type ParityMode = BitField<1, 5, u32>;
+    pub(crate) type WordLength = BitField<3, 8, u32>;
+}
+
 impl TransmitConfig {
-    const ENABLE: u32 = 1 << 0;
     const CTS: u32 = 1 << 1;
     const FREERUN: u32 = 1 << 2;
     const LIN_TRANSMIT: u32 = 1 << 3;
-    const PARITY_ENABLE: u32 = 1 << 4;
-    const PARITY_MODE: u32 = 1 << 5;
     const IR_TRANSMIT: u32 = 1 << 6;
     const IR_INVERSE: u32 = 1 << 7;
-    const WORD_LENGTH: u32 = 0b111 << 8;
     const STOP_BITS: u32 = 0b11 << 11;
     const LIN_BREAK_BITS: u32 = 0b111 << 13;
     const TRANSFER_LENGTH: u32 = 0xffff << 16;
@@ -76,17 +83,17 @@ impl TransmitConfig {
     /// Enable transmit.
     #[inline]
     pub const fn enable_txd(self) -> Self {
-        Self(self.0 | Self::ENABLE)
+        Self(transmit_config::Enable::from(self.0).enable())
     }
     /// Disable transmit.
     #[inline]
     pub const fn disable_txd(self) -> Self {
-        Self(self.0 & !Self::ENABLE)
+        Self(transmit_config::Enable::from(self.0).disable())
     }
     /// Check if transmit is enabled.
     #[inline]
     pub const fn is_txd_enabled(self) -> bool {
-        self.0 & Self::ENABLE != 0
+        transmit_config::Enable::from(self.0).is_enabled()
     }
     /// Enable Clear-to-Send signal.
     #[inline]
@@ -136,18 +143,29 @@ impl TransmitConfig {
     /// Set parity check mode.
     #[inline]
     pub const fn set_parity(self, parity: Parity) -> Self {
+        let field_en = transmit_config::ParityEnable::from(self.0);
+
         match parity {
-            Parity::Even => Self((self.0 | Self::PARITY_ENABLE) & !Self::PARITY_MODE),
-            Parity::Odd => Self(self.0 | Self::PARITY_ENABLE | Self::PARITY_MODE),
-            Parity::None => Self(self.0 & !Self::PARITY_ENABLE),
+            Parity::Even => {
+                let field_odd = transmit_config::ParityMode::from(field_en.enable());
+                Self(field_odd.disable())
+            }
+            Parity::Odd => {
+                let field_odd = transmit_config::ParityMode::from(field_en.enable());
+                Self(field_odd.enable())
+            }
+            Parity::None => Self(field_en.disable()),
         }
     }
     /// Get parity check mode.
     #[inline]
     pub const fn parity(self) -> Parity {
-        if self.0 & Self::PARITY_ENABLE == 0 {
+        let field_en = transmit_config::ParityEnable::from(self.0);
+        let field_odd = transmit_config::ParityMode::from(self.0);
+
+        if !field_en.is_enabled() {
             Parity::None
-        } else if self.0 & Self::PARITY_MODE == 0 {
+        } else if !field_odd.is_enabled() {
             Parity::Even
         } else {
             Parity::Odd
@@ -186,19 +204,20 @@ impl TransmitConfig {
     /// Set word length.
     #[inline]
     pub const fn set_word_length(self, val: WordLength) -> Self {
+        let field = transmit_config::WordLength::from(self.0);
         let val = match val {
             WordLength::Five => 4,
             WordLength::Six => 5,
             WordLength::Seven => 6,
             WordLength::Eight => 7,
         };
-        Self(self.0 & !Self::WORD_LENGTH | val << 8)
+        Self(field.set(val))
     }
     /// Get word length.
     #[inline]
     pub const fn word_length(self) -> WordLength {
-        let val = (self.0 & Self::WORD_LENGTH) >> 8;
-        match val {
+        let field = transmit_config::WordLength::from(self.0);
+        match field.get() {
             4 => WordLength::Five,
             5 => WordLength::Six,
             6 => WordLength::Seven,

@@ -23,3 +23,11 @@ memoffset = "0.9.0"
 members = [
     "examples/*"
 ]
+
+[features]
+# TODO: should not set the default feature to a specific SOC, keep it for testing
+default = ["bl808"]
+bl602 = []
+bl616 = []
+bl702 = []
+bl808 = []
