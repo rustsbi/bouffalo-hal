@@ -71,7 +71,7 @@ impl TransmitConfig {
     const WORD_LENGTH: u32 = 0b111 << 8;
     const STOP_BITS: u32 = 0b11 << 11;
     const LIN_BREAK_BITS: u32 = 0b111 << 13;
-    const TRANSFER_LENGTH: u32 = 0xff << 16;
+    const TRANSFER_LENGTH: u32 = 0xffff << 16;
 
     /// Enable transmit.
     #[inline]
@@ -990,6 +990,8 @@ pub enum Error {
 
 #[cfg(test)]
 mod tests {
+    use crate::uart::{StopBits, WordLength};
+
     use super::{Parity, RegisterBlock, TransmitConfig};
     use memoffset::offset_of;
 
@@ -1061,6 +1063,46 @@ mod tests {
         assert_eq!(val.0, 0x00000000);
         assert!(!val.is_ir_inverse_enabled());
 
-        // TODO: test procedure of remaining fields
+        val = val.set_word_length(WordLength::Five);
+        assert_eq!(val.0, 0x00000400);
+        assert_eq!(val.word_length(), WordLength::Five);
+        val = val.set_word_length(WordLength::Six);
+        assert_eq!(val.0, 0x00000500);
+        assert_eq!(val.word_length(), WordLength::Six);
+        val = val.set_word_length(WordLength::Seven);
+        assert_eq!(val.0, 0x00000600);
+        assert_eq!(val.word_length(), WordLength::Seven);
+        val = val.set_word_length(WordLength::Eight);
+        assert_eq!(val.0, 0x00000700);
+        assert_eq!(val.word_length(), WordLength::Eight);
+
+        let mut val: TransmitConfig = TransmitConfig(0x0);
+
+        val = val.set_stop_bits(StopBits::Two);
+        assert_eq!(val.0, 0x00001800);
+        assert_eq!(val.stop_bits(), StopBits::Two);
+        val = val.set_stop_bits(StopBits::OnePointFive);
+        assert_eq!(val.0, 0x00001000);
+        assert_eq!(val.stop_bits(), StopBits::OnePointFive);
+        val = val.set_stop_bits(StopBits::One);
+        assert_eq!(val.0, 0x00000800);
+        assert_eq!(val.stop_bits(), StopBits::One);
+        val = val.set_stop_bits(StopBits::ZeroPointFive);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.stop_bits(), StopBits::ZeroPointFive);
+
+        for num in 0..=7 {
+            val = val.set_lin_break_bits(num);
+            assert_eq!(val.0, (num as u32) << 13);
+            assert_eq!(val.lin_break_bits(), num);
+        }
+
+        let mut val: TransmitConfig = TransmitConfig(0x0);
+
+        for length in [0x0000, 0x1234, 0xabcd, 0xffff] {
+            val = val.set_transfer_length(length);
+            assert_eq!(val.0, (length as u32) << 16);
+            assert_eq!(val.transfer_length(), length);
+        }
     }
 }
