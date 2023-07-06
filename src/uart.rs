@@ -282,8 +282,8 @@ impl BIT_PERIOD {
 pub struct BitPeriod(u32);
 
 impl BitPeriod {
-    const TRANSMIT: u32 = 0xff;
-    const RECEIVE: u32 = 0xff << 16;
+    const TRANSMIT: u32 = 0xffff;
+    const RECEIVE: u32 = 0xffff << 16;
 
     /// Set transmit time interval.
     #[inline]
@@ -992,7 +992,7 @@ pub enum Error {
 mod tests {
     use crate::uart::{StopBits, WordLength};
 
-    use super::{Parity, RegisterBlock, TransmitConfig};
+    use super::{BitPeriod, Parity, RegisterBlock, TransmitConfig};
     use memoffset::offset_of;
 
     #[test]
@@ -1047,7 +1047,7 @@ mod tests {
         assert_eq!(val.0 & 0x00000010, 0x00000000);
         assert_eq!(val.parity(), Parity::None);
 
-        let mut val: TransmitConfig = TransmitConfig(0x0);
+        val = TransmitConfig(0x0);
 
         val = val.enable_ir_transmit();
         assert_eq!(val.0, 0x00000040);
@@ -1076,7 +1076,7 @@ mod tests {
         assert_eq!(val.0, 0x00000700);
         assert_eq!(val.word_length(), WordLength::Eight);
 
-        let mut val: TransmitConfig = TransmitConfig(0x0);
+        val = TransmitConfig(0x0);
 
         val = val.set_stop_bits(StopBits::Two);
         assert_eq!(val.0, 0x00001800);
@@ -1097,12 +1097,31 @@ mod tests {
             assert_eq!(val.lin_break_bits(), num);
         }
 
-        let mut val: TransmitConfig = TransmitConfig(0x0);
+        val = TransmitConfig(0x0);
 
         for length in [0x0000, 0x1234, 0xabcd, 0xffff] {
             val = val.set_transfer_length(length);
             assert_eq!(val.0, (length as u32) << 16);
             assert_eq!(val.transfer_length(), length);
+        }
+    }
+
+    #[test]
+    fn struct_bit_period_functions() {
+        let mut val: BitPeriod = BitPeriod(0x0);
+
+        for trans in [0x0000, 0x1037, 0xabcd, 0xffff] {
+            val = val.set_transmit_time_interval(trans);
+            assert_eq!(val.0, trans as u32);
+            assert_eq!(val.transmit_time_interval(), trans);
+        }
+
+        val = BitPeriod(0x0);
+
+        for recv in [0x0000, 0x1037, 0xabcd, 0xffff] {
+            val = val.set_receive_time_interval(recv);
+            assert_eq!(val.0, (recv as u32) << 16);
+            assert_eq!(val.receive_time_interval(), recv);
         }
     }
 }
