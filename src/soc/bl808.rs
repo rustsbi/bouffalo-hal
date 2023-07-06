@@ -199,14 +199,6 @@ pub static PATCH_ON_JUMP: [HalPatchCfg; 4] = [
     HalPatchCfg { addr: 0, value: 0 },
 ];
 
-/// Peripherals available on ROM start.
-pub struct Peripherals {
-    /// Global configuration peripheral.
-    pub glb: bl_soc::GLB<Static<0x20000000>>,
-    /// General Purpose Input/Output pins.
-    pub gpio: bl_soc::gpio::Pins<Static<0x20000000>>,
-}
-
 /// Full ROM bootloading header.
 #[repr(C)]
 pub struct HalBootheader {
@@ -354,6 +346,20 @@ impl HalCpuCfg {
             msp_val: 0,
         }
     }
+}
+
+/// Peripherals available on ROM start.
+pub struct Peripherals {
+    /// Global configuration peripheral.
+    pub glb: bl_soc::GLB<Static<0x20000000>>,
+    /// General Purpose Input/Output pins.
+    pub gpio: bl_soc::gpio::Pins<Static<0x20000000>>,
+    /// UART0 configuration peripheral.
+    pub uart0: bl_soc::UART<Static<0x2000A000>>,
+    /// UART1 configuration peripheral.
+    pub uart1: bl_soc::UART<Static<0x2000A100>>,
+    /// UART signal multiplexers.
+    pub uart_muxes: bl_soc::uart::UartMuxes<Static<0x20000000>>,
 }
 
 #[cfg(test)]

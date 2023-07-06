@@ -6,10 +6,13 @@ pub use bl_rom_rt_macros::entry;
 
 pub mod soc;
 
-#[cfg(any(feature = "bl808-m0", feature = "bl808-d0"))]
+#[cfg(all(any(feature = "bl808-m0", feature = "bl808-d0")))]
 pub use soc::bl808::Peripherals;
 
-#[cfg(feature = "bl616")]
+#[cfg(all(
+    feature = "bl616",
+    not(any(feature = "bl808-m0", feature = "bl808-d0"))
+))]
 pub use soc::bl616::Peripherals;
 
 /// RISC-V program stack.
