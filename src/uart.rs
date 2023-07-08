@@ -895,6 +895,40 @@ impl<A: BaseAddress, PINS> embedded_hal::serial::Write for Serial<A, PINS> {
     }
 }
 
+impl embedded_io::Error for Error {
+    #[inline(always)]
+    fn kind(&self) -> embedded_io::ErrorKind {
+        embedded_io::ErrorKind::Other
+    }
+}
+
+impl<A: BaseAddress, PINS> embedded_io::Io for Serial<A, PINS> {
+    type Error = Error;
+}
+
+impl<A: BaseAddress, PINS> embedded_io::blocking::Write for Serial<A, PINS> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        while self.uart.fifo_config_1.read().transmit_available_bytes() == 0 {
+            core::hint::spin_loop();
+        }
+        let len = core::cmp::min(
+            self.uart.fifo_config_1.read().transmit_available_bytes() as usize,
+            buf.len(),
+        );
+        for &word in &buf[..len] {
+            self.uart.data_write.write_u8(word);
+        }
+        Ok(len)
+    }
+
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        while self.uart.fifo_config_1.read().transmit_available_bytes() != 32 {
+            core::hint::spin_loop();
+        }
+        Ok(())
+    }
+}
+
 const UART_GPIO_CONFIG: glb::GpioConfig = glb::GpioConfig::RESET_VALUE
     .enable_input()
     .enable_output()
