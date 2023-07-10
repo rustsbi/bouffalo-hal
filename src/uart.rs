@@ -859,6 +859,7 @@ impl<A: BaseAddress, PINS> Serial<A, PINS> {
 }
 
 impl embedded_hal::serial::Error for Error {
+    #[inline(always)]
     fn kind(&self) -> embedded_hal::serial::ErrorKind {
         use embedded_hal::serial::ErrorKind;
         match self {
@@ -875,6 +876,7 @@ impl<A: BaseAddress, PINS> embedded_hal::serial::ErrorType for Serial<A, PINS> {
 }
 
 impl<A: BaseAddress, PINS> embedded_hal::serial::Write for Serial<A, PINS> {
+    #[inline]
     fn write(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
         for &word in buffer {
             while self.uart.fifo_config_1.read().transmit_available_bytes() == 0 {
@@ -884,7 +886,7 @@ impl<A: BaseAddress, PINS> embedded_hal::serial::Write for Serial<A, PINS> {
         }
         Ok(())
     }
-
+    #[inline]
     fn flush(&mut self) -> Result<(), Self::Error> {
         // There are maximum 32 bytes in transmit FIFO queue, wait until all bytes are available,
         // meaning that all data in queue has been sent into UART bus.
@@ -907,6 +909,7 @@ impl<A: BaseAddress, PINS> embedded_io::Io for Serial<A, PINS> {
 }
 
 impl<A: BaseAddress, PINS> embedded_io::blocking::Write for Serial<A, PINS> {
+    #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         while self.uart.fifo_config_1.read().transmit_available_bytes() == 0 {
             core::hint::spin_loop();
@@ -920,7 +923,7 @@ impl<A: BaseAddress, PINS> embedded_io::blocking::Write for Serial<A, PINS> {
         }
         Ok(len)
     }
-
+    #[inline]
     fn flush(&mut self) -> Result<(), Self::Error> {
         while self.uart.fifo_config_1.read().transmit_available_bytes() != 32 {
             core::hint::spin_loop();
