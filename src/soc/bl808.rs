@@ -8,6 +8,7 @@ use core::arch::asm;
 #[cfg(any(feature = "bl808-m0", feature = "bl808-d0"))]
 use crate::Stack;
 
+#[cfg(feature = "rom-peripherals")]
 use base_address::Static;
 
 #[cfg(feature = "bl808-m0")]
@@ -349,6 +350,7 @@ impl HalCpuCfg {
 }
 
 /// Peripherals available on ROM start.
+#[cfg(feature = "rom-peripherals")]
 pub struct Peripherals {
     /// Global configuration peripheral.
     pub glb: bl_soc::GLB<Static<0x20000000>>,
