@@ -126,6 +126,11 @@ pub static CLOCK_CONFIG: HalPllConfig = HalPllConfig::new(HalSysClkConfig {
     uhspll_pu: 0x01,
 });
 
+/// Miscellaneous image flags.
+#[cfg(any(doc, feature = "bl808-m0", feature = "bl808-d0"))]
+#[link_section = ".head.base.flag"]
+pub static BASIC_CONFIG_FLAGS: u32 = 0x654c0100;
+
 /// Processor core configuration.
 #[cfg(any(doc, feature = "bl808-m0", feature = "bl808-d0"))]
 #[link_section = ".head.cpu"]

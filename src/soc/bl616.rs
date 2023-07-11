@@ -1,4 +1,4 @@
-//! BL616/BL618 one-core Wi-Fi 6, Bluetooth 5.3, Zigbee AIoT system-on-chip.
+//! BL616/BL618 single-core Wi-Fi 6, Bluetooth 5.3, Zigbee AIoT system-on-chip.
 
 use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
 
@@ -77,6 +77,11 @@ pub static CLOCK_CONFIG: HalPllConfig = HalPllConfig::new(HalSysClkConfig {
     aupll_pu: 0x01,
     rsvd0: 0x00,
 });
+
+/// Miscellaneous image flags.
+#[cfg(any(doc, feature = "bl616"))]
+#[link_section = ".head.base.flag"]
+pub static BASIC_CONFIG_FLAGS: u32 = 0x654c0100;
 
 /// Processor core configuration.
 #[cfg(any(doc, feature = "bl616"))]
