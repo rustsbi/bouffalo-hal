@@ -12,7 +12,14 @@ use base_address::BaseAddress;
 use core::ops;
 
 pub mod clocks;
-pub mod glb;
+/// Global configuration peripheral.
+pub mod glb {
+    #[path = "../glb_v1.rs"]
+    pub mod v1;
+    #[path = "../glb_v2.rs"]
+    pub mod v2;
+}
+
 pub mod gpio;
 pub mod hbn;
 pub mod jtag;
@@ -20,14 +27,25 @@ pub mod pwm;
 pub mod uart;
 
 /// Global configuration registers.
+#[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
 pub struct GLB<A: BaseAddress> {
     base: A,
 }
 
+#[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
 unsafe impl<A: BaseAddress> Send for GLB<A> {}
 
+#[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
 impl<A: BaseAddress> ops::Deref for GLB<A> {
-    type Target = glb::RegisterBlock;
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "glb-v1")] {
+            type Target = glb::v1::RegisterBlock;
+        } else if #[cfg(feature = "glb-v2")] {
+            type Target = glb::v2::RegisterBlock;
+        } else {
+            type Target = glb::v2::RegisterBlock;
+        }
+    }
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {

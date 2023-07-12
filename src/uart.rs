@@ -1,18 +1,25 @@
 //! Universal Asynchronous Receiver/Transmitter.
+#[cfg(feature = "glb-v2")]
+use crate::glb::v2::{Drive, Function, GpioConfig, Pull, UartSignal};
 use crate::{
-    clocks::Clocks,
-    glb::{self, Function, UartSignal},
     gpio::{Alternate, Pin},
-    GLB, UART,
+    UART,
 };
 use base_address::BaseAddress;
-use core::{cell::UnsafeCell, marker::PhantomData};
-use embedded_time::rate::Baud;
+use core::cell::UnsafeCell;
+#[cfg(any(doc, feature = "glb-v2"))]
+use core::marker::PhantomData;
+#[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
+use {
+    crate::{clocks::Clocks, GLB},
+    embedded_time::rate::Baud,
+};
 
 /// UART alternate (type state).
 pub struct Uart;
 
 impl Alternate for Uart {
+    #[cfg(feature = "glb-v2")]
     const F: Function = Function::Uart;
 }
 
@@ -483,6 +490,7 @@ pub struct MuxTxd<const U: usize>;
 /// Multiplex to Receive (type state).
 pub struct MuxRxd<const U: usize>;
 
+#[cfg(feature = "glb-v2")]
 impl<const U: usize> MuxRts<U> {
     #[inline]
     fn to_signal() -> UartSignal {
@@ -495,6 +503,7 @@ impl<const U: usize> MuxRts<U> {
     }
 }
 
+#[cfg(feature = "glb-v2")]
 impl<const U: usize> MuxCts<U> {
     #[inline]
     fn to_signal() -> UartSignal {
@@ -507,6 +516,7 @@ impl<const U: usize> MuxCts<U> {
     }
 }
 
+#[cfg(feature = "glb-v2")]
 impl<const U: usize> MuxTxd<U> {
     #[inline]
     fn to_signal() -> UartSignal {
@@ -519,6 +529,7 @@ impl<const U: usize> MuxTxd<U> {
     }
 }
 
+#[cfg(feature = "glb-v2")]
 impl<const U: usize> MuxRxd<U> {
     #[inline]
     fn to_signal() -> UartSignal {
@@ -532,11 +543,13 @@ impl<const U: usize> MuxRxd<U> {
 }
 
 /// Global peripheral UART signal multiplexer.
+#[cfg(any(doc, feature = "glb-v2"))]
 pub struct UartMux<A: BaseAddress, const I: usize, M> {
     base: GLB<A>,
     _mode: PhantomData<M>,
 }
 
+#[cfg(any(doc, feature = "glb-v2"))]
 impl<A: BaseAddress, const I: usize, M> UartMux<A, I, M> {
     /// Configure the internal UART signal to Request-to-Send (RTS).
     #[inline]
@@ -589,6 +602,7 @@ impl<A: BaseAddress, const I: usize, M> UartMux<A, I, M> {
 }
 
 /// Available UART signal multiplexers.
+#[cfg(any(doc, feature = "glb-v2"))]
 pub struct UartMuxes<A: BaseAddress> {
     /// Multiplexer of UART signal 0.
     pub sig0: UartMux<A, 0, MuxRts<0>>,
@@ -677,6 +691,7 @@ pub trait Pins<const U: usize> {
     const RXD: bool;
 }
 
+#[cfg(any(doc, feature = "glb-v2"))]
 impl<A1, A2, const I: usize, const U: usize, const N: usize> Pins<U>
     for (Pin<A1, N, Uart>, UartMux<A2, I, MuxTxd<U>>)
 where
@@ -690,6 +705,7 @@ where
     const RXD: bool = false;
 }
 
+#[cfg(any(doc, feature = "glb-v2"))]
 impl<
         A1,
         A2,
@@ -719,6 +735,7 @@ where
     const RXD: bool = true;
 }
 
+#[cfg(any(doc, feature = "glb-v2"))]
 impl<
         A1,
         A2,
@@ -748,6 +765,7 @@ where
     const RXD: bool = false;
 }
 
+#[cfg(any(doc, feature = "glb-v2"))]
 impl<
         A1,
         A2,
@@ -814,11 +832,13 @@ impl DATA_WRITE {
 /// Managed serial peripheral.
 pub struct Serial<A: BaseAddress, PINS> {
     uart: UART<A>,
+    #[cfg_attr(not(any(doc, feature = "glb-v1", feature = "glb-v2")), allow(unused))]
     pins: PINS,
 }
 
 impl<A: BaseAddress, PINS> Serial<A, PINS> {
     /// Creates a serial instance with same baudrate for transmit and receive.
+    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
     #[inline]
     pub fn new<const U: usize>(
         uart: UART<A>,
@@ -832,8 +852,14 @@ impl<A: BaseAddress, PINS> Serial<A, PINS> {
         PINS: Pins<U>,
     {
         // Enable clock
-        let val = glb.uart_config.read().enable_clock();
-        glb.uart_config.write(val);
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "glb-v1")] {
+                todo!()
+            } else if #[cfg(feature = "glb-v2")] {
+                let val = glb.uart_config.read().enable_clock();
+                glb.uart_config.write(val);
+            }
+        }
 
         // Calculate transmit interval
         let uart_clock = clocks.uart_clock();
@@ -868,12 +894,18 @@ impl<A: BaseAddress, PINS> Serial<A, PINS> {
     }
 
     /// Release serial instance and return its peripheral and pins.
+    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
     #[inline]
     pub fn free(self, glb: &GLB<impl BaseAddress>) -> (UART<A>, PINS) {
-        let val = glb.uart_config.read().disable_clock();
-        glb.uart_config.write(val);
-
-        (self.uart, self.pins)
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "glb-v1")] {
+                todo!()
+            } else if #[cfg(feature = "glb-v2")] {
+                let val = glb.uart_config.read().disable_clock();
+                glb.uart_config.write(val);
+                (self.uart, self.pins)
+            }
+        }
     }
 }
 
@@ -951,14 +983,16 @@ impl<A: BaseAddress, PINS> embedded_io::blocking::Write for Serial<A, PINS> {
     }
 }
 
-const UART_GPIO_CONFIG: glb::GpioConfig = glb::GpioConfig::RESET_VALUE
+#[cfg(feature = "glb-v2")]
+const UART_GPIO_CONFIG: GpioConfig = GpioConfig::RESET_VALUE
     .enable_input()
     .enable_output()
     .enable_schmitt()
-    .set_drive(glb::Drive::Drive0)
-    .set_pull(glb::Pull::Up)
+    .set_drive(Drive::Drive0)
+    .set_pull(Pull::Up)
     .set_function(Function::Uart);
 
+#[cfg(feature = "glb-v2")]
 impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     /// Configures the pin to operate as UART signal.
     #[inline]

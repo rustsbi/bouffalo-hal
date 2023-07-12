@@ -15,6 +15,7 @@ volatile-register = "0.2.1"
 embedded-hal = "1.0.0-alpha.11"
 embedded-time = "0.12.1"
 embedded-io = "0.4.0"
+cfg-if = "1.0.0"
 
 [dev-dependencies]
 memoffset = "0.9.0"
@@ -25,9 +26,10 @@ members = [
 ]
 
 [features]
-# TODO: should not set the default feature to a specific SOC, keep it for testing
-default = ["bl808"]
-bl602 = []
-bl616 = []
-bl702 = []
-bl808 = []
+default = []
+bl602 = ["glb-v1"]
+bl616 = ["glb-v2"]
+bl702 = ["glb-v1"]
+bl808 = ["glb-v2"]
+glb-v1 = []
+glb-v2 = []

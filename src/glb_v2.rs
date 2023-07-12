@@ -1,11 +1,10 @@
-//! Global configuration peripheral.
+//! Global configurations on BL808 and BL616 series.
 use core::cell::UnsafeCell;
 
 use volatile_register::{RO, RW, WO};
 
 /// Global configuration registers.
 #[repr(C)]
-#[cfg(feature = "bl808")]
 pub struct RegisterBlock {
     _reserved0: [u8; 0x150],
     /// Universal Asynchronous Receiver/Transmitter clock and mode configurations.
@@ -403,6 +402,7 @@ impl GpioConfig {
         Self((self.0 & !Self::PULL) | ((val as u32) << 4))
     }
     /// Reset value of GPIO_CONFIG register.
+    #[allow(unused)]
     pub(crate) const RESET_VALUE: Self = Self(0x0040_0b02);
 }
 
