@@ -16,6 +16,7 @@ pub mod glb;
 pub mod gpio;
 pub mod hbn;
 pub mod jtag;
+pub mod pwm;
 pub mod uart;
 
 /// Global configuration registers.
@@ -34,6 +35,54 @@ impl<A: BaseAddress> ops::Deref for GLB<A> {
     }
 }
 
+/// Universal Asynchronous Receiver/Transmitter.
+pub struct UART<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for UART<A> {}
+
+impl<A: BaseAddress> ops::Deref for UART<A> {
+    type Target = uart::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+/// Hibernation (deep-sleep) control.
+pub struct HBN<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for HBN<A> {}
+
+impl<A: BaseAddress> ops::Deref for HBN<A> {
+    type Target = hbn::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+/// Pulse width modulation control.
+pub struct PWM<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for PWM<A> {}
+
+impl<A: BaseAddress> ops::Deref for PWM<A> {
+    type Target = pwm::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
 /// Wrapper type for manipulations of a field in a register.
 ///
 /// * LEN: the length of the field in bits.
@@ -43,7 +92,9 @@ impl<A: BaseAddress> ops::Deref for GLB<A> {
 /// Note: size of T should be smaller than size of usize, largest possible type is u64.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(transparent)]
-struct BitField<const LEN: usize, const SHIFT: usize, T: Sized + Copy>{v: T}
+struct BitField<const LEN: usize, const SHIFT: usize, T: Sized + Copy> {
+    v: T,
+}
 
 // TODO: replace this with trait From when 'const_trait' is stable
 macro_rules! impl_from_for_register_field {
@@ -57,7 +108,7 @@ impl<const LEN: usize, const SHIFT: usize> BitField<LEN, SHIFT, $T> {
     // where
     //     [(); LEN - 1]:,
     //     [(); core::mem::size_of::<$T>() * 8 - SHIFT - LEN]:,
-    { 
+    {
         // Can drop extra bits silently but it indicates potential coding problems
         debug_assert!(LEN >= 1 && (LEN + SHIFT) <= core::mem::size_of::<$T>() * 8);
         Self { v: value }
@@ -154,38 +205,6 @@ impl<const LEN: usize, const SHIFT: usize> BitField<LEN, SHIFT, $T> {
 
 impl_from_for_register_field! { u8, u16, u32, u64, usize, }
 impl_register_field! { u8, u16, u32, u64, usize, }
-
-/// Universal Asynchronous Receiver/Transmitter.
-pub struct UART<A: BaseAddress> {
-    base: A,
-}
-
-unsafe impl<A: BaseAddress> Send for UART<A> {}
-
-impl<A: BaseAddress> ops::Deref for UART<A> {
-    type Target = uart::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(self.base.ptr() as *const _) }
-    }
-}
-
-/// Hibernation (deep-sleep) control.
-pub struct HBN<A: BaseAddress> {
-    base: A,
-}
-
-unsafe impl<A: BaseAddress> Send for HBN<A> {}
-
-impl<A: BaseAddress> ops::Deref for HBN<A> {
-    type Target = hbn::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(self.base.ptr() as *const _) }
-    }
-}
 
 #[cfg(test)]
 mod tests {
