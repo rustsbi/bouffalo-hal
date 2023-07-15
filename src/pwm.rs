@@ -6,6 +6,7 @@ use core::cell::UnsafeCell;
 pub struct RegisterBlock {
     /// Interrupt configuration.
     pub interrupt_config: INTERRUPT_CONFIG,
+    _reserved: [u8; 0x3c],
     /// control register group.
     pub group: [Group; 2],
 }
@@ -117,7 +118,7 @@ impl GroupConfig {
     const STOP_ENABLE: u32 = 1 << 27;
     const STOP_MODE: u32 = 1 << 28;
     const STOP_STATE: u32 = 1 << 29;
-    const CLOCK_SOURCE: u32 = 0x11 << 30;
+    const CLOCK_SOURCE: u32 = 0x03 << 30;
 
     /// Set clock divide.
     #[inline]
@@ -147,7 +148,7 @@ impl GroupConfig {
     /// Set ADC trigger source.
     #[inline]
     pub const fn set_adc_trigger_source(self, val: AdcTriggerSource) -> Self {
-        Self(self.0 & !Self::ADC_TRIGGER_SOURCE | ((val as u32) << 20) & Self::ADC_TRIGGER_SOURCE)
+        Self((self.0 & !Self::ADC_TRIGGER_SOURCE) | ((val as u32) << 20) & Self::ADC_TRIGGER_SOURCE)
     }
     /// Get ADC trigger source.
     #[inline]
@@ -255,9 +256,9 @@ impl GroupConfig {
     #[inline]
     pub const fn clock_source(self) -> ClockSource {
         match (self.0 & Self::CLOCK_SOURCE) >> 30 {
-            0x11 => ClockSource::Xclk,
-            0x12 => ClockSource::Bclk,
-            0x13 => ClockSource::F32kClk,
+            0x00 => ClockSource::Xclk,
+            0x01 => ClockSource::Bclk,
+            0x02 => ClockSource::F32kClk,
             _ => unreachable!(),
         }
     }
@@ -341,27 +342,32 @@ impl ChannelConfig {
     /// Enable positive output.
     #[inline]
     pub const fn enable_positive_output(self, idx: usize) -> Self {
+        assert!(idx < 4);
         Self(self.0 | Self::POSITIVE_OUTPUT_ENABLE << (idx * 4))
     }
     /// Disable positive output.
     #[inline]
     pub const fn disable_positive_output(self, idx: usize) -> Self {
+        assert!(idx < 4);
         Self(self.0 & !(Self::POSITIVE_OUTPUT_ENABLE << (idx * 4)))
     }
     /// Check if positive output is enabled.
     #[inline]
     pub const fn is_positive_output_enabled(self, idx: usize) -> bool {
+        assert!(idx < 4);
         self.0 & (Self::POSITIVE_OUTPUT_ENABLE << (idx * 4)) != 0
     }
     /// Set positive idle state.
     #[inline]
     pub const fn set_positive_idle_state(self, idx: usize, val: ElectricLevel) -> Self {
-        Self(self.0 & !(Self::POSITIVE_IDLE_STATE << (idx * 4)) | ((val as u32) << (idx * 4)))
+        assert!(idx < 4);
+        Self(self.0 & !(Self::POSITIVE_IDLE_STATE << (idx * 4)) | ((val as u32) << (1 + idx * 4)))
     }
     /// Get positive idle state.
     #[inline]
     pub const fn positive_idle_state(self, idx: usize) -> ElectricLevel {
-        match (self.0 & (Self::POSITIVE_IDLE_STATE << (idx * 4))) >> (idx * 4) {
+        assert!(idx < 4);
+        match (self.0 & (Self::POSITIVE_IDLE_STATE << (idx * 4))) >> (1 + idx * 4) {
             0 => ElectricLevel::Low,
             1 => ElectricLevel::High,
             _ => unreachable!(),
@@ -370,27 +376,32 @@ impl ChannelConfig {
     /// Enable negative output.
     #[inline]
     pub const fn enable_negative_output(self, idx: usize) -> Self {
+        assert!(idx < 4);
         Self(self.0 | Self::NEGATIVE_OUTPUT_ENABLE << (idx * 4))
     }
     /// Disable negative output.
     #[inline]
     pub const fn disable_negative_output(self, idx: usize) -> Self {
+        assert!(idx < 4);
         Self(self.0 & !(Self::NEGATIVE_OUTPUT_ENABLE << (idx * 4)))
     }
     /// Check if negative output is enabled.
     #[inline]
     pub const fn is_negative_output_enabled(self, idx: usize) -> bool {
+        assert!(idx < 4);
         self.0 & (Self::NEGATIVE_OUTPUT_ENABLE << (idx * 4)) != 0
     }
     /// Set negative idle state.
     #[inline]
     pub const fn set_negative_idle_state(self, idx: usize, val: ElectricLevel) -> Self {
-        Self(self.0 & !(Self::NEGATIVE_IDLE_STATE << (idx * 4)) | ((val as u32) << (idx * 4)))
+        assert!(idx < 4);
+        Self(self.0 & !(Self::NEGATIVE_IDLE_STATE << (idx * 4)) | ((val as u32) << (3 + idx * 4)))
     }
     /// Get negative idle state.
     #[inline]
     pub const fn negative_idle_state(self, idx: usize) -> ElectricLevel {
-        match (self.0 & (Self::NEGATIVE_IDLE_STATE << (idx * 4))) >> (idx * 4) {
+        assert!(idx < 4);
+        match (self.0 & (Self::NEGATIVE_IDLE_STATE << (idx * 4))) >> (3 + idx * 4) {
             0 => ElectricLevel::Low,
             1 => ElectricLevel::High,
             _ => unreachable!(),
@@ -399,12 +410,14 @@ impl ChannelConfig {
     /// Set positive polarity.
     #[inline]
     pub const fn set_positive_polarity(self, idx: usize, val: Polarity) -> Self {
-        Self(self.0 & !(Self::POSITIVE_POLARITY << (idx * 2)) | ((val as u32) << (idx * 2)))
+        assert!(idx < 4);
+        Self(self.0 & !(Self::POSITIVE_POLARITY << (idx * 2)) | ((val as u32) << (16 + idx * 2)))
     }
     /// Get positive polarity.
     #[inline]
     pub const fn positive_polarity(self, idx: usize) -> Polarity {
-        match (self.0 & (Self::POSITIVE_POLARITY << (idx * 2))) >> (idx * 2) {
+        assert!(idx < 4);
+        match (self.0 & (Self::POSITIVE_POLARITY << (idx * 2))) >> (16 + idx * 2) {
             0 => Polarity::ActiveLow,
             1 => Polarity::ActiveHigh,
             _ => unreachable!(),
@@ -413,12 +426,14 @@ impl ChannelConfig {
     /// Set negative polarity.
     #[inline]
     pub const fn set_negative_polarity(self, idx: usize, val: Polarity) -> Self {
-        Self(self.0 & !(Self::NEGATIVE_POLARITY << (idx * 2)) | ((val as u32) << (idx * 2)))
+        assert!(idx < 4);
+        Self(self.0 & !(Self::NEGATIVE_POLARITY << (idx * 2)) | ((val as u32) << (17 + idx * 2)))
     }
     /// Get negative polarity.
     #[inline]
     pub const fn negative_polarity(self, idx: usize) -> Polarity {
-        match (self.0 & (Self::NEGATIVE_POLARITY << (idx * 2))) >> (idx * 2) {
+        assert!(idx < 4);
+        match (self.0 & (Self::NEGATIVE_POLARITY << (idx * 2))) >> (17 + idx * 2) {
             0 => Polarity::ActiveLow,
             1 => Polarity::ActiveHigh,
             _ => unreachable!(),
@@ -427,12 +442,14 @@ impl ChannelConfig {
     /// Set positive break state.
     #[inline]
     pub const fn set_positive_break_state(self, idx: usize, val: ElectricLevel) -> Self {
-        Self(self.0 & !(Self::POSITIVE_BREAK_STATE << (idx * 2)) | ((val as u32) << (idx * 2)))
+        assert!(idx < 4);
+        Self(self.0 & !(Self::POSITIVE_BREAK_STATE << (idx * 2)) | ((val as u32) << (24 + idx * 2)))
     }
     /// Get positive break state.
     #[inline]
     pub const fn positive_break_state(self, idx: usize) -> ElectricLevel {
-        match (self.0 & (Self::POSITIVE_BREAK_STATE << (idx * 2))) >> (idx * 2) {
+        assert!(idx < 4);
+        match (self.0 & (Self::POSITIVE_BREAK_STATE << (idx * 2))) >> (24 + idx * 2) {
             0 => ElectricLevel::Low,
             1 => ElectricLevel::High,
             _ => unreachable!(),
@@ -441,12 +458,14 @@ impl ChannelConfig {
     /// Set negative break state.
     #[inline]
     pub const fn set_negative_break_state(self, idx: usize, val: ElectricLevel) -> Self {
-        Self(self.0 & !(Self::NEGATIVE_BREAK_STATE << (idx * 2)) | ((val as u32) << (idx * 2)))
+        assert!(idx < 4);
+        Self(self.0 & !(Self::NEGATIVE_BREAK_STATE << (idx * 2)) | ((val as u32) << (25 + idx * 2)))
     }
     /// Get negative break state.
     #[inline]
     pub const fn negative_break_state(self, idx: usize) -> ElectricLevel {
-        match (self.0 & (Self::NEGATIVE_BREAK_STATE << (idx * 2))) >> (idx * 2) {
+        assert!(idx < 4);
+        match (self.0 & (Self::NEGATIVE_BREAK_STATE << (idx * 2))) >> (25 + idx * 2) {
             0 => ElectricLevel::Low,
             1 => ElectricLevel::High,
             _ => unreachable!(),
@@ -540,10 +559,7 @@ impl DeadTime {
     /// Set dead time for channel.
     #[inline]
     pub const fn set_channel(self, idx: usize, val: u8) -> Self {
-        Self(
-            self.0 & !(Self::DEAD_TIME << (idx * 8))
-                | ((val as u32) << (idx * 8)) & Self::DEAD_TIME,
-        )
+        Self((self.0 & !(Self::DEAD_TIME << (idx * 8))) | ((val as u32) << (idx * 8)))
     }
     /// Get dead time for channel.
     #[inline]
@@ -615,6 +631,25 @@ pub enum Interrupt {
     PeriodEnd = 8,
     ExternalBreak = 9,
     RepeatCount = 10,
+}
+
+impl Interrupt {
+    fn from_u32(value: u32) -> Interrupt {
+        match value {
+            0 => Interrupt::Channel0LowThreashold,
+            1 => Interrupt::Channel0HighThreashold,
+            2 => Interrupt::Channel1LowThreashold,
+            3 => Interrupt::Channel1HighThreashold,
+            4 => Interrupt::Channel2LowThreashold,
+            5 => Interrupt::Channel2HighThreashold,
+            6 => Interrupt::Channel3LowThreashold,
+            7 => Interrupt::Channel3HighThreashold,
+            8 => Interrupt::PeriodEnd,
+            9 => Interrupt::ExternalBreak,
+            10 => Interrupt::RepeatCount,
+            _ => panic!("Unknown value: {}", value),
+        }
+    }
 }
 
 /// Interrupt state register.
@@ -748,5 +783,328 @@ impl InterruptEnable {
     #[inline]
     pub const fn is_interrupt_enabled(self, val: Interrupt) -> bool {
         (self.0 & (1 << (val as u32))) != 0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        AdcTriggerSource, ChannelConfig, ClockSource, DeadTime, ElectricLevel, Group, GroupConfig,
+        Interrupt, InterruptClear, InterruptConfig, InterruptEnable, InterruptMask, InterruptState,
+        PeriodConfig, Polarity, RegisterBlock, StopMode, Threshold,
+    };
+    use memoffset::offset_of;
+
+    #[test]
+    fn struct_register_block_offset() {
+        assert_eq!(offset_of!(RegisterBlock, interrupt_config), 0x00);
+        assert_eq!(offset_of!(RegisterBlock, group), 0x40);
+    }
+
+    #[test]
+    fn struct_group_offset() {
+        assert_eq!(offset_of!(Group, group_config), 0x00);
+        assert_eq!(offset_of!(Group, channel_config), 0x04);
+        assert_eq!(offset_of!(Group, period_config), 0x08);
+        assert_eq!(offset_of!(Group, dead_time), 0x0c);
+        assert_eq!(offset_of!(Group, threshold), 0x10);
+        assert_eq!(offset_of!(Group, interrupt_state), 0x20);
+        assert_eq!(offset_of!(Group, interrupt_mask), 0x24);
+        assert_eq!(offset_of!(Group, interrupt_clear), 0x28);
+        assert_eq!(offset_of!(Group, interrupt_enable), 0x2c);
+    }
+
+    #[test]
+    fn struct_interrupt_config_functions() {
+        let mut val = InterruptConfig(0x0);
+
+        val = val.clear_group_0_interrupt();
+        assert_eq!(val.0, 0x00000001);
+
+        val = InterruptConfig(0x0);
+        val = val.clear_group_1_interrupt();
+        assert_eq!(val.0, 0x00000002);
+
+        val = InterruptConfig(0x00000100);
+        assert!(val.group_0_has_interrupt());
+        val = InterruptConfig(0x00000000);
+        assert!(!val.group_0_has_interrupt());
+        val = InterruptConfig(0x00000200);
+        assert!(val.group_1_has_interrupt());
+        val = InterruptConfig(0x00000000);
+        assert!(!val.group_1_has_interrupt());
+    }
+
+    #[test]
+    fn struct_group_config_functions() {
+        let mut val;
+
+        for iter in [0x0000, 0x1037, 0xabcd, 0xffff] {
+            val = GroupConfig(iter);
+            assert_eq!(val.clock_divide(), iter as u16);
+        }
+
+        val = GroupConfig(0x0);
+        val = val.enable_stop_on_repeat();
+        assert_eq!(val.0, 0x00080000);
+        assert!(val.is_stop_on_repeat());
+        val = val.disable_stop_on_repeat();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_stop_on_repeat());
+
+        val = GroupConfig(0x0);
+        val = val.set_adc_trigger_source(AdcTriggerSource::Channel0LowThreashold);
+        assert_eq!(
+            val.adc_trigger_source(),
+            AdcTriggerSource::Channel0LowThreashold
+        );
+        assert_eq!(AdcTriggerSource::Channel0LowThreashold as u32, 0x00000000);
+        val = val.set_adc_trigger_source(AdcTriggerSource::Channel0HighThreashold);
+        assert_eq!(
+            val.adc_trigger_source(),
+            AdcTriggerSource::Channel0HighThreashold
+        );
+        assert_eq!(AdcTriggerSource::Channel0HighThreashold as u32, 0x00000001);
+        val = val.set_adc_trigger_source(AdcTriggerSource::Channel1LowThreashold);
+        assert_eq!(
+            val.adc_trigger_source(),
+            AdcTriggerSource::Channel1LowThreashold
+        );
+        assert_eq!(AdcTriggerSource::Channel1LowThreashold as u32, 0x00000002);
+        val = val.set_adc_trigger_source(AdcTriggerSource::Channel1HighThreashold);
+        assert_eq!(
+            val.adc_trigger_source(),
+            AdcTriggerSource::Channel1HighThreashold
+        );
+        assert_eq!(AdcTriggerSource::Channel1HighThreashold as u32, 0x00000003);
+        val = val.set_adc_trigger_source(AdcTriggerSource::Channel2LowThreashold);
+        assert_eq!(
+            val.adc_trigger_source(),
+            AdcTriggerSource::Channel2LowThreashold
+        );
+        assert_eq!(AdcTriggerSource::Channel2LowThreashold as u32, 0x00000004);
+        val = val.set_adc_trigger_source(AdcTriggerSource::Channel2HighThreashold);
+        assert_eq!(
+            val.adc_trigger_source(),
+            AdcTriggerSource::Channel2HighThreashold
+        );
+        assert_eq!(AdcTriggerSource::Channel2HighThreashold as u32, 0x00000005);
+        val = val.set_adc_trigger_source(AdcTriggerSource::Channel3LowThreashold);
+        assert_eq!(
+            val.adc_trigger_source(),
+            AdcTriggerSource::Channel3LowThreashold
+        );
+        assert_eq!(AdcTriggerSource::Channel3LowThreashold as u32, 0x00000006);
+        val = val.set_adc_trigger_source(AdcTriggerSource::Channel3HighThreashold);
+        assert_eq!(
+            val.adc_trigger_source(),
+            AdcTriggerSource::Channel3HighThreashold
+        );
+        assert_eq!(AdcTriggerSource::Channel3HighThreashold as u32, 0x00000007);
+        val = val.set_adc_trigger_source(AdcTriggerSource::PeriodEnd);
+        assert_eq!(val.adc_trigger_source(), AdcTriggerSource::PeriodEnd);
+        assert_eq!(AdcTriggerSource::PeriodEnd as u32, 0x00000008);
+
+        val = GroupConfig(0x0);
+        val = val.enable_software_break();
+        assert!(val.is_software_break_enabled());
+        assert_eq!(val.0, 0x01000000);
+        val = val.disable_software_break();
+        assert!(!val.is_software_break_enabled());
+        assert_eq!(val.0, 0x00000000);
+
+        val = val.enable_external_break();
+        assert!(val.is_external_break_enabled());
+        assert_eq!(val.0, 0x02000000);
+        val = val.disable_external_break();
+        assert!(!val.is_external_break_enabled());
+        assert_eq!(val.0, 0x00000000);
+
+        val = val.set_external_break_polarity(Polarity::ActiveHigh);
+        assert_eq!(val.external_break_polarity(), Polarity::ActiveHigh);
+        assert_eq!(val.0, 0x04000000);
+        val = val.set_external_break_polarity(Polarity::ActiveLow);
+        assert_eq!(val.external_break_polarity(), Polarity::ActiveLow);
+        assert_eq!(val.0, 0x00000000);
+
+        val = val.enable_stop();
+        assert!(val.is_stop_enabled());
+        assert_eq!(val.0, 0x08000000);
+        val = val.disable_stop();
+        assert!(!val.is_stop_enabled());
+        assert_eq!(val.0, 0x00000000);
+
+        val = val.set_stop_mode(StopMode::Abrupt);
+        assert_eq!(val.stop_mode(), StopMode::Abrupt);
+        val = val.set_stop_mode(StopMode::Graceful);
+        assert_eq!(val.stop_mode(), StopMode::Graceful);
+
+        val = GroupConfig(0x20000000);
+        assert!(val.is_stopped());
+        val = GroupConfig(0x00000000);
+        assert!(!val.is_stopped());
+
+        val = GroupConfig(0x00000000);
+        assert_eq!(val.clock_source(), ClockSource::Xclk);
+        val = GroupConfig(0x40000000);
+        assert_eq!(val.clock_source(), ClockSource::Bclk);
+        val = GroupConfig(0x80000000);
+        assert_eq!(val.clock_source(), ClockSource::F32kClk);
+    }
+
+    #[test]
+    fn struct_channel_config_functions() {
+        for idx in 0..=3 {
+            let mut val = ChannelConfig(0x0);
+            val = val.enable_positive_output(idx);
+            assert_eq!(val.0, 0x00000001 << (idx * 4));
+            assert!(val.is_positive_output_enabled(idx));
+            val = val.disable_positive_output(idx);
+            assert_eq!(val.0, 0x00000000 << (idx * 4));
+            assert!(!val.is_positive_output_enabled(idx));
+
+            val = val.set_positive_idle_state(idx, ElectricLevel::High);
+            assert_eq!(val.0, 0x00000002 << (idx * 4));
+            assert_eq!(ElectricLevel::High, val.positive_idle_state(idx));
+            val = val.set_positive_idle_state(idx, ElectricLevel::Low);
+            assert_eq!(val.0, 0x00000000 << (idx * 4));
+            assert_eq!(ElectricLevel::Low, val.positive_idle_state(idx));
+
+            val = val.enable_negative_output(idx);
+            assert_eq!(val.0, 0x00000004 << (idx * 4));
+            assert!(val.is_negative_output_enabled(idx));
+            val = val.disable_negative_output(idx);
+            assert_eq!(val.0, 0x00000000 << (idx * 4));
+            assert!(!val.is_negative_output_enabled(idx));
+
+            val = val.set_negative_idle_state(idx, ElectricLevel::High);
+            assert_eq!(val.0, 0x00000008 << (idx * 4));
+            assert_eq!(ElectricLevel::High, val.negative_idle_state(idx));
+            val = val.set_negative_idle_state(idx, ElectricLevel::Low);
+            assert_eq!(val.0, 0x00000000 << (idx * 4));
+            assert_eq!(ElectricLevel::Low, val.negative_idle_state(idx));
+        }
+
+        for idx in 0..=3 {
+            let mut val = ChannelConfig(0x0);
+
+            val = val.set_positive_polarity(idx, Polarity::ActiveHigh);
+            assert_eq!(val.0, 0x00000001 << (16 + idx * 2));
+            assert_eq!(val.positive_polarity(idx), Polarity::ActiveHigh);
+            val = val.set_positive_polarity(idx, Polarity::ActiveLow);
+            assert_eq!(val.0, 0x00000000 << (16 + idx * 2));
+            assert_eq!(val.positive_polarity(idx), Polarity::ActiveLow);
+
+            val = val.set_negative_polarity(idx, Polarity::ActiveHigh);
+            assert_eq!(val.0, 0x00000001 << (17 + idx * 2));
+            assert_eq!(val.negative_polarity(idx), Polarity::ActiveHigh);
+            val = val.set_negative_polarity(idx, Polarity::ActiveLow);
+            assert_eq!(val.0, 0x00000000 << (17 + idx * 2));
+            assert_eq!(val.negative_polarity(idx), Polarity::ActiveLow);
+
+            val = val.set_positive_break_state(idx, ElectricLevel::High);
+            assert_eq!(val.0, 0x00000001 << (24 + idx * 2));
+            assert_eq!(val.positive_break_state(idx), ElectricLevel::High);
+            val = val.set_positive_break_state(idx, ElectricLevel::Low);
+            assert_eq!(val.0, 0x00000000 << (24 + idx * 2));
+            assert_eq!(val.positive_break_state(idx), ElectricLevel::Low);
+
+            val = val.set_negative_break_state(idx, ElectricLevel::High);
+            assert_eq!(val.0, 0x00000001 << (25 + idx * 2));
+            assert_eq!(val.negative_break_state(idx), ElectricLevel::High);
+            val = val.set_negative_break_state(idx, ElectricLevel::Low);
+            assert_eq!(val.0, 0x00000000 << (25 + idx * 2));
+            assert_eq!(val.negative_break_state(idx), ElectricLevel::Low);
+        }
+    }
+
+    #[test]
+    fn struct_period_config_functions() {
+        let mut val = PeriodConfig(0x0);
+        for iter in [0x0000, 0x1037, 0xabcd, 0xffff] {
+            val = val.set_period(iter);
+            assert_eq!(val.0, iter as u32);
+        }
+
+        val = PeriodConfig(0x0);
+        for iter in [0x0000, 0x1037, 0xabcd, 0xffff] {
+            val = val.set_interrupt_period(iter);
+            assert_eq!(val.0, (iter as u32) << 16);
+        }
+    }
+
+    #[test]
+    fn struct_deadtime_functions() {
+        let mut val: DeadTime;
+        for idx in 0..=3 {
+            for iter in 0..=1 {
+                val = DeadTime(0x0);
+                val = val.set_channel(idx, iter);
+                assert_eq!(val.channel(idx), iter);
+                assert_eq!(val.0, (iter as u32) << (idx * 8));
+            }
+        }
+    }
+
+    #[test]
+    fn struct_threshold_functions() {
+        let mut val: Threshold;
+        for iter in [0x0000, 0x1037, 0xabcd, 0xffff] {
+            val = Threshold(0x0);
+            val = val.set_low(iter);
+            assert_eq!(val.low(), iter);
+            assert_eq!(val.0, iter as u32);
+
+            val = Threshold(0x0);
+            val = val.set_high(iter);
+            assert_eq!(val.high(), iter);
+            assert_eq!(val.0, (iter as u32) << 16);
+        }
+    }
+
+    #[test]
+    fn struct_interrupt_state_functions() {
+        let mut val: InterruptState;
+        for idx in 0..=10 {
+            val = InterruptState(0x00000001 << idx);
+            assert!(val.has_interrupt(Interrupt::from_u32(idx)));
+        }
+    }
+
+    #[test]
+    fn struct_interrupt_mask_functions() {
+        let mut val: InterruptMask = InterruptMask(0x0);
+        for idx in 0..=10 {
+            val = val.mask_interrupt(Interrupt::from_u32(idx));
+            assert!(val.is_interrupt_masked(Interrupt::from_u32(idx)));
+            assert_eq!(val.0, 0x00000001 << idx);
+            val = val.unmask_interrupt(Interrupt::from_u32(idx));
+            assert!(!val.is_interrupt_masked(Interrupt::from_u32(idx)));
+            assert_eq!(val.0, 0x00000000 << idx);
+        }
+    }
+
+    #[test]
+    fn struct_interrupt_clear_functions() {
+        let mut val: InterruptClear;
+        for idx in 0..=10 {
+            val = InterruptClear(0x0);
+            val = val.clear_interrupt(Interrupt::from_u32(idx));
+            assert_eq!(val.0, 0x00000001 << idx);
+        }
+    }
+
+    #[test]
+    fn struct_interrupt_enable_functions() {
+        let mut val: InterruptEnable;
+        for idx in 0..=10 {
+            val = InterruptEnable(0x0);
+            val = val.enable_interrupt(Interrupt::from_u32(idx));
+            assert!(val.is_interrupt_enabled(Interrupt::from_u32(idx)));
+            assert_eq!(val.0, 0x00000001 << idx);
+            val = val.disable_interrupt(Interrupt::from_u32(idx));
+            assert!(!val.is_interrupt_enabled(Interrupt::from_u32(idx)));
+            assert_eq!(val.0, 0x00000000 << idx);
+        }
     }
 }
