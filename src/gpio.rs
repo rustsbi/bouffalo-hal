@@ -511,8 +511,18 @@ pub struct Pins<A: BaseAddress> {
     pub io2: Pin<A, 2, Disabled>,
     // GPIO I/O 3.
     pub io3: Pin<A, 3, Disabled>,
+    // GPIO I/O 4.
+    pub io4: Pin<A, 4, Disabled>,
+    // GPIO I/O 5.
+    pub io5: Pin<A, 5, Disabled>,
+    // GPIO I/O 6.
+    pub io6: Pin<A, 6, Disabled>,
+    // GPIO I/O 7.
+    pub io7: Pin<A, 7, Disabled>,
     // GPIO I/O 8.
     pub io8: Pin<A, 8, Disabled>,
+    // GPIO I/O 9.
+    pub io9: Pin<A, 9, Disabled>,
     // GPIO I/O 10.
     pub io10: Pin<A, 10, Disabled>,
     // GPIO I/O 11.
@@ -525,10 +535,28 @@ pub struct Pins<A: BaseAddress> {
     pub io14: Pin<A, 14, Disabled>,
     // GPIO I/O 15.
     pub io15: Pin<A, 15, Disabled>,
+    // GPIO I/O 16.
+    pub io16: Pin<A, 16, Disabled>,
+    // GPIO I/O 17.
+    pub io17: Pin<A, 17, Disabled>,
+    // GPIO I/O 18.
+    pub io18: Pin<A, 18, Disabled>,
+    // GPIO I/O 19.
+    pub io19: Pin<A, 19, Disabled>,
+    // GPIO I/O 20.
+    pub io20: Pin<A, 20, Disabled>,
+    // GPIO I/O 21.
+    pub io21: Pin<A, 21, Disabled>,
     // GPIO I/O 22.
     pub io22: Pin<A, 22, Disabled>,
     // GPIO I/O 23.
     pub io23: Pin<A, 23, Disabled>,
+    // GPIO I/O 24.
+    pub io24: Pin<A, 24, Disabled>,
+    // GPIO I/O 25.
+    pub io25: Pin<A, 25, Disabled>,
+    // GPIO I/O 26.
+    pub io26: Pin<A, 26, Disabled>,
     // GPIO I/O 27.
     pub io27: Pin<A, 27, Disabled>,
     // GPIO I/O 28.
