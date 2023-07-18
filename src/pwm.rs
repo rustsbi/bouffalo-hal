@@ -628,7 +628,7 @@ pub struct INTERRUPT_STATE(UnsafeCell<u32>);
 pub struct InterruptState(u32);
 
 impl INTERRUPT_STATE {
-    /// Read intrrupt state.
+    /// Read interrupt state.
     #[inline]
     pub fn read(&self) -> InterruptState {
         InterruptState(unsafe { self.0.get().read_volatile() })
@@ -654,12 +654,12 @@ pub struct INTERRUPT_MASK(UnsafeCell<u32>);
 pub struct InterruptMask(u32);
 
 impl INTERRUPT_MASK {
-    /// Read intrrupt mask.
+    /// Read interrupt mask.
     #[inline]
     pub fn read(&self) -> InterruptMask {
         InterruptMask(unsafe { self.0.get().read_volatile() })
     }
-    /// Write intrrupt mask.
+    /// Write interrupt mask.
     #[inline]
     pub fn write(&self, val: InterruptMask) {
         unsafe { self.0.get().write_volatile(val.0) }
@@ -695,7 +695,7 @@ pub struct INTERRUPT_CLEAR(UnsafeCell<u32>);
 pub struct InterruptClear(u32);
 
 impl INTERRUPT_CLEAR {
-    /// Write intrrupt clear.
+    /// Write interrupt clear.
     #[inline]
     pub fn write(&self, val: InterruptClear) {
         unsafe { self.0.get().write_volatile(val.0) }
@@ -721,12 +721,12 @@ pub struct INTERRUPT_ENABLE(UnsafeCell<u32>);
 pub struct InterruptEnable(u32);
 
 impl INTERRUPT_ENABLE {
-    /// Read intrrupt enable.
+    /// Read interrupt enable.
     #[inline]
     pub fn read(&self) -> InterruptEnable {
         InterruptEnable(unsafe { self.0.get().read_volatile() })
     }
-    /// Write intrrupt enable.
+    /// Write interrupt enable.
     #[inline]
     pub fn write(&self, val: InterruptEnable) {
         unsafe { self.0.get().write_volatile(val.0) }

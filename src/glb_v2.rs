@@ -53,9 +53,9 @@ impl UartConfig {
     /// TODO: make divide factors a new type(enum), like UartSignal
     const CLOCK_DIVIDE: u32 = 0x7 << 0;
     const CLOCK_ENABLE: u32 = 0x1 << 4;
-    const HBN_CLOCK_SEL: u32 = 0x1 << 7;
-    const HBN_CLOCK_SEL2: u32 = 0x1 << 22;
-    const UART2_IO_SEL: u32 = 0x1 << 24;
+    // const HBN_CLOCK_SEL: u32 = 0x1 << 7;
+    // const HBN_CLOCK_SEL2: u32 = 0x1 << 22;
+    // const UART2_IO_SEL: u32 = 0x1 << 24;
 
     /// Set peripheral clock divide factor.
     #[inline]
