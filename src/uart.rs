@@ -9,6 +9,7 @@ use base_address::BaseAddress;
 use core::cell::UnsafeCell;
 #[cfg(any(doc, feature = "glb-v2"))]
 use core::marker::PhantomData;
+use volatile_register::{RO, RW, WO};
 #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
 use {
     crate::{clocks::Clocks, GLB},
@@ -27,29 +28,29 @@ impl Alternate for Uart {
 #[repr(C)]
 pub struct RegisterBlock {
     /// Transmit configuration.
-    pub transmit_config: TRANSMIT_CONFIG,
+    pub transmit_config: RW<TransmitConfig>,
     /// Receive configuration.
-    pub receive_config: RECEIVE_CONFIG,
+    pub receive_config: RW<ReceiveConfig>,
     /// Bit period in clocks.
-    pub bit_period: BIT_PERIOD,
+    pub bit_period: RW<BitPeriod>,
     /// Data format configuration.
-    pub data_config: DATA_CONFIG,
+    pub data_config: RW<DataConfig>,
     _reserved1: [u8; 0x10],
     /// Interrupt state register.
-    pub interrupt_state: INTERRUPT_STATE,
+    pub interrupt_state: RO<InterruptState>,
     /// Interrupt mask register.
-    pub interrupt_mask: INTERRUPT_MASK,
+    pub interrupt_mask: RW<InterruptMask>,
     /// Clear interrupt register.
-    pub interrupt_clear: INTERRUPT_CLEAR,
+    pub interrupt_clear: WO<InterruptClear>,
     /// Interrupt enable register.
-    pub interrupt_enable: INTERRUPT_ENABLE,
+    pub interrupt_enable: RW<InterruptEnable>,
     /// Bus state.
-    pub bus_state: BUS_STATE,
+    pub bus_state: RO<BusState>,
     _reserved2: [u8; 0x4c],
     /// First-in first-out queue configuration 0.
-    pub fifo_config_0: FIFO_CONFIG_0,
+    pub fifo_config_0: RW<FifoConfig0>,
     /// First-in first-out queue configuration 1.
-    pub fifo_config_1: FIFO_CONFIG_1,
+    pub fifo_config_1: RW<FifoConfig1>,
     /// Write data into first-in first-out queue.
     pub data_write: DATA_WRITE,
     _reserved3: [u8; 0x3],
@@ -58,27 +59,9 @@ pub struct RegisterBlock {
 }
 
 /// Transmit configuration register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct TRANSMIT_CONFIG(UnsafeCell<u32>);
-
-/// Configuration structure for transmit feature.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct TransmitConfig(u32);
-
-impl TRANSMIT_CONFIG {
-    /// Read transmit configuration.
-    #[inline]
-    pub fn read(&self) -> TransmitConfig {
-        TransmitConfig(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write transmit configuration.
-    #[inline]
-    pub fn write(&self, val: TransmitConfig) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 // TODO: inherent associated types is unstable, put aliases here as WAR
 /// Register fields aliases, defining the bit field shift and bit length
@@ -300,27 +283,9 @@ impl TransmitConfig {
 }
 
 /// Receive configuration register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct RECEIVE_CONFIG(UnsafeCell<u32>);
-
-/// Configuration structure for receive configuration.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct ReceiveConfig(u32);
-
-impl RECEIVE_CONFIG {
-    /// Read receive configuration.
-    #[inline]
-    pub fn read(&self) -> ReceiveConfig {
-        ReceiveConfig(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write receive configuration.
-    #[inline]
-    pub fn write(&self, val: ReceiveConfig) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 mod receive_config {
     use crate::BitField;
@@ -508,23 +473,6 @@ impl ReceiveConfig {
 }
 
 /// Bit period configuration register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct BIT_PERIOD(UnsafeCell<u32>);
-
-impl BIT_PERIOD {
-    /// Read data configuration.
-    #[inline]
-    pub fn read(&self) -> BitPeriod {
-        BitPeriod(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write data configuration.
-    #[inline]
-    pub fn write(&self, val: BitPeriod) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
-/// Configuration structure for bit period.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct BitPeriod(u32);
@@ -556,27 +504,9 @@ impl BitPeriod {
 }
 
 /// Data configuration register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct DATA_CONFIG(UnsafeCell<u32>);
-
-/// Configuration structure for data format.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct DataConfig(u32);
-
-impl DATA_CONFIG {
-    /// Read data configuration.
-    #[inline]
-    pub fn read(&self) -> DataConfig {
-        DataConfig(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write data configuration.
-    #[inline]
-    pub fn write(&self, val: DataConfig) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl DataConfig {
     const BIT_ORDER: u32 = 1 << 0;
@@ -619,22 +549,9 @@ pub enum Interrupt {
 }
 
 /// Interrupt state register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct INTERRUPT_STATE(UnsafeCell<u32>);
-
-/// Interrupt state.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct InterruptState(u32);
-
-impl INTERRUPT_STATE {
-    /// Read interrupt state.
-    #[inline]
-    pub fn read(&self) -> InterruptState {
-        InterruptState(unsafe { self.0.get().read_volatile() })
-    }
-}
 
 impl InterruptState {
     /// Check if has interrupt.
@@ -645,27 +562,9 @@ impl InterruptState {
 }
 
 /// Interrupt mask register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct INTERRUPT_MASK(UnsafeCell<u32>);
-
-/// Interrupt mask.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct InterruptMask(u32);
-
-impl INTERRUPT_MASK {
-    /// Read interrupt mask.
-    #[inline]
-    pub fn read(&self) -> InterruptMask {
-        InterruptMask(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write interrupt mask.
-    #[inline]
-    pub fn write(&self, val: InterruptMask) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl InterruptMask {
     /// Set interrupt mask.
@@ -686,22 +585,9 @@ impl InterruptMask {
 }
 
 /// Interrupt clear register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct INTERRUPT_CLEAR(UnsafeCell<u32>);
-
-/// Interrupt clear.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct InterruptClear(u32);
-
-impl INTERRUPT_CLEAR {
-    /// Write interrupt clear.
-    #[inline]
-    pub fn write(&self, val: InterruptClear) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl InterruptClear {
     /// Clear interrupt.
@@ -712,27 +598,9 @@ impl InterruptClear {
 }
 
 /// Interrupt enable register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct INTERRUPT_ENABLE(UnsafeCell<u32>);
-
-/// Interrupt enable.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct InterruptEnable(u32);
-
-impl INTERRUPT_ENABLE {
-    /// Read interrupt enable.
-    #[inline]
-    pub fn read(&self) -> InterruptEnable {
-        InterruptEnable(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write interrupt enable.
-    #[inline]
-    pub fn write(&self, val: InterruptEnable) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl InterruptEnable {
     /// Enable interrupt.
@@ -753,27 +621,9 @@ impl InterruptEnable {
 }
 
 /// Bus state register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct BUS_STATE(UnsafeCell<u32>);
-
-/// Configuration structure for bus state.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct BusState(u32);
-
-impl BUS_STATE {
-    /// Read bus state.
-    #[inline]
-    pub fn read(&self) -> BusState {
-        BusState(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write bus state.
-    #[inline]
-    pub fn write(&self, val: BusState) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl BusState {
     const TRANSMIT_BUSY: u32 = 1 << 0;
@@ -792,27 +642,9 @@ impl BusState {
 }
 
 /// First-in first-out queue configuration 0.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct FIFO_CONFIG_0(UnsafeCell<u32>);
-
-/// Configuration structure for first-in first-out queue register 0.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct FifoConfig0(u32);
-
-impl FIFO_CONFIG_0 {
-    /// Read first-in first-out queue configuration register 0.
-    #[inline]
-    pub fn read(&self) -> FifoConfig0 {
-        FifoConfig0(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write first-in first-out queue configuration register 0.
-    #[inline]
-    pub fn write(&self, val: FifoConfig0) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl FifoConfig0 {
     const TRANSMIT_DMA_ENABLE: u32 = 1 << 0;
@@ -887,27 +719,9 @@ impl FifoConfig0 {
 }
 
 /// First-in first-out queue configuration 1.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct FIFO_CONFIG_1(UnsafeCell<u32>);
-
-/// Configuration structure for first-in first-out queue register 1.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct FifoConfig1(u32);
-
-impl FIFO_CONFIG_1 {
-    /// Read first-in first-out queue configuration register 1.
-    #[inline]
-    pub fn read(&self) -> FifoConfig1 {
-        FifoConfig1(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write first-in first-out queue configuration register 1.
-    #[inline]
-    pub fn write(&self, val: FifoConfig1) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl FifoConfig1 {
     const TRANSMIT_COUNT: u32 = 0x3f;
@@ -1357,11 +1171,11 @@ impl<A: BaseAddress, PINS> Serial<A, PINS> {
         let val = BitPeriod(0)
             .set_transmit_time_interval(interval as u16)
             .set_receive_time_interval(interval as u16);
-        uart.bit_period.write(val);
+        unsafe { uart.bit_period.write(val) };
 
         // Write bit order
         let val = DataConfig(0).set_bit_order(config.bit_order);
-        uart.data_config.write(val);
+        unsafe { uart.data_config.write(val) };
 
         // Configure transmit feature
         let mut val = TransmitConfig(0)
@@ -1375,7 +1189,7 @@ impl<A: BaseAddress, PINS> Serial<A, PINS> {
         if PINS::CTS {
             val = val.enable_cts();
         }
-        uart.transmit_config.write(val);
+        unsafe { uart.transmit_config.write(val) };
 
         // Configure receive feature
         let mut val = ReceiveConfig(0)
@@ -1384,7 +1198,7 @@ impl<A: BaseAddress, PINS> Serial<A, PINS> {
         if PINS::RXD {
             val = val.enable_rxd();
         }
-        uart.receive_config.write(val);
+        unsafe { uart.receive_config.write(val) };
 
         Self { uart, pins }
     }
