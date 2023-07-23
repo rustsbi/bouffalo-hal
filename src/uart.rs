@@ -336,7 +336,6 @@ impl ReceiveConfig {
     const LIN_RECEIVE: u32 = 1 << 3;
     const IR_RECEIVE: u32 = 1 << 6;
     const IR_INVERSE: u32 = 1 << 7;
-    const CHAR_BIT_COUNT: u32 = 0x3 << 8;
     const DEGLICH: u32 = 1 << 11;
     const DEGLICH_CYCLE: u32 = 0xf << 12;
     const TRANSFER_LENGTH: u32 = 0xffff << 16;
@@ -470,16 +469,6 @@ impl ReceiveConfig {
             7 => WordLength::Eight,
             _ => unreachable!(),
         }
-    }
-    /// Set bit count for each character.
-    #[inline]
-    pub const fn set_char_bit_count(self, val: u8) -> Self {
-        Self(self.0 & !Self::CHAR_BIT_COUNT | ((val as u32) << 8))
-    }
-    /// Get bit count for each character.
-    #[inline]
-    pub const fn char_bit_count(self) -> u8 {
-        ((self.0 & Self::CHAR_BIT_COUNT) >> 8) as u8
     }
     /// Enable de-glitch function.
     #[inline]
@@ -1322,7 +1311,7 @@ pub struct DataRead(u8);
 impl DATA_READ {
     /// Read a byte from first-in first-out queue.
     #[inline]
-    pub fn read_u8(self) -> u8 {
+    pub fn read_u8(&self) -> u8 {
         unsafe { self.0.get().read_volatile() }
     }
 }
@@ -1374,7 +1363,7 @@ impl<A: BaseAddress, PINS> Serial<A, PINS> {
         let val = DataConfig(0).set_bit_order(config.bit_order);
         uart.data_config.write(val);
 
-        // Config transmit
+        // Configure transmit feature
         let mut val = TransmitConfig(0)
             .enable_freerun()
             .set_parity(config.parity)
@@ -1387,6 +1376,15 @@ impl<A: BaseAddress, PINS> Serial<A, PINS> {
             val = val.enable_cts();
         }
         uart.transmit_config.write(val);
+
+        // Configure receive feature
+        let mut val = ReceiveConfig(0)
+            .set_parity(config.parity)
+            .set_word_length(config.word_length);
+        if PINS::RXD {
+            val = val.enable_rxd();
+        }
+        uart.receive_config.write(val);
 
         Self { uart, pins }
     }
@@ -1478,6 +1476,23 @@ impl<A: BaseAddress, PINS> embedded_io::blocking::Write for Serial<A, PINS> {
             core::hint::spin_loop();
         }
         Ok(())
+    }
+}
+
+impl<A: BaseAddress, PINS> embedded_io::blocking::Read for Serial<A, PINS> {
+    #[inline]
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        while self.uart.fifo_config_1.read().receive_available_bytes() == 0 {
+            core::hint::spin_loop();
+        }
+        let len = core::cmp::min(
+            self.uart.fifo_config_1.read().receive_available_bytes() as usize,
+            buf.len(),
+        );
+        for i in 0..len {
+            buf[i] = self.uart.data_read.read_u8();
+        }
+        Ok(len)
     }
 }
 
