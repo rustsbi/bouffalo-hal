@@ -2,7 +2,7 @@
 #[cfg(feature = "glb-v1")]
 use crate::glb::v1::{Drive, Function, InterruptMode, Pull};
 #[cfg(feature = "glb-v2")]
-use crate::glb::v2::{Drive, Function, InterruptMode, Mode, Pull};
+use crate::glb::v2::{Drive, Function, GpioConfig, InterruptMode, Mode, Pull};
 #[cfg(any(feature = "glb-v1", feature = "glb-v2"))]
 use crate::GLB;
 use base_address::BaseAddress;
@@ -65,30 +65,42 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// adjusted to the corresponding type before it can be used to create such structures.
 ///
 /// ```no_run
-/// # use base_address::Static;
+/// # use base_address::{BaseAddress, Static};
 /// # use embedded_time::rate::*;
 /// # use bl_soc::{
 /// #     clocks::Clocks,
-/// #     gpio::Pins,
-/// #     uart::{BitOrder, Config, Parity, Serial, StopBits, UartMuxes, WordLength},
-/// #     GLB, UART,
+/// #     gpio::{Pins, Pin, Alternate},
+/// #     uart::{BitOrder, Config, Parity, StopBits, WordLength},
+/// #     UART,
 /// # };
 /// # use embedded_io::blocking::Write;
+/// # pub struct Serial<PINS> { pins: PINS }
+/// # impl<PINS> Serial<PINS> {
+/// #     pub fn new(_: UART<impl BaseAddress>, _: Config, _: Baud,
+/// # #[cfg(feature = "glb-v2")] _: PINS, _: &Clocks, _: &GLB<impl BaseAddress>)
+/// #     -> Self { unimplemented!() }
+/// #     pub fn write_fmt(&mut self, fmt: core::fmt::Arguments<'_>) -> Result<(), ()> { unimplemented!() }
+/// #     pub fn flush(&mut self) -> Result<(), ()> { unimplemented!() }
+/// # }
+/// # pub struct GLB<A: BaseAddress> {
+/// #     base: A,
+/// # }
 /// # pub struct Peripherals {
 /// #     gpio: Pins<Static<0x20000000>>,
 /// #     glb: GLB<Static<0x20000000>>,
 /// #     uart0: UART<Static<0x2000A000>>,
-/// #     uart_muxes: UartMuxes<Static<0x20000000>>,
 /// # }
 /// # fn main() {
 /// # let p: Peripherals = unsafe { core::mem::transmute(()) };
 /// # let clocks = Clocks {};
 /// // Prepare UART transmit and receive pins by converting io14 and io15 into
 /// // UART signal alternate mode.
+/// # #[cfg(feature = "glb-v2")]
 /// let tx = p.gpio.io14.into_uart();
+/// # #[cfg(feature = "glb-v2")]
 /// let rx = p.gpio.io15.into_uart();
-/// # let sig2 = p.uart_muxes.sig2.into_transmit::<0>();
-/// # let sig3 = p.uart_muxes.sig3.into_receive::<0>();
+/// # let sig2 = ();
+/// # let sig3 = ();
 /// # let config = Config {
 /// #     bit_order: BitOrder::LsbFirst,
 /// #     parity: Parity::None,
@@ -97,6 +109,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// # };
 /// // Create the serial structure. Note that if we don't have tx and rx GPIO
 /// // alternate mode set correctly, code here won't compile for type mismatch.
+/// # #[cfg(feature = "glb-v2")]
 /// let mut serial = Serial::new(
 ///     p.uart0,
 ///     config,
@@ -105,6 +118,8 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 ///     &clocks,
 ///     &p.glb,
 /// );
+/// # #[cfg(not(feature = "glb-v2"))]
+/// # let mut serial = Serial { pins: () };
 /// // Now that we have a working serial structure, we write something with it.
 /// writeln!(serial, "Hello world!").ok();
 /// serial.flush().ok();
@@ -597,6 +612,82 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             } else {
                 unimplemented!()
             }
+        }
+    }
+}
+
+/// Pulse Width Modulation signal mode (type state).
+pub struct Pwm<const F: usize>;
+
+impl Alternate for Pwm<0> {
+    #[cfg(feature = "glb-v2")]
+    const F: Function = Function::Pwm0;
+}
+
+impl Alternate for Pwm<1> {
+    #[cfg(feature = "glb-v2")]
+    const F: Function = Function::Pwm1;
+}
+
+impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+    /// Configures the pin to operate as a pull up Pulse Width Modulation signal pin.
+    #[cfg(any(doc, feature = "glb-v2"))]
+    #[inline]
+    pub fn into_pull_up_pwm<const I: usize>(self) -> Pin<A, N, Pwm<I>>
+    where
+        Pwm<I>: Alternate,
+    {
+        let config = GpioConfig::RESET_VALUE
+            .disable_input()
+            .enable_output()
+            .enable_schmitt()
+            .set_drive(Drive::Drive0)
+            .set_pull(Pull::Up)
+            .set_function(Pwm::<I>::F);
+        self.base.gpio_config[N].write(config);
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    /// Configures the pin to operate as a pull down Pulse Width Modulation signal pin.
+    #[cfg(any(doc, feature = "glb-v2"))]
+    #[inline]
+    pub fn into_pull_down_pwm<const I: usize>(self) -> Pin<A, N, Pwm<I>>
+    where
+        Pwm<I>: Alternate,
+    {
+        let config = GpioConfig::RESET_VALUE
+            .disable_input()
+            .enable_output()
+            .enable_schmitt()
+            .set_drive(Drive::Drive0)
+            .set_pull(Pull::Down)
+            .set_function(Pwm::<I>::F);
+        self.base.gpio_config[N].write(config);
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    /// Configures the pin to operate as floating Pulse Width Modulation signal pin.
+    #[cfg(any(doc, feature = "glb-v2"))]
+    #[inline]
+    pub fn into_floating_pwm<const I: usize>(self) -> Pin<A, N, Pwm<I>>
+    where
+        Pwm<I>: Alternate,
+    {
+        let config = GpioConfig::RESET_VALUE
+            .disable_input()
+            .enable_output()
+            .enable_schmitt()
+            .set_drive(Drive::Drive0)
+            .set_pull(Pull::None)
+            .set_function(Pwm::<I>::F);
+        self.base.gpio_config[N].write(config);
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
         }
     }
 }
