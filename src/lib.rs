@@ -22,6 +22,7 @@ pub mod glb {
 
 pub mod gpio;
 pub mod hbn;
+pub mod i2c;
 pub mod jtag;
 pub mod pwm;
 pub mod uart;
@@ -78,6 +79,22 @@ unsafe impl<A: BaseAddress> Send for HBN<A> {}
 
 impl<A: BaseAddress> ops::Deref for HBN<A> {
     type Target = hbn::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+/// Inter-Integrated Circuit bus.
+pub struct I2C<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for I2C<A> {}
+
+impl<A: BaseAddress> ops::Deref for I2C<A> {
+    type Target = i2c::RegisterBlock;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
