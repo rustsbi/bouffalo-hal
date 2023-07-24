@@ -1,38 +1,31 @@
 //! Pulse Width Modulation peripheral.
-use core::cell::UnsafeCell;
+use crate::gpio::{self, Alternate, Pin};
+use crate::{clocks::Clocks, PWM};
+#[cfg(any(doc, feature = "glb-v2"))]
+use crate::{
+    glb::v2::{PwmSignal0, PwmSignal1},
+    GLB,
+};
+use base_address::BaseAddress;
+use core::marker::PhantomData;
+use core::ops::{Deref, DerefMut};
+use embedded_time::rate::Hertz;
+use volatile_register::{RO, RW, WO};
 
 /// Pulse width modulation registers.
 #[repr(C)]
 pub struct RegisterBlock {
     /// Interrupt configuration.
-    pub interrupt_config: INTERRUPT_CONFIG,
+    pub interrupt_config: RW<InterruptConfig>,
     _reserved: [u8; 0x3c],
     /// control register group.
     pub group: [Group; 2],
 }
 
 /// Interrupt configuration register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct INTERRUPT_CONFIG(UnsafeCell<u32>);
-
-/// Configuration structure for interrupt.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct InterruptConfig(u32);
-
-impl INTERRUPT_CONFIG {
-    /// Read interrupt config.
-    #[inline]
-    pub fn read(&self) -> InterruptConfig {
-        InterruptConfig(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write interrupt config.
-    #[inline]
-    pub fn write(&self, val: InterruptConfig) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl InterruptConfig {
     const CLEAR_GROUP_0_INTERRUPT: u32 = 1 << 0;
@@ -66,47 +59,29 @@ impl InterruptConfig {
 #[repr(C)]
 pub struct Group {
     /// Group configuration.
-    pub group_config: GROUP_CONFIG,
+    pub group_config: RW<GroupConfig>,
     /// Channel configuration.
-    pub channel_config: CHANNEL_CONFIG,
+    pub channel_config: RW<ChannelConfig>,
     /// Period configuration.
-    pub period_config: PERIOD_CONFIG,
+    pub period_config: RW<PeriodConfig>,
     /// Dead time configuration.
-    pub dead_time: DEAD_TIME,
+    pub dead_time: RW<DeadTime>,
     /// Threshold configuration.
-    pub threshold: [THRESHOLD; 4],
+    pub threshold: [RW<Threshold>; 4],
     /// Interrupt state.
-    pub interrupt_state: INTERRUPT_STATE,
+    pub interrupt_state: RO<InterruptState>,
     /// Interrupt mask.
-    pub interrupt_mask: INTERRUPT_MASK,
+    pub interrupt_mask: RW<InterruptMask>,
     /// Interrupt clear.
-    pub interrupt_clear: INTERRUPT_CLEAR,
+    pub interrupt_clear: WO<InterruptClear>,
     /// Interrupt enable.
-    pub interrupt_enable: INTERRUPT_ENABLE,
+    pub interrupt_enable: RW<InterruptEnable>,
 }
 
 /// Group configuration register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct GROUP_CONFIG(UnsafeCell<u32>);
-
-/// Configuration structure for group.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct GroupConfig(u32);
-
-impl GROUP_CONFIG {
-    /// Read group config.
-    #[inline]
-    pub fn read(&self) -> GroupConfig {
-        GroupConfig(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write group config.
-    #[inline]
-    pub fn write(&self, val: GroupConfig) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl GroupConfig {
     const CLOCK_DIVIDE: u32 = 0xffff << 0;
@@ -118,7 +93,7 @@ impl GroupConfig {
     const STOP_ENABLE: u32 = 1 << 27;
     const STOP_MODE: u32 = 1 << 28;
     const STOP_STATE: u32 = 1 << 29;
-    const CLOCK_SOURCE: u32 = 0x03 << 30;
+    const CLOCK_SOURCE: u32 = 0x3 << 30;
 
     /// Set clock divide.
     #[inline]
@@ -256,10 +231,9 @@ impl GroupConfig {
     #[inline]
     pub const fn clock_source(self) -> ClockSource {
         match (self.0 & Self::CLOCK_SOURCE) >> 30 {
-            0x00 => ClockSource::Xclk,
-            0x01 => ClockSource::Bclk,
-            0x02 => ClockSource::F32kClk,
-            _ => unreachable!(),
+            0x0 => ClockSource::Xclk,
+            0x1 => ClockSource::Bclk,
+            _ => ClockSource::F32kClk,
         }
     }
 }
@@ -304,28 +278,11 @@ pub enum ClockSource {
     F32kClk = 2,
 }
 
-/// Channel config register.
+/// Channel configuration register.
 #[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct CHANNEL_CONFIG(UnsafeCell<u32>);
-
-/// Configuration structure for channel.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct ChannelConfig(u32);
-
-impl CHANNEL_CONFIG {
-    /// Read channel config.
-    #[inline]
-    pub fn read(&self) -> ChannelConfig {
-        ChannelConfig(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write channel config.
-    #[inline]
-    pub fn write(&self, val: ChannelConfig) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl ChannelConfig {
     const POSITIVE_OUTPUT_ENABLE: u32 = 0x1 << 0;
@@ -481,28 +438,10 @@ pub enum ElectricLevel {
     High = 1,
 }
 
-/// Period config register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct PERIOD_CONFIG(UnsafeCell<u32>);
-
-/// Configuration structure for period.
+/// Period configuration register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct PeriodConfig(u32);
-
-impl PERIOD_CONFIG {
-    /// Read period config.
-    #[inline]
-    pub fn read(&self) -> PeriodConfig {
-        PeriodConfig(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write period config.
-    #[inline]
-    pub fn write(&self, val: PeriodConfig) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl PeriodConfig {
     const PERIOD: u32 = 0xffff << 0;
@@ -530,28 +469,10 @@ impl PeriodConfig {
     }
 }
 
-/// Dead time register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct DEAD_TIME(UnsafeCell<u32>);
-
-/// Configuration structure for dead time.
+/// Dead time configuration register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct DeadTime(u32);
-
-impl DEAD_TIME {
-    /// Read dead time.
-    #[inline]
-    pub fn read(&self) -> DeadTime {
-        DeadTime(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write dead time.
-    #[inline]
-    pub fn write(&self, val: DeadTime) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl DeadTime {
     const DEAD_TIME: u32 = 0xff << 0;
@@ -569,26 +490,9 @@ impl DeadTime {
 }
 
 /// Threshold register.
-#[repr(transparent)]
-pub struct THRESHOLD(UnsafeCell<u32>);
-
-/// Configuration structure for threshold.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct Threshold(u32);
-
-impl THRESHOLD {
-    /// Read threshold.
-    #[inline]
-    pub fn read(&self) -> Threshold {
-        Threshold(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write threshold.
-    #[inline]
-    pub fn write(&self, val: Threshold) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl Threshold {
     const LOW: u32 = 0xffff << 0;
@@ -633,42 +537,10 @@ pub enum Interrupt {
     RepeatCount = 10,
 }
 
-impl Interrupt {
-    fn from_u32(value: u32) -> Interrupt {
-        match value {
-            0 => Interrupt::Channel0LowThreashold,
-            1 => Interrupt::Channel0HighThreashold,
-            2 => Interrupt::Channel1LowThreashold,
-            3 => Interrupt::Channel1HighThreashold,
-            4 => Interrupt::Channel2LowThreashold,
-            5 => Interrupt::Channel2HighThreashold,
-            6 => Interrupt::Channel3LowThreashold,
-            7 => Interrupt::Channel3HighThreashold,
-            8 => Interrupt::PeriodEnd,
-            9 => Interrupt::ExternalBreak,
-            10 => Interrupt::RepeatCount,
-            _ => panic!("Unknown value: {}", value),
-        }
-    }
-}
-
 /// Interrupt state register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct INTERRUPT_STATE(UnsafeCell<u32>);
-
-/// Interrupt state.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct InterruptState(u32);
-
-impl INTERRUPT_STATE {
-    /// Read interrupt state.
-    #[inline]
-    pub fn read(&self) -> InterruptState {
-        InterruptState(unsafe { self.0.get().read_volatile() })
-    }
-}
 
 impl InterruptState {
     /// Check if has interrupt.
@@ -679,27 +551,9 @@ impl InterruptState {
 }
 
 /// Interrupt mask register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct INTERRUPT_MASK(UnsafeCell<u32>);
-
-/// Interrupt mask.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct InterruptMask(u32);
-
-impl INTERRUPT_MASK {
-    /// Read interrupt mask.
-    #[inline]
-    pub fn read(&self) -> InterruptMask {
-        InterruptMask(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write interrupt mask.
-    #[inline]
-    pub fn write(&self, val: InterruptMask) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl InterruptMask {
     /// Set interrupt mask.
@@ -720,22 +574,9 @@ impl InterruptMask {
 }
 
 /// Interrupt clear register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct INTERRUPT_CLEAR(UnsafeCell<u32>);
-
-/// Interrupt clear.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct InterruptClear(u32);
-
-impl INTERRUPT_CLEAR {
-    /// Write interrupt clear.
-    #[inline]
-    pub fn write(&self, val: InterruptClear) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl InterruptClear {
     /// Clear interrupt.
@@ -746,27 +587,9 @@ impl InterruptClear {
 }
 
 /// Interrupt enable register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct INTERRUPT_ENABLE(UnsafeCell<u32>);
-
-/// Interrupt enable.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct InterruptEnable(u32);
-
-impl INTERRUPT_ENABLE {
-    /// Read interrupt enable.
-    #[inline]
-    pub fn read(&self) -> InterruptEnable {
-        InterruptEnable(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write interrupt enable.
-    #[inline]
-    pub fn write(&self, val: InterruptEnable) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl InterruptEnable {
     /// Enable interrupt.
@@ -784,6 +607,585 @@ impl InterruptEnable {
     pub const fn is_interrupt_enabled(self, val: Interrupt) -> bool {
         (self.0 & (1 << (val as u32))) != 0
     }
+}
+
+/// Single end signal settings (type state).
+pub struct SingleEnd;
+
+/// Differential end signal settings (type state).
+pub struct DifferentialEnd;
+
+/// Brushless DC Motor (BLDC) signal settings (type state).
+pub struct BrushlessDcMotor;
+
+/// Valid settings for PWM signal 0.
+pub trait Signal0 {
+    /// Signal value in `PwmConfig` register on `GLB` peripheral.
+    #[cfg(any(doc, feature = "glb-v2"))]
+    const VALUE: PwmSignal0;
+}
+
+/// Valid settings for PWM signal 1.
+pub trait Signal1 {
+    /// Signal value in `PwmConfig` register on `GLB` peripheral.
+    #[cfg(any(doc, feature = "glb-v2"))]
+    const VALUE: PwmSignal1;
+}
+
+impl Signal0 for SingleEnd {
+    #[cfg(any(doc, feature = "glb-v2"))]
+    const VALUE: PwmSignal0 = PwmSignal0::SingleEnd;
+}
+
+impl Signal0 for DifferentialEnd {
+    #[cfg(any(doc, feature = "glb-v2"))]
+    const VALUE: PwmSignal0 = PwmSignal0::DifferentialEnd;
+}
+
+impl Signal1 for SingleEnd {
+    #[cfg(any(doc, feature = "glb-v2"))]
+    const VALUE: PwmSignal1 = PwmSignal1::SingleEnd;
+}
+
+impl Signal1 for BrushlessDcMotor {
+    #[cfg(any(doc, feature = "glb-v2"))]
+    const VALUE: PwmSignal1 = PwmSignal1::BrushlessDcMotor;
+}
+
+/// Managed pulse width modulation peripheral.
+pub struct Pwm<A: BaseAddress, S> {
+    pub group0: Channels<A, S, 0>,
+    pub group1: Channels<A, S, 1>,
+}
+
+impl<A: BaseAddress, S0: Signal0, S1: Signal1> Pwm<A, (S0, S1)> {
+    /// Creates a pulse width modulation instance with given signal settings.
+    #[rustfmt::skip]
+    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
+    #[inline]
+    pub fn new(pwm: PWM<A>, signal_0: S0, signal_1: S1, glb: &GLB<impl BaseAddress>) -> Self {
+        unsafe {
+            glb.pwm_config
+                .modify(|config| config.set_signal_0(S0::VALUE).set_signal_1(S1::VALUE));
+            glb.clock_config_1.modify(|config| config.enable_pwm());
+        }
+        drop((signal_0, signal_1));
+        Pwm {
+            group0: Channels {
+                channel0: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
+                channel1: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
+                channel2: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
+                channel3: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
+                external_break: ExternalBreak { _signals: PhantomData },
+                pwm: unsafe { core::ptr::read(&pwm as *const _) },
+                _signals: PhantomData,
+            },
+            group1: Channels {
+                channel0: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
+                channel1: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
+                channel2: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
+                channel3: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
+                external_break: ExternalBreak { _signals: PhantomData },
+                pwm,
+                _signals: PhantomData,
+            },
+        }
+    }
+}
+
+/// PWM group with all its channels.
+pub struct Channels<A: BaseAddress, S, const I: usize> {
+    /// Channel 0 of current PWM group.
+    pub channel0: Channel<A, S, I, 0>,
+    /// Channel 1 of current PWM group.
+    pub channel1: Channel<A, S, I, 1>,
+    /// Channel 2 of current PWM group.
+    pub channel2: Channel<A, S, I, 2>,
+    /// Channel 3 of current PWM group.
+    pub channel3: Channel<A, S, I, 3>,
+    /// External break signal for current PWM group.
+    pub external_break: ExternalBreak<S, I>,
+    pwm: PWM<A>,
+    _signals: PhantomData<S>,
+}
+
+impl<A: BaseAddress, S, const I: usize> Channels<A, S, I> {
+    /// Configure clock settings for current PWM group.
+    ///
+    /// Clock settings would affect all the channels in the PWM group.
+    #[inline]
+    pub fn set_clock(&mut self, frequency: Hertz, source: ClockSource, clocks: &Clocks) {
+        let source_freq = match source {
+            ClockSource::Xclk => clocks.xclk(),
+            ClockSource::Bclk => todo!(),
+            ClockSource::F32kClk => todo!(),
+        };
+        let clock_divisor = source_freq.0 / frequency.0;
+        if !(1..=65535).contains(&clock_divisor) {
+            panic!("impossible frequency");
+        }
+        unsafe {
+            self.pwm.group[I].group_config.modify(|val| {
+                val.set_clock_source(source)
+                    .set_clock_divide(clock_divisor as u16)
+            })
+        };
+    }
+    /// Configure maximum duty cycle for this PWM group.
+    #[inline]
+    pub fn set_max_duty_cycle(&mut self, duty: u16) {
+        unsafe {
+            self.pwm.group[I]
+                .period_config
+                .modify(|val| val.set_period(duty))
+        }
+    }
+    /// Start current PWM group.
+    #[inline]
+    pub fn start(&mut self) {
+        unsafe {
+            self.pwm.group[I]
+                .group_config
+                .modify(|val| val.disable_stop().disable_software_break())
+        };
+        while self.pwm.group[I].group_config.read().is_stopped() {
+            core::hint::spin_loop();
+        }
+    }
+    /// Stop current PWM group.
+    #[inline]
+    pub fn stop(&mut self) {
+        unsafe {
+            self.pwm.group[I]
+                .group_config
+                .modify(|val| val.enable_stop())
+        }
+        while !self.pwm.group[I].group_config.read().is_stopped() {
+            core::hint::spin_loop();
+        }
+    }
+}
+
+/// Pulse Width Modulation channel.
+pub struct Channel<A: BaseAddress, S, const I: usize, const J: usize> {
+    pwm: PWM<A>,
+    _signals: PhantomData<S>,
+}
+
+impl<A1: BaseAddress, S, const I: usize, const J: usize> Channel<A1, S, I, J> {
+    /// Wrap current channel as positive signal with GPIO pin.
+    ///
+    /// This function statically checks if target GPIO pin mode matches current PWM channel.
+    /// If won't match, it will raise compile error.
+    #[inline]
+    pub fn positive_signal_pin<A2: BaseAddress, const N: usize, const F: usize>(
+        self,
+        pin: Pin<A2, N, gpio::Pwm<F>>,
+    ) -> PwmPin<Self, Pin<A2, N, gpio::Pwm<F>>, Positive>
+    where
+        gpio::Pwm<F>: Alternate,
+        Pin<A2, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Positive>,
+    {
+        PwmPin {
+            channel: self,
+            pin,
+            _polarity: PhantomData,
+        }
+    }
+    /// Wrap current channel as negative signal with GPIO pin.
+    ///
+    /// This function statically checks if target GPIO pin mode matches current PWM channel.
+    /// If won't match, it will raise compile error.
+    #[inline]
+    pub fn negative_signal_pin<A2: BaseAddress, const N: usize, const F: usize>(
+        self,
+        pin: Pin<A2, N, gpio::Pwm<F>>,
+    ) -> PwmPin<Self, Pin<A2, N, gpio::Pwm<F>>, Negative>
+    where
+        gpio::Pwm<F>: Alternate,
+        Pin<A2, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Negative>,
+    {
+        PwmPin {
+            channel: self,
+            pin,
+            _polarity: PhantomData,
+        }
+    }
+}
+
+/// Pulse Width Modulation external break signal.
+pub struct ExternalBreak<S, const I: usize> {
+    _signals: PhantomData<S>,
+}
+
+impl<S, const I: usize> ExternalBreak<S, I> {
+    /// Wrap current channel as external break signal with GPIO pin.
+    ///
+    /// This function statically checks if target GPIO pin mode matches the external
+    /// break signal of current PWM group. If won't match, it will raise compile error.
+    #[inline]
+    pub fn external_break_pin<A2: BaseAddress, const N: usize, const F: usize>(
+        self,
+        pin: Pin<A2, N, gpio::Pwm<F>>,
+    ) -> PwmPin<Self, Pin<A2, N, gpio::Pwm<F>>, ()>
+    where
+        gpio::Pwm<F>: Alternate,
+        Pin<A2, N, gpio::Pwm<F>>: HasPwmExternalBreak<I>,
+    {
+        PwmPin {
+            channel: self,
+            pin,
+            _polarity: PhantomData,
+        }
+    }
+}
+
+/// Positive signal polarity (type state).
+pub struct Positive;
+
+/// Negative signal polarity (type state).
+pub struct Negative;
+
+/// Check if target is internally connected to PWM signal, polarity under signal settings.
+///
+/// It checks if it is connected to PWM group `I`, channel `J` and polarity `P` with signal settings `S`.
+pub trait HasPwmSignal<S, const I: usize, const J: usize, P> {}
+
+/// Check if target is internally connected to PWM external break signal.
+///
+/// It checks if it is connected to external break signal of PWM group `I`.
+pub trait HasPwmExternalBreak<const I: usize> {}
+
+impl<A: BaseAddress, S, const I: usize, const J: usize> embedded_hal::pwm::ErrorType
+    for Channel<A, S, I, J>
+{
+    type Error = core::convert::Infallible;
+}
+
+impl<A: BaseAddress, S, const I: usize, const J: usize> embedded_hal::pwm::SetDutyCycle
+    for Channel<A, S, I, J>
+{
+    #[inline]
+    fn get_max_duty_cycle(&self) -> u16 {
+        self.pwm.group[I].period_config.read().period()
+    }
+    #[inline]
+    fn set_duty_cycle(&mut self, duty: u16) -> Result<(), Self::Error> {
+        unsafe { self.pwm.group[I].threshold[J].modify(|val| val.set_low(0).set_high(duty)) };
+        Ok(())
+    }
+}
+
+/// Wrapped GPIO pin with PWM channel feature.
+///
+/// `PwmPin` implements both `pwm::SetDutyCycle` and `digital::OutputPin` traits.
+/// With `PwmPin`, users may seamlessly use both PWM and GPIO functions at the same time
+/// without switching GPIO pin mode.
+pub struct PwmPin<CHANNEL, PIN, POLARITY> {
+    channel: CHANNEL,
+    pin: PIN,
+    _polarity: PhantomData<POLARITY>,
+}
+
+impl<CHANNEL, PIN, POLARITY> PwmPin<CHANNEL, PIN, POLARITY> {
+    #[inline]
+    pub fn free(self) -> (CHANNEL, PIN) {
+        (self.channel, self.pin)
+    }
+}
+
+impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN>
+    PwmPin<Channel<A1, S, I, J>, PIN, Positive>
+{
+    /// Enable PWM output for this pin.
+    #[inline]
+    pub fn enable_pwm_output(&mut self) {
+        unsafe {
+            self.channel.pwm.group[I]
+                .channel_config
+                .modify(|val| val.enable_positive_output(J))
+        }
+    }
+}
+
+impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN>
+    PwmPin<Channel<A1, S, I, J>, PIN, Negative>
+{
+    /// Enable PWM output for this pin.
+    #[inline]
+    pub fn enable_pwm_output(&mut self) {
+        unsafe {
+            self.channel.pwm.group[I]
+                .channel_config
+                .modify(|val| val.enable_negative_output(J))
+        }
+    }
+}
+
+impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN, POLARITY>
+    embedded_hal::digital::ErrorType for PwmPin<Channel<A1, S, I, J>, PIN, POLARITY>
+{
+    type Error = core::convert::Infallible;
+}
+
+impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN> embedded_hal::digital::OutputPin
+    for PwmPin<Channel<A1, S, I, J>, PIN, Positive>
+{
+    #[inline]
+    fn set_low(&mut self) -> Result<(), Self::Error> {
+        unsafe {
+            self.channel.pwm.group[I].channel_config.modify(|val| {
+                val.set_positive_idle_state(J, ElectricLevel::Low)
+                    .disable_positive_output(J)
+            })
+        }
+        Ok(())
+    }
+    #[inline]
+    fn set_high(&mut self) -> Result<(), Self::Error> {
+        unsafe {
+            self.channel.pwm.group[I].channel_config.modify(|val| {
+                val.set_positive_idle_state(J, ElectricLevel::High)
+                    .disable_positive_output(J)
+            })
+        }
+        Ok(())
+    }
+}
+
+impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN> embedded_hal::digital::OutputPin
+    for PwmPin<Channel<A1, S, I, J>, PIN, Negative>
+{
+    #[inline]
+    fn set_low(&mut self) -> Result<(), Self::Error> {
+        unsafe {
+            self.channel.pwm.group[I].channel_config.modify(|val| {
+                val.set_negative_idle_state(J, ElectricLevel::Low)
+                    .disable_negative_output(J)
+            })
+        }
+        Ok(())
+    }
+    #[inline]
+    fn set_high(&mut self) -> Result<(), Self::Error> {
+        unsafe {
+            self.channel.pwm.group[I].channel_config.modify(|val| {
+                val.set_negative_idle_state(J, ElectricLevel::High)
+                    .disable_negative_output(J)
+            })
+        }
+        Ok(())
+    }
+}
+
+impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN, POLARITY> Deref
+    for PwmPin<Channel<A1, S, I, J>, PIN, POLARITY>
+{
+    type Target = Channel<A1, S, I, J>;
+    fn deref(&self) -> &Self::Target {
+        &self.channel
+    }
+}
+
+impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN, POLARITY> DerefMut
+    for PwmPin<Channel<A1, S, I, J>, PIN, POLARITY>
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.channel
+    }
+}
+
+#[rustfmt::skip]
+mod gpio_impls {
+    use super::*;
+
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pin<A, 0, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pin<A, 1, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pin<A, 2, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pin<A, 3, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pin<A, 4, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pin<A, 5, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pin<A, 6, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pin<A, 7, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pin<A, 8, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pin<A, 9, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pin<A, 10, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pin<A, 11, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pin<A, 12, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pin<A, 13, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pin<A, 14, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pin<A, 15, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pin<A, 16, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pin<A, 17, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pin<A, 18, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pin<A, 19, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pin<A, 20, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pin<A, 21, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pin<A, 22, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pin<A, 23, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pin<A, 24, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pin<A, 25, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pin<A, 26, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pin<A, 27, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pin<A, 28, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pin<A, 29, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pin<A, 30, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pin<A, 31, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pin<A, 32, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pin<A, 33, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pin<A, 34, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pin<A, 35, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pin<A, 36, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pin<A, 37, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pin<A, 38, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pin<A, 39, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pin<A, 40, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pin<A, 41, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pin<A, 42, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pin<A, 43, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pin<A, 44, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pin<A, 45, gpio::Pwm<0>> {}
+
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pin<A, 0, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pin<A, 1, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pin<A, 2, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pin<A, 3, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pin<A, 4, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pin<A, 5, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pin<A, 6, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pin<A, 7, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pin<A, 8, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pin<A, 9, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pin<A, 10, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pin<A, 11, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pin<A, 12, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pin<A, 13, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pin<A, 14, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pin<A, 15, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pin<A, 16, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pin<A, 17, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pin<A, 18, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pin<A, 19, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pin<A, 20, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pin<A, 21, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pin<A, 22, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pin<A, 23, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pin<A, 24, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pin<A, 25, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pin<A, 26, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pin<A, 27, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pin<A, 28, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pin<A, 29, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pin<A, 30, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pin<A, 31, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pin<A, 32, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pin<A, 33, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pin<A, 34, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pin<A, 35, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pin<A, 36, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pin<A, 37, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pin<A, 38, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pin<A, 39, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pin<A, 40, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pin<A, 41, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pin<A, 42, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pin<A, 43, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pin<A, 44, gpio::Pwm<0>> {}
+    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pin<A, 45, gpio::Pwm<0>> {}
+
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pin<A, 0, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pin<A, 1, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pin<A, 2, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pin<A, 3, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pin<A, 4, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pin<A, 5, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pin<A, 6, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pin<A, 7, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pin<A, 8, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pin<A, 9, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pin<A, 10, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pin<A, 11, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pin<A, 12, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pin<A, 13, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pin<A, 14, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pin<A, 15, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pin<A, 16, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pin<A, 17, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pin<A, 18, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pin<A, 19, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pin<A, 20, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pin<A, 21, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pin<A, 22, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pin<A, 23, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pin<A, 24, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pin<A, 25, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pin<A, 26, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pin<A, 27, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pin<A, 28, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pin<A, 29, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pin<A, 30, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pin<A, 31, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pin<A, 32, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pin<A, 33, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pin<A, 34, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pin<A, 35, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pin<A, 36, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pin<A, 37, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pin<A, 38, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pin<A, 39, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pin<A, 40, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pin<A, 41, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pin<A, 42, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pin<A, 43, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pin<A, 44, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pin<A, 45, gpio::Pwm<1>> {}
+
+    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pin<A, 0, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pin<A, 1, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pin<A, 2, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pin<A, 3, gpio::Pwm<1>> {}
+    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pin<A, 4, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pin<A, 5, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pin<A, 6, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pin<A, 7, gpio::Pwm<1>> {}
+    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pin<A, 8, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pin<A, 9, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pin<A, 10, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pin<A, 11, gpio::Pwm<1>> {}
+    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pin<A, 12, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pin<A, 13, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pin<A, 14, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pin<A, 15, gpio::Pwm<1>> {}
+    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pin<A, 16, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pin<A, 17, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pin<A, 18, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pin<A, 19, gpio::Pwm<1>> {}
+    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pin<A, 20, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pin<A, 21, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pin<A, 22, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pin<A, 23, gpio::Pwm<1>> {}
+    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pin<A, 24, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pin<A, 25, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pin<A, 26, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pin<A, 27, gpio::Pwm<1>> {}
+    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pin<A, 28, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pin<A, 29, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pin<A, 30, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pin<A, 31, gpio::Pwm<1>> {}
+    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pin<A, 32, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pin<A, 33, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pin<A, 34, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pin<A, 35, gpio::Pwm<1>> {}
+    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pin<A, 36, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pin<A, 37, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pin<A, 38, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pin<A, 39, gpio::Pwm<1>> {}
+    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pin<A, 40, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pin<A, 41, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pin<A, 42, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pin<A, 43, gpio::Pwm<1>> {}
+    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pin<A, 44, gpio::Pwm<1>> {}
+    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pin<A, 45, gpio::Pwm<1>> {}    
 }
 
 #[cfg(test)]
@@ -950,6 +1352,8 @@ mod tests {
         assert_eq!(val.clock_source(), ClockSource::Bclk);
         val = GroupConfig(0x80000000);
         assert_eq!(val.clock_source(), ClockSource::F32kClk);
+        val = GroupConfig(0xc0000000);
+        assert_eq!(val.clock_source(), ClockSource::F32kClk);
     }
 
     #[test]
@@ -1059,6 +1463,25 @@ mod tests {
             val = val.set_high(iter);
             assert_eq!(val.high(), iter);
             assert_eq!(val.0, (iter as u32) << 16);
+        }
+    }
+
+    impl Interrupt {
+        fn from_u32(value: u32) -> Interrupt {
+            match value {
+                0 => Interrupt::Channel0LowThreashold,
+                1 => Interrupt::Channel0HighThreashold,
+                2 => Interrupt::Channel1LowThreashold,
+                3 => Interrupt::Channel1HighThreashold,
+                4 => Interrupt::Channel2LowThreashold,
+                5 => Interrupt::Channel2HighThreashold,
+                6 => Interrupt::Channel3LowThreashold,
+                7 => Interrupt::Channel3HighThreashold,
+                8 => Interrupt::PeriodEnd,
+                9 => Interrupt::ExternalBreak,
+                10 => Interrupt::RepeatCount,
+                _ => panic!("Unknown value: {}", value),
+            }
         }
     }
 
