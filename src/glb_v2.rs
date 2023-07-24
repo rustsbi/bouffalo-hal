@@ -11,13 +11,19 @@ pub struct RegisterBlock {
     pub uart_config: UART_CONFIG,
     /// Universal Asynchronous Receiver/Transmitter signal multiplexer.
     pub uart_mux_group: [UART_MUX_GROUP; 2],
-    _reserved1: [u8; 0x768],
+    _reserved1: [u8; 0x74],
+    pub pwm_config: RW<PwmConfig>,
+    _reserved2: [u8; 0x3b0],
+    // TODO: clock_config_0, clock_config_2, clock_config_3 registers
+    /// Clock generation configuration 1.
+    pub clock_config_1: RW<ClockConfig1>,
+    _reserved3: [u8; 0x33c],
     /// Generic Purpose Input/Output config.
     pub gpio_config: [GPIO_CONFIG; 46],
-    _reserved2: [u8; 0x148],
+    _reserved4: [u8; 0x148],
     /// Read value from Generic Purpose Input/Output pins.
     pub gpio_input: [RO<u32>; 2],
-    _reserved3: [u8; 0x18],
+    _reserved5: [u8; 0x18],
     /// Write value to Generic Purpose Input/Output pins.
     pub gpio_output: [RW<u32>; 2],
     /// Set pin output value to high.
@@ -167,6 +173,90 @@ impl UartMuxGroup {
             _ => unreachable!(),
         }
     }
+}
+
+/// Pulse Width Modulation configuration register.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct PwmConfig(u32);
+
+impl PwmConfig {
+    const SIGNAL_0_SELECT: u32 = 1 << 0;
+    const SIGNAL_1_SELECT: u32 = 1 << 1;
+
+    /// Set source for signal group 0.
+    #[inline]
+    pub const fn set_signal_0(self, val: PwmSignal0) -> Self {
+        Self((self.0 & !Self::SIGNAL_0_SELECT) | (val as u32))
+    }
+    /// Get source for signal group 0.
+    #[inline]
+    pub const fn signal_0(self) -> PwmSignal0 {
+        match self.0 & Self::SIGNAL_0_SELECT {
+            0 => PwmSignal0::SingleEnd,
+            1 => PwmSignal0::DifferentialEnd,
+            _ => unreachable!(),
+        }
+    }
+    /// Set source for signal group 1.
+    #[inline]
+    pub const fn set_signal_1(self, val: PwmSignal1) -> Self {
+        Self((self.0 & !Self::SIGNAL_1_SELECT) | ((val as u32) << 1))
+    }
+    /// Get source for signal group 1.
+    #[inline]
+    pub const fn signal_1(self) -> PwmSignal1 {
+        match (self.0 & Self::SIGNAL_1_SELECT) >> 1 {
+            0 => PwmSignal1::SingleEnd,
+            1 => PwmSignal1::BrushlessDcMotor,
+            _ => unreachable!(),
+        }
+    }
+}
+
+/// Clock generation configuration register 1.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct ClockConfig1(u32);
+
+impl ClockConfig1 {
+    const PWM: u32 = 0x1 << 20;
+
+    /// Enable clock gate for Pulse Width Modulation peripheral.
+    #[inline]
+    pub const fn enable_pwm(self) -> Self {
+        Self(self.0 | Self::PWM)
+    }
+    /// Disable clock gate for Pulse Width Modulation peripheral.
+    #[inline]
+    pub const fn disable_pwm(self) -> Self {
+        Self(self.0 & !Self::PWM)
+    }
+    /// Check if clock gate for Pulse Width Modulation is enabled.
+    #[inline]
+    pub const fn is_pwm_enabled(self) -> bool {
+        self.0 & Self::PWM != 0
+    }
+}
+
+/// Signal group 0 source for Pulse Width Modulation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum PwmSignal0 {
+    /// Positive signals only for PWM0 channel 0, 1, 2 and 3.
+    SingleEnd = 0,
+    /// Both positive and negative signals for PWM0 channel 0, 1, 2 and 3.
+    DifferentialEnd = 1,
+}
+
+/// Signal group 1 source for Pulse Width Modulation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum PwmSignal1 {
+    /// Positive signals only for PWM1 channel 0, 1, 2 and 3.
+    SingleEnd = 0,
+    /// Positive signals for PWM0 channel 0, 1, 2 and external break signal for PWM0.
+    BrushlessDcMotor = 1,
 }
 
 /// Generic Purpose Input/Output Configuration register.
@@ -497,6 +587,8 @@ mod tests {
     fn struct_register_block_offset() {
         assert_eq!(offset_of!(RegisterBlock, uart_config), 0x150);
         assert_eq!(offset_of!(RegisterBlock, uart_mux_group), 0x154);
+        assert_eq!(offset_of!(RegisterBlock, pwm_config), 0x1d0);
+        assert_eq!(offset_of!(RegisterBlock, clock_config_1), 0x584);
         assert_eq!(offset_of!(RegisterBlock, gpio_config), 0x8c4);
         assert_eq!(offset_of!(RegisterBlock, gpio_input), 0xac4);
         assert_eq!(offset_of!(RegisterBlock, gpio_output), 0xae4);
