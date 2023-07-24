@@ -15,4 +15,10 @@ impl Clocks {
         // todo: calculate from Clocks structure fields
         Hertz(80_000_000)
     }
+    /// Crystal oscillator clock frequency.
+    #[inline]
+    pub const fn xclk(&self) -> Hertz {
+        // todo: calculate from Clocks structure fields
+        Hertz(40_000_000)
+    }
 }
