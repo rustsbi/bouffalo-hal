@@ -259,7 +259,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
                 self.base.gpio_config[N >> 1].write(config);
             } else if #[cfg(feature = "glb-v2")] {
                 let config = self.base.gpio_config[N].read().enable_schmitt();
-                self.base.gpio_config[N].write(config);
+                unsafe { self.base.gpio_config[N].write(config) };
             } else {
                 unimplemented!()
             }
@@ -274,7 +274,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
                 self.base.gpio_config[N >> 1].write(config);
             } else if #[cfg(feature = "glb-v2")] {
                 let config = self.base.gpio_config[N].read().disable_schmitt();
-                self.base.gpio_config[N].write(config);
+                unsafe { self.base.gpio_config[N].write(config) };
             } else {
                 unimplemented!()
             }
@@ -288,7 +288,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
                 unsafe { self.base.gpio_interrupt_clear.write(1 << N) };
             } else if #[cfg(feature = "glb-v2")] {
                 let config = self.base.gpio_config[N].read().clear_interrupt();
-                self.base.gpio_config[N].write(config);
+                unsafe { self.base.gpio_config[N].write(config) };
             } else {
                 unimplemented!()
             }
@@ -316,7 +316,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
                 unsafe { self.base.gpio_interrupt_mask.write(config) };
             } else if #[cfg(feature = "glb-v2")] {
                 let config = self.base.gpio_config[N].read().mask_interrupt();
-                self.base.gpio_config[N].write(config);
+                unsafe { self.base.gpio_config[N].write(config) };
             } else {
                 unimplemented!()
             }
@@ -331,7 +331,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
                 unsafe { self.base.gpio_interrupt_mask.write(config) };
             } else if #[cfg(feature = "glb-v2")] {
                 let config = self.base.gpio_config[N].read().unmask_interrupt();
-                self.base.gpio_config[N].write(config);
+                unsafe { self.base.gpio_config[N].write(config) };
             } else {
                 unimplemented!()
             }
@@ -369,7 +369,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
     #[inline]
     pub fn set_interrupt_mode(&mut self, val: InterruptMode) {
         let config = self.base.gpio_config[N].read().set_interrupt_mode(val);
-        self.base.gpio_config[N].write(config);
+        unsafe { self.base.gpio_config[N].write(config) };
     }
 }
 
@@ -399,7 +399,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Output<M>> {
     #[inline]
     pub fn set_drive(&mut self, val: Drive) {
         let config = self.base.gpio_config[N].read().set_drive(val);
-        self.base.gpio_config[N].write(config);
+        unsafe { self.base.gpio_config[N].write(config) };
     }
 }
 
@@ -429,7 +429,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .disable_input()
                     .enable_output()
                     .set_pull(Pull::Up);
-                self.base.gpio_config[N].write(config);
+                unsafe { self.base.gpio_config[N].write(config) };
                 Pin {
                     base: self.base,
                     _mode: PhantomData,
@@ -464,7 +464,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .disable_input()
                     .enable_output()
                     .set_pull(Pull::Down);
-                self.base.gpio_config[N].write(config);
+                unsafe { self.base.gpio_config[N].write(config) };
                 Pin {
                     base: self.base,
                     _mode: PhantomData,
@@ -499,7 +499,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .disable_input()
                     .enable_output()
                     .set_pull(Pull::None);
-                self.base.gpio_config[N].write(config);
+                unsafe { self.base.gpio_config[N].write(config) };
                 Pin {
                     base: self.base,
                     _mode: PhantomData,
@@ -534,7 +534,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .enable_input()
                     .disable_output()
                     .set_pull(Pull::Up);
-                self.base.gpio_config[N].write(config);
+                unsafe { self.base.gpio_config[N].write(config) };
                 Pin {
                     base: self.base,
                     _mode: PhantomData,
@@ -569,7 +569,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .enable_input()
                     .disable_output()
                     .set_pull(Pull::Down);
-                self.base.gpio_config[N].write(config);
+                unsafe { self.base.gpio_config[N].write(config) };
                 Pin {
                     base: self.base,
                     _mode: PhantomData,
@@ -604,7 +604,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .enable_input()
                     .disable_output()
                     .set_pull(Pull::None);
-                self.base.gpio_config[N].write(config);
+                unsafe { self.base.gpio_config[N].write(config) };
                 Pin {
                     base: self.base,
                     _mode: PhantomData,
@@ -612,6 +612,36 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             } else {
                 unimplemented!()
             }
+        }
+    }
+}
+
+/// UART alternate (type state).
+pub struct Uart;
+
+impl Alternate for Uart {
+    #[cfg(feature = "glb-v2")]
+    const F: Function = Function::Uart;
+}
+
+#[cfg(feature = "glb-v2")]
+const UART_GPIO_CONFIG: GpioConfig = GpioConfig::RESET_VALUE
+    .enable_input()
+    .enable_output()
+    .enable_schmitt()
+    .set_drive(Drive::Drive0)
+    .set_pull(Pull::Up)
+    .set_function(Function::Uart);
+
+#[cfg(feature = "glb-v2")]
+impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+    /// Configures the pin to operate as UART signal.
+    #[inline]
+    pub fn into_uart(self) -> Pin<A, N, Uart> {
+        unsafe { self.base.gpio_config[N].write(UART_GPIO_CONFIG) };
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
         }
     }
 }
@@ -644,7 +674,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             .set_drive(Drive::Drive0)
             .set_pull(Pull::Up)
             .set_function(Pwm::<I>::F);
-        self.base.gpio_config[N].write(config);
+        unsafe { self.base.gpio_config[N].write(config) };
         Pin {
             base: self.base,
             _mode: PhantomData,
@@ -664,7 +694,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             .set_drive(Drive::Drive0)
             .set_pull(Pull::Down)
             .set_function(Pwm::<I>::F);
-        self.base.gpio_config[N].write(config);
+        unsafe { self.base.gpio_config[N].write(config) };
         Pin {
             base: self.base,
             _mode: PhantomData,
@@ -684,7 +714,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             .set_drive(Drive::Drive0)
             .set_pull(Pull::None)
             .set_function(Pwm::<I>::F);
-        self.base.gpio_config[N].write(config);
+        unsafe { self.base.gpio_config[N].write(config) };
         Pin {
             base: self.base,
             _mode: PhantomData,
