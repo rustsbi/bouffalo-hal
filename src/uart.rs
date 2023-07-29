@@ -1,12 +1,11 @@
 //! Universal Asynchronous Receiver/Transmitter.
 #[cfg(feature = "glb-v2")]
-use crate::glb::v2::{Drive, Function, GpioConfig, Pull, UartSignal};
+use crate::glb::v2::UartSignal;
 use crate::{
-    gpio::{Alternate, Pin},
+    gpio::{Pin, Uart},
     UART,
 };
 use base_address::BaseAddress;
-use core::cell::UnsafeCell;
 #[cfg(any(doc, feature = "glb-v2"))]
 use core::marker::PhantomData;
 use volatile_register::{RO, RW, WO};
@@ -15,14 +14,6 @@ use {
     crate::{clocks::Clocks, GLB},
     embedded_time::rate::Baud,
 };
-
-/// UART alternate (type state).
-pub struct Uart;
-
-impl Alternate for Uart {
-    #[cfg(feature = "glb-v2")]
-    const F: Function = Function::Uart;
-}
 
 /// Universal Asynchoronous Receiver/Transmitter registers.
 #[repr(C)]
@@ -52,10 +43,10 @@ pub struct RegisterBlock {
     /// First-in first-out queue configuration 1.
     pub fifo_config_1: RW<FifoConfig1>,
     /// Write data into first-in first-out queue.
-    pub data_write: DATA_WRITE,
+    pub data_write: WO<u8>,
     _reserved3: [u8; 0x3],
     /// Read data from first-in first-out queue.
-    pub data_read: DATA_READ,
+    pub data_read: RO<u8>,
 }
 
 /// Transmit configuration register.
@@ -762,22 +753,22 @@ impl FifoConfig1 {
 }
 
 /// Multiplex to Request-to-Send (type state).
-pub struct MuxRts<const U: usize>;
+pub struct MuxRts<const I: usize>;
 
 /// Multiplex to Clear-to-Send (type state).
-pub struct MuxCts<const U: usize>;
+pub struct MuxCts<const I: usize>;
 
 /// Multiplex to Transmit (type state).
-pub struct MuxTxd<const U: usize>;
+pub struct MuxTxd<const I: usize>;
 
 /// Multiplex to Receive (type state).
-pub struct MuxRxd<const U: usize>;
+pub struct MuxRxd<const I: usize>;
 
 #[cfg(feature = "glb-v2")]
-impl<const U: usize> MuxRts<U> {
+impl<const I: usize> MuxRts<I> {
     #[inline]
     fn to_signal() -> UartSignal {
-        match U {
+        match I {
             0 => UartSignal::Rts0,
             1 => UartSignal::Rts1,
             2 => UartSignal::Rts2,
@@ -787,10 +778,10 @@ impl<const U: usize> MuxRts<U> {
 }
 
 #[cfg(feature = "glb-v2")]
-impl<const U: usize> MuxCts<U> {
+impl<const I: usize> MuxCts<I> {
     #[inline]
     fn to_signal() -> UartSignal {
-        match U {
+        match I {
             0 => UartSignal::Cts0,
             1 => UartSignal::Cts1,
             2 => UartSignal::Cts2,
@@ -800,10 +791,10 @@ impl<const U: usize> MuxCts<U> {
 }
 
 #[cfg(feature = "glb-v2")]
-impl<const U: usize> MuxTxd<U> {
+impl<const I: usize> MuxTxd<I> {
     #[inline]
     fn to_signal() -> UartSignal {
-        match U {
+        match I {
             0 => UartSignal::Txd0,
             1 => UartSignal::Txd1,
             2 => UartSignal::Txd2,
@@ -813,10 +804,10 @@ impl<const U: usize> MuxTxd<U> {
 }
 
 #[cfg(feature = "glb-v2")]
-impl<const U: usize> MuxRxd<U> {
+impl<const I: usize> MuxRxd<I> {
     #[inline]
     fn to_signal() -> UartSignal {
-        match U {
+        match I {
             0 => UartSignal::Rxd0,
             1 => UartSignal::Rxd1,
             2 => UartSignal::Rxd2,
@@ -827,20 +818,20 @@ impl<const U: usize> MuxRxd<U> {
 
 /// Global peripheral UART signal multiplexer.
 #[cfg(any(doc, feature = "glb-v2"))]
-pub struct UartMux<A: BaseAddress, const I: usize, M> {
+pub struct UartMux<A: BaseAddress, const N: usize, M> {
     base: GLB<A>,
     _mode: PhantomData<M>,
 }
 
 #[cfg(any(doc, feature = "glb-v2"))]
-impl<A: BaseAddress, const I: usize, M> UartMux<A, I, M> {
+impl<A: BaseAddress, const N: usize, M> UartMux<A, N, M> {
     /// Configure the internal UART signal to Request-to-Send (RTS).
     #[inline]
-    pub fn into_request_to_send<const U: usize>(self) -> UartMux<A, I, MuxRts<U>> {
-        let config = self.base.uart_mux_group[I >> 3]
+    pub fn into_request_to_send<const U: usize>(self) -> UartMux<A, N, MuxRts<U>> {
+        let config = self.base.uart_mux_group[N >> 3]
             .read()
-            .set_signal(I & 0x7, MuxRts::<U>::to_signal());
-        self.base.uart_mux_group[I >> 3].write(config);
+            .set_signal(N & 0x7, MuxRts::<U>::to_signal());
+        unsafe { self.base.uart_mux_group[N >> 3].write(config) };
         UartMux {
             base: self.base,
             _mode: PhantomData,
@@ -848,11 +839,11 @@ impl<A: BaseAddress, const I: usize, M> UartMux<A, I, M> {
     }
     /// Configure the internal UART signal to Transmit (TXD).
     #[inline]
-    pub fn into_transmit<const U: usize>(self) -> UartMux<A, I, MuxTxd<U>> {
-        let config = self.base.uart_mux_group[I >> 3]
+    pub fn into_transmit<const U: usize>(self) -> UartMux<A, N, MuxTxd<U>> {
+        let config = self.base.uart_mux_group[N >> 3]
             .read()
-            .set_signal(I & 0x7, MuxTxd::<U>::to_signal());
-        self.base.uart_mux_group[I >> 3].write(config);
+            .set_signal(N & 0x7, MuxTxd::<U>::to_signal());
+        unsafe { self.base.uart_mux_group[N >> 3].write(config) };
         UartMux {
             base: self.base,
             _mode: PhantomData,
@@ -860,11 +851,11 @@ impl<A: BaseAddress, const I: usize, M> UartMux<A, I, M> {
     }
     /// Configure the internal UART signal to Receive (RXD).
     #[inline]
-    pub fn into_receive<const U: usize>(self) -> UartMux<A, I, MuxRxd<U>> {
-        let config = self.base.uart_mux_group[I >> 3]
+    pub fn into_receive<const U: usize>(self) -> UartMux<A, N, MuxRxd<U>> {
+        let config = self.base.uart_mux_group[N >> 3]
             .read()
-            .set_signal(I & 0x7, MuxRxd::<U>::to_signal());
-        self.base.uart_mux_group[I >> 3].write(config);
+            .set_signal(N & 0x7, MuxRxd::<U>::to_signal());
+        unsafe { self.base.uart_mux_group[N >> 3].write(config) };
         UartMux {
             base: self.base,
             _mode: PhantomData,
@@ -872,11 +863,11 @@ impl<A: BaseAddress, const I: usize, M> UartMux<A, I, M> {
     }
     /// Configure the internal UART signal to Clear-to-Send (CTS).
     #[inline]
-    pub fn into_clear_to_send<const U: usize>(self) -> UartMux<A, I, MuxCts<U>> {
-        let config = self.base.uart_mux_group[I >> 3]
+    pub fn into_clear_to_send<const U: usize>(self) -> UartMux<A, N, MuxCts<U>> {
+        let config = self.base.uart_mux_group[N >> 3]
             .read()
-            .set_signal(I & 0x7, MuxCts::<U>::to_signal());
-        self.base.uart_mux_group[I >> 3].write(config);
+            .set_signal(N & 0x7, MuxCts::<U>::to_signal());
+        unsafe { self.base.uart_mux_group[N >> 3].write(config) };
         UartMux {
             base: self.base,
             _mode: PhantomData,
@@ -1094,54 +1085,18 @@ where
     const RXD: bool = false;
 }
 
-/// Data writing register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct DATA_WRITE(UnsafeCell<u8>);
-
-/// Write data into first-in first-out queue.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
-#[repr(transparent)]
-pub struct DataWrite(u8);
-
-impl DATA_WRITE {
-    /// Write a byte to first-in first-out queue.
-    #[inline]
-    pub fn write_u8(&self, val: u8) {
-        unsafe { self.0.get().write_volatile(val) }
-    }
-}
-
-/// Data raeding register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct DATA_READ(UnsafeCell<u8>);
-
-/// Read data from first-in first-out queue.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
-#[repr(transparent)]
-pub struct DataRead(u8);
-
-impl DATA_READ {
-    /// Read a byte from first-in first-out queue.
-    #[inline]
-    pub fn read_u8(&self) -> u8 {
-        unsafe { self.0.get().read_volatile() }
-    }
-}
-
 /// Managed serial peripheral.
-pub struct Serial<A: BaseAddress, PINS> {
+pub struct Serial<const I: usize, A: BaseAddress, PINS> {
     uart: UART<A>,
     #[cfg_attr(not(any(doc, feature = "glb-v1", feature = "glb-v2")), allow(unused))]
     pins: PINS,
 }
 
-impl<A: BaseAddress, PINS> Serial<A, PINS> {
+impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
     /// Creates a serial instance with same baudrate for transmit and receive.
     #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
     #[inline]
-    pub fn new<const U: usize>(
+    pub fn new(
         uart: UART<A>,
         config: Config,
         baudrate: Baud,
@@ -1150,15 +1105,15 @@ impl<A: BaseAddress, PINS> Serial<A, PINS> {
         glb: &GLB<impl BaseAddress>,
     ) -> Self
     where
-        PINS: Pins<U>,
+        PINS: Pins<I>,
     {
         // Enable clock
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 todo!()
             } else if #[cfg(feature = "glb-v2")] {
-                let val = glb.uart_config.read().enable_clock();
-                glb.uart_config.write(val);
+                unsafe { glb.clock_config_1.modify(|val| val.enable_uart::<I>()) };
+                unsafe { glb.uart_config.modify(|val| val.enable_clock()) };
             }
         }
 
@@ -1211,8 +1166,8 @@ impl<A: BaseAddress, PINS> Serial<A, PINS> {
             if #[cfg(feature = "glb-v1")] {
                 todo!()
             } else if #[cfg(feature = "glb-v2")] {
-                let val = glb.uart_config.read().disable_clock();
-                glb.uart_config.write(val);
+                unsafe { glb.clock_config_1.modify(|val| val.disable_uart::<I>()) };
+                unsafe { glb.uart_config.modify(|val| val.disable_clock()) };
                 (self.uart, self.pins)
             }
         }
@@ -1232,18 +1187,18 @@ impl embedded_hal::serial::Error for Error {
     }
 }
 
-impl<A: BaseAddress, PINS> embedded_hal::serial::ErrorType for Serial<A, PINS> {
+impl<const I: usize, A: BaseAddress, PINS> embedded_hal::serial::ErrorType for Serial<I, A, PINS> {
     type Error = Error;
 }
 
-impl<A: BaseAddress, PINS> embedded_hal::serial::Write for Serial<A, PINS> {
+impl<const I: usize, A: BaseAddress, PINS> embedded_hal::serial::Write for Serial<I, A, PINS> {
     #[inline]
     fn write(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
         for &word in buffer {
             while self.uart.fifo_config_1.read().transmit_available_bytes() == 0 {
                 core::hint::spin_loop();
             }
-            self.uart.data_write.write_u8(word);
+            unsafe { self.uart.data_write.write(word) };
         }
         Ok(())
     }
@@ -1265,11 +1220,11 @@ impl embedded_io::Error for Error {
     }
 }
 
-impl<A: BaseAddress, PINS> embedded_io::Io for Serial<A, PINS> {
+impl<const I: usize, A: BaseAddress, PINS> embedded_io::Io for Serial<I, A, PINS> {
     type Error = Error;
 }
 
-impl<A: BaseAddress, PINS> embedded_io::blocking::Write for Serial<A, PINS> {
+impl<const I: usize, A: BaseAddress, PINS> embedded_io::blocking::Write for Serial<I, A, PINS> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         while self.uart.fifo_config_1.read().transmit_available_bytes() == 0 {
@@ -1280,7 +1235,7 @@ impl<A: BaseAddress, PINS> embedded_io::blocking::Write for Serial<A, PINS> {
             buf.len(),
         );
         for &word in &buf[..len] {
-            self.uart.data_write.write_u8(word);
+            unsafe { self.uart.data_write.write(word) };
         }
         Ok(len)
     }
@@ -1293,7 +1248,7 @@ impl<A: BaseAddress, PINS> embedded_io::blocking::Write for Serial<A, PINS> {
     }
 }
 
-impl<A: BaseAddress, PINS> embedded_io::blocking::Read for Serial<A, PINS> {
+impl<const I: usize, A: BaseAddress, PINS> embedded_io::blocking::Read for Serial<I, A, PINS> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         while self.uart.fifo_config_1.read().receive_available_bytes() == 0 {
@@ -1304,31 +1259,9 @@ impl<A: BaseAddress, PINS> embedded_io::blocking::Read for Serial<A, PINS> {
             buf.len(),
         );
         for i in 0..len {
-            buf[i] = self.uart.data_read.read_u8();
+            buf[i] = self.uart.data_read.read();
         }
         Ok(len)
-    }
-}
-
-#[cfg(feature = "glb-v2")]
-const UART_GPIO_CONFIG: GpioConfig = GpioConfig::RESET_VALUE
-    .enable_input()
-    .enable_output()
-    .enable_schmitt()
-    .set_drive(Drive::Drive0)
-    .set_pull(Pull::Up)
-    .set_function(Function::Uart);
-
-#[cfg(feature = "glb-v2")]
-impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
-    /// Configures the pin to operate as UART signal.
-    #[inline]
-    pub fn into_uart(self) -> Pin<A, N, Uart> {
-        self.base.gpio_config[N].write(UART_GPIO_CONFIG);
-        Pin {
-            base: self.base,
-            _mode: PhantomData,
-        }
     }
 }
 
