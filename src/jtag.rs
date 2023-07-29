@@ -47,7 +47,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     #[inline]
     pub fn into_jtag_d0(self) -> Pin<A, N, JtagD0> {
         let config = JTAG_GPIO_CONFIG.set_function(Function::JtagD0);
-        self.base.gpio_config[N].write(config);
+        unsafe { self.base.gpio_config[N].write(config) };
         Pin {
             base: self.base,
             _mode: PhantomData,
@@ -58,7 +58,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     #[inline]
     pub fn into_jtag_m0(self) -> Pin<A, N, JtagM0> {
         let config = JTAG_GPIO_CONFIG.set_function(Function::JtagM0);
-        self.base.gpio_config[N].write(config);
+        unsafe { self.base.gpio_config[N].write(config) };
         Pin {
             base: self.base,
             _mode: PhantomData,
@@ -69,7 +69,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     #[inline]
     pub fn into_jtag_lp(self) -> Pin<A, N, JtagLp> {
         let config = JTAG_GPIO_CONFIG.set_function(Function::JtagLp);
-        self.base.gpio_config[N].write(config);
+        unsafe { self.base.gpio_config[N].write(config) };
         Pin {
             base: self.base,
             _mode: PhantomData,
