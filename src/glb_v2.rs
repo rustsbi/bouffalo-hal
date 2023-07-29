@@ -1,6 +1,4 @@
 //! Global configurations on BL808 and BL616 series.
-use core::cell::UnsafeCell;
-
 use volatile_register::{RO, RW, WO};
 
 /// Global configuration registers.
@@ -8,9 +6,9 @@ use volatile_register::{RO, RW, WO};
 pub struct RegisterBlock {
     _reserved0: [u8; 0x150],
     /// Universal Asynchronous Receiver/Transmitter clock and mode configurations.
-    pub uart_config: UART_CONFIG,
+    pub uart_config: RW<UartConfig>,
     /// Universal Asynchronous Receiver/Transmitter signal multiplexer.
-    pub uart_mux_group: [UART_MUX_GROUP; 2],
+    pub uart_mux_group: [RW<UartMuxGroup>; 2],
     _reserved1: [u8; 0x74],
     pub pwm_config: RW<PwmConfig>,
     _reserved2: [u8; 0x3b0],
@@ -19,7 +17,7 @@ pub struct RegisterBlock {
     pub clock_config_1: RW<ClockConfig1>,
     _reserved3: [u8; 0x33c],
     /// Generic Purpose Input/Output config.
-    pub gpio_config: [GPIO_CONFIG; 46],
+    pub gpio_config: [RW<GpioConfig>; 46],
     _reserved4: [u8; 0x148],
     /// Read value from Generic Purpose Input/Output pins.
     pub gpio_input: [RO<u32>; 2],
@@ -33,27 +31,9 @@ pub struct RegisterBlock {
 }
 
 /// Universal Asynchronous Receiver/Transmitter clock and mode configuration.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct UART_CONFIG(UnsafeCell<u32>);
-
-/// Configuration structure for Universal Asynchronous Receiver/Transmitter clock and mode configuration.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct UartConfig(u32);
-
-impl UART_CONFIG {
-    /// Read UART config.
-    #[inline]
-    pub fn read(&self) -> UartConfig {
-        UartConfig(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write UART config.
-    #[inline]
-    pub fn write(&self, val: UartConfig) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl UartConfig {
     /// TODO: make divide factors a new type(enum), like UartSignal
@@ -91,28 +71,10 @@ impl UartConfig {
     }
 }
 
-/// Universal Asynchronous Receiver/Transmitter signal configuration register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct UART_MUX_GROUP(UnsafeCell<u32>);
-
-/// Configuration structure for UART signal multiplexer group.
+/// UART signal multiplexer group configuration register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct UartMuxGroup(u32);
-
-impl UART_MUX_GROUP {
-    /// Read UART signal multiplexer group configuration.
-    #[inline]
-    pub fn read(&self) -> UartMuxGroup {
-        UartMuxGroup(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write UART signal multiplexer group configuration.
-    #[inline]
-    pub fn write(&self, val: UartMuxGroup) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 /// UART multiplexer signal configuration.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -214,31 +176,6 @@ impl PwmConfig {
     }
 }
 
-/// Clock generation configuration register 1.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
-#[repr(transparent)]
-pub struct ClockConfig1(u32);
-
-impl ClockConfig1 {
-    const PWM: u32 = 0x1 << 20;
-
-    /// Enable clock gate for Pulse Width Modulation peripheral.
-    #[inline]
-    pub const fn enable_pwm(self) -> Self {
-        Self(self.0 | Self::PWM)
-    }
-    /// Disable clock gate for Pulse Width Modulation peripheral.
-    #[inline]
-    pub const fn disable_pwm(self) -> Self {
-        Self(self.0 & !Self::PWM)
-    }
-    /// Check if clock gate for Pulse Width Modulation is enabled.
-    #[inline]
-    pub const fn is_pwm_enabled(self) -> bool {
-        self.0 & Self::PWM != 0
-    }
-}
-
 /// Signal group 0 source for Pulse Width Modulation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
@@ -259,28 +196,71 @@ pub enum PwmSignal1 {
     BrushlessDcMotor = 1,
 }
 
-/// Generic Purpose Input/Output Configuration register.
-#[allow(non_camel_case_types)]
+/// Clock generation configuration register 1.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
-pub struct GPIO_CONFIG(UnsafeCell<u32>);
+pub struct ClockConfig1(u32);
 
-/// Configuration structure for current GPIO pin.
+impl ClockConfig1 {
+    const UART0: u32 = 0x1 << 16;
+    const UART1: u32 = 0x1 << 17;
+    const PWM: u32 = 0x1 << 20;
+    const UART2: u32 = 0x1 << 26;
+
+    /// Enable clock gate for Universal Asynchronous Receiver/Transmitter peripheral.
+    #[inline]
+    pub const fn enable_uart<const I: usize>(self) -> Self {
+        let val = match I {
+            0 => Self::UART0,
+            1 => Self::UART1,
+            2 => Self::UART2,
+            _ => unreachable!(),
+        };
+        Self(self.0 | val)
+    }
+    /// Disable clock gate for Universal Asynchronous Receiver/Transmitter peripheral.
+    #[inline]
+    pub const fn disable_uart<const I: usize>(self) -> Self {
+        let val = match I {
+            0 => Self::UART0,
+            1 => Self::UART1,
+            2 => Self::UART2,
+            _ => unreachable!(),
+        };
+        Self(self.0 & !val)
+    }
+    /// Check if clock gate for Universal Asynchronous Receiver/Transmitter is enabled.
+    #[inline]
+    pub const fn is_uart_enabled<const I: usize>(self) -> bool {
+        let val = match I {
+            0 => Self::UART0,
+            1 => Self::UART1,
+            2 => Self::UART2,
+            _ => unreachable!(),
+        };
+        self.0 & val != 0
+    }
+    /// Enable clock gate for Pulse Width Modulation peripheral.
+    #[inline]
+    pub const fn enable_pwm(self) -> Self {
+        Self(self.0 | Self::PWM)
+    }
+    /// Disable clock gate for Pulse Width Modulation peripheral.
+    #[inline]
+    pub const fn disable_pwm(self) -> Self {
+        Self(self.0 & !Self::PWM)
+    }
+    /// Check if clock gate for Pulse Width Modulation is enabled.
+    #[inline]
+    pub const fn is_pwm_enabled(self) -> bool {
+        self.0 & Self::PWM != 0
+    }
+}
+
+/// Generic Purpose Input/Output Configuration register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct GpioConfig(u32);
-
-impl GPIO_CONFIG {
-    /// Read GPIO pin configuration.
-    #[inline]
-    pub fn read(&self) -> GpioConfig {
-        GpioConfig(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write GPIO pin configuration.
-    #[inline]
-    pub fn write(&self, val: GpioConfig) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl GpioConfig {
     const INPUT_ENABLE: u32 = 1 << 0;
