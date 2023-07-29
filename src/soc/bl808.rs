@@ -361,12 +361,28 @@ pub struct Peripherals {
     pub glb: bl_soc::GLB<Static<0x20000000>>,
     /// General Purpose Input/Output pins.
     pub gpio: bl_soc::gpio::Pins<Static<0x20000000>>,
-    /// UART0 configuration peripheral.
-    pub uart0: bl_soc::UART<Static<0x2000A000>>,
-    /// UART1 configuration peripheral.
-    pub uart1: bl_soc::UART<Static<0x2000A100>>,
     /// UART signal multiplexers.
     pub uart_muxes: bl_soc::uart::UartMuxes<Static<0x20000000>>,
+    /// Universal Asynchronous Receiver/Transmitter peripheral 0.
+    pub uart0: bl_soc::UART<Static<0x2000A000>>,
+    /// Universal Asynchronous Receiver/Transmitter peripheral 1.
+    pub uart1: bl_soc::UART<Static<0x2000A100>>,
+    /// Inter-Integrated Circuit bus peripheral 0.
+    pub i2c0: bl_soc::I2C<Static<0x2000A300>>,
+    /// Pulse Width Modulation peripheral.
+    pub pwm: bl_soc::PWM<Static<0x2000A400>>,
+    /// Inter-Integrated Circuit bus peripheral 1.
+    pub i2c1: bl_soc::I2C<Static<0x2000A900>>,
+    /// Universal Asynchronous Receiver/Transmitter peripheral 2.
+    pub uart2: bl_soc::UART<Static<0x2000AA00>>,
+    /// Hibernation control peripheral.
+    pub hbn: bl_soc::HBN<Static<0x2000F000>>,
+    /// Universal Asynchronous Receiver/Transmitter peripheral 3.
+    pub uart3: bl_soc::UART<Static<0x30002000>>,
+    /// Inter-Integrated Circuit bus peripheral 2.
+    pub i2c2: bl_soc::I2C<Static<0x30003000>>,
+    /// Inter-Integrated Circuit bus peripheral 3.
+    pub i2c3: bl_soc::I2C<Static<0x30004000>>,
 }
 
 #[cfg(test)]

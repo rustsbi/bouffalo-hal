@@ -19,13 +19,13 @@ embedded-hal = "1.0.0-alpha.10"
 [features]
 default = ["rom-peripherals"]
 # BL616 and BL618 chip series.
-bl616 = []
+bl616 = ["bl-soc/bl616"]
 # BL808 chip.
-bl808-m0 = []
-bl808-d0 = []
-bl808-lp = []
+bl808-m0 = ["bl-soc/bl808"]
+bl808-d0 = ["bl-soc/bl808"]
+bl808-lp = ["bl-soc/bl808"]
 # BL702, BL704 and BL706 chip series.
-bl702 = []
+bl702 = ["bl-soc/bl702"]
 # Provide ROM peripherals on #[entry] function.
 rom-peripherals = ["bl-rom-rt-macros/rom-peripherals", "dep:bl-soc", "dep:base-address"]
 
