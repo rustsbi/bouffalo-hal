@@ -1,4 +1,12 @@
 //! Inter-Integrated Circuit bus.
+#[cfg(any(doc, feature = "glb-v2"))]
+use crate::{
+    glb::v2::I2cClockSource,
+    gpio::{self, Pin},
+    GLB, I2C,
+};
+#[cfg(any(doc, feature = "glb-v2"))]
+use base_address::BaseAddress;
 use volatile_register::{RO, RW, WO};
 
 /// Inter-integrated circuit registers.
@@ -175,7 +183,7 @@ impl Config {
     }
     /// Set packet length.
     #[inline]
-    pub fn set_packet_length(self, length: u8) -> Self {
+    pub fn set_packet_length(self, length: usize) -> Self {
         Self((self.0 & !Self::PACKET_LENGTH) | ((length as u32) << 20))
     }
     /// Get packet length.
@@ -323,7 +331,7 @@ impl PeriodStart {
     }
     /// Get duration of start phase.
     #[inline]
-    pub const fn sphase(self, idx: usize) -> u8 {
+    pub const fn phase(self, idx: usize) -> u8 {
         ((self.0 & (Self::START_PHASE << (idx * 8))) >> (idx * 8)) as u8
     }
 }
@@ -486,4 +494,136 @@ impl FifoConfig1 {
     pub const fn receive_threshold(self) -> u8 {
         ((self.0 & Self::RECEIVE_THRESHOLD) >> 24) as u8
     }
+}
+
+#[cfg(any(doc, feature = "glb-v2"))]
+pub struct I2c<A: BaseAddress, PINS> {
+    i2c: I2C<A>,
+    pins: PINS,
+}
+
+#[cfg(any(doc, feature = "glb-v2"))]
+impl<A: BaseAddress, SCL, SDA> I2c<A, (SCL, SDA)> {
+    /// Create a new Inter-Integrated Circuit instance.
+    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
+    #[inline]
+    pub fn new<const I: usize>(i2c: I2C<A>, pins: (SCL, SDA), glb: &GLB<impl BaseAddress>) -> Self
+    where
+        SCL: SclPin<I>,
+        SDA: SdaPin<I>,
+    {
+        // TODO: support custom clock and frequency
+        // Enable clock
+        unsafe {
+            glb.i2c_config.modify(|config| {
+                config
+                    .enable_clock()
+                    .set_clock_source(I2cClockSource::Xclk)
+                    .set_clock_divide(0xff)
+            });
+            glb.clock_config_1.modify(|config| config.enable_i2c());
+            i2c.period_start.write(
+                PeriodStart(0)
+                    .set_phase(0, 0xff)
+                    .set_phase(1, 0xff)
+                    .set_phase(2, 0xff)
+                    .set_phase(3, 0xff),
+            );
+            i2c.period_stop.write(
+                PeriodStop(0)
+                    .set_phase(0, 0xff)
+                    .set_phase(1, 0xff)
+                    .set_phase(2, 0xff)
+                    .set_phase(3, 0xff),
+            );
+            i2c.period_data.write(
+                PeriodData(0)
+                    .set_phase(0, 0xff)
+                    .set_phase(1, 0xff)
+                    .set_phase(2, 0xff)
+                    .set_phase(3, 0xff),
+            );
+            i2c.config.write(
+                Config(0)
+                    .disable_ten_bit_address()
+                    .disable_scl_sync()
+                    .disable_sub_address(),
+            );
+        }
+
+        Self { i2c, pins }
+    }
+
+    /// Release the I2C instance and return the pins.
+    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
+    #[inline]
+    pub fn free(self, glb: &GLB<impl BaseAddress>) -> (I2C<A>, (SCL, SDA)) {
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "glb-v1")] {
+                todo!()
+            } else if #[cfg(feature = "glb-v2")] {
+                unsafe {
+                    glb.i2c_config.modify(|config| config.disable_clock());
+                    glb.clock_config_1.modify(|config| config.disable_i2c());
+                }
+                (self.i2c, self.pins)
+            }
+        }
+    }
+
+    /// Enable sub-address.
+    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
+    #[inline]
+    pub fn enable_sub_address(&mut self, sub_address: u8) {
+        // TODO: support sub-address with more than one byte
+        unsafe {
+            self.i2c.config.modify(|config| {
+                config
+                    .enable_sub_address()
+                    .set_sub_address_byte_count(SubAddressByteCount::One)
+            });
+            self.i2c.sub_address.write(sub_address as u32);
+        }
+    }
+
+    /// Disable sub-address.
+    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
+    #[inline]
+    pub fn disable_sub_address(&mut self) {
+        unsafe {
+            self.i2c
+                .config
+                .modify(|config| config.disable_sub_address());
+        }
+    }
+}
+
+pub trait SclPin<const I: usize> {}
+
+pub trait SdaPin<const I: usize> {}
+
+#[cfg(any(doc, feature = "glb-v2"))]
+#[rustfmt::skip]
+mod i2c_impls {
+    use super::*;
+
+    // 0, 2, 4, ..., 2n: SCL
+    // 1, 3, 5, ..., 2n+1: SDA
+    // TODO: support other pins if needed
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 0, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 1, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 2, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 3, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 4, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 5, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 6, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 7, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 8, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 9, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 10, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 11, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 12, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 13, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 14, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 15, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
 }

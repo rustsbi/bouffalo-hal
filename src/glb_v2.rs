@@ -9,19 +9,21 @@ pub struct RegisterBlock {
     pub uart_config: RW<UartConfig>,
     /// Universal Asynchronous Receiver/Transmitter signal multiplexer.
     pub uart_mux_group: [RW<UartMuxGroup>; 2],
-    _reserved1: [u8; 0x74],
+    _reserved1: [u8; 0x24],
+    pub i2c_config: RW<I2cConfig>,
+    _reserved2: [u8; 0x4B],
     pub pwm_config: RW<PwmConfig>,
-    _reserved2: [u8; 0x3b0],
+    _reserved3: [u8; 0x3b0],
     // TODO: clock_config_0, clock_config_2, clock_config_3 registers
     /// Clock generation configuration 1.
     pub clock_config_1: RW<ClockConfig1>,
-    _reserved3: [u8; 0x33c],
+    _reserved4: [u8; 0x33c],
     /// Generic Purpose Input/Output config.
     pub gpio_config: [RW<GpioConfig>; 46],
-    _reserved4: [u8; 0x148],
+    _reserved5: [u8; 0x148],
     /// Read value from Generic Purpose Input/Output pins.
     pub gpio_input: [RO<u32>; 2],
-    _reserved5: [u8; 0x18],
+    _reserved6: [u8; 0x18],
     /// Write value to Generic Purpose Input/Output pins.
     pub gpio_output: [RW<u32>; 2],
     /// Set pin output value to high.
@@ -137,6 +139,67 @@ impl UartMuxGroup {
     }
 }
 
+/// Inter-Integrated Circuit clock source.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum I2cClockSource {
+    /// Bus clock.
+    Bclk = 0,
+    /// Crystal oscillator clock.
+    Xclk = 1,
+}
+
+/// Inter-Integrated Circuit configuration register.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct I2cConfig(u32);
+
+impl I2cConfig {
+    const CLOCK_DIVIDE: u32 = 0xff << 16;
+    const CLOCK_ENABLE: u32 = 1 << 24;
+    const CLOCK_SELECT: u32 = 1 << 25;
+
+    /// Set peripheral clock divide factor.
+    #[inline]
+    pub const fn set_clock_divide(self, val: u8) -> Self {
+        Self((self.0 & !Self::CLOCK_DIVIDE) | ((val as u32) << 16))
+    }
+    /// Get peripheral clock divide factor.
+    #[inline]
+    pub const fn clock_divide(self) -> u8 {
+        ((self.0 & Self::CLOCK_DIVIDE) >> 16) as u8
+    }
+    /// Enable clock for Inter-Integrated Circuit peripheral.
+    #[inline]
+    pub const fn enable_clock(self) -> Self {
+        Self(self.0 | Self::CLOCK_ENABLE)
+    }
+    /// Disable clock for Inter-Integrated Circuit peripheral.
+    #[inline]
+    pub const fn disable_clock(self) -> Self {
+        Self(self.0 & !Self::CLOCK_ENABLE)
+    }
+    /// Check if clock for Inter-Integrated Circuit peripheral is enabled.
+    #[inline]
+    pub const fn is_clock_enabled(self) -> bool {
+        self.0 & Self::CLOCK_ENABLE != 0
+    }
+    /// Set clock source for Inter-Integrated Circuit peripheral.
+    #[inline]
+    pub const fn set_clock_source(self, val: I2cClockSource) -> Self {
+        Self((self.0 & !Self::CLOCK_SELECT) | ((val as u32) << 25))
+    }
+    /// Get clock source for Inter-Integrated Circuit peripheral.
+    #[inline]
+    pub const fn clock_source(self) -> I2cClockSource {
+        match (self.0 & Self::CLOCK_SELECT) >> 25 {
+            0 => I2cClockSource::Bclk,
+            1 => I2cClockSource::Xclk,
+            _ => unreachable!(),
+        }
+    }
+}
+
 /// Pulse Width Modulation configuration register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
@@ -204,6 +267,7 @@ pub struct ClockConfig1(u32);
 impl ClockConfig1 {
     const UART0: u32 = 0x1 << 16;
     const UART1: u32 = 0x1 << 17;
+    const I2C: u32 = 0x1 << 19;
     const PWM: u32 = 0x1 << 20;
     const UART2: u32 = 0x1 << 26;
 
@@ -239,6 +303,21 @@ impl ClockConfig1 {
             _ => unreachable!(),
         };
         self.0 & val != 0
+    }
+    /// Enable clock gate for Inter-Integrated Circuit peripheral.
+    #[inline]
+    pub const fn enable_i2c(self) -> Self {
+        Self(self.0 | Self::I2C)
+    }
+    /// Disable clock gate for Inter-Integrated Circuit peripheral.
+    #[inline]
+    pub const fn disable_i2c(self) -> Self {
+        Self(self.0 & !Self::I2C)
+    }
+    /// Check if clock gate for Inter-Integrated Circuit is enabled.
+    #[inline]
+    pub const fn is_i2c_enabled(self) -> bool {
+        self.0 & Self::I2C != 0
     }
     /// Enable clock gate for Pulse Width Modulation peripheral.
     #[inline]

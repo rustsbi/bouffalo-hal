@@ -722,6 +722,54 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     }
 }
 
+/// Inter-Integrated Circuit mode (type state).
+pub struct I2c<const F: usize>;
+
+impl Alternate for I2c<0> {
+    #[cfg(feature = "glb-v2")]
+    const F: Function = Function::I2c0;
+}
+
+impl Alternate for I2c<1> {
+    #[cfg(feature = "glb-v2")]
+    const F: Function = Function::I2c1;
+}
+
+impl Alternate for I2c<2> {
+    #[cfg(feature = "glb-v2")]
+    const F: Function = Function::I2c2;
+}
+
+impl Alternate for I2c<3> {
+    #[cfg(feature = "glb-v2")]
+    const F: Function = Function::I2c3;
+}
+
+impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+    /// Configures the pin to operate as an Inter-Integrated Circuit signal pin.
+    #[cfg(any(doc, feature = "glb-v2"))]
+    #[inline]
+    pub fn into_i2c<const I: usize>(self) -> Pin<A, N, I2c<I>>
+    where
+        I2c<I>: Alternate,
+    {
+        let config = GpioConfig::RESET_VALUE
+            .enable_input()
+            .enable_output()
+            .enable_schmitt()
+            .set_drive(Drive::Drive0)
+            .set_pull(Pull::Up)
+            .set_function(I2c::<I>::F);
+        unsafe {
+            self.base.gpio_config[N].write(config);
+        }
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+}
+
 /// Available GPIO pins.
 pub struct Pins<A: BaseAddress> {
     // GPIO I/O 0.
