@@ -598,6 +598,75 @@ impl<A: BaseAddress, SCL, SDA> I2c<A, (SCL, SDA)> {
     }
 }
 
+/// I2C error.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum Error {
+    Other,
+}
+
+#[cfg(any(doc, feature = "glb-v2"))]
+impl embedded_hal::i2c::Error for Error {
+    #[inline(always)]
+    fn kind(&self) -> embedded_hal::i2c::ErrorKind {
+        use embedded_hal::i2c::ErrorKind;
+        match self {
+            Error::Other => ErrorKind::Other,
+        }
+    }
+}
+
+#[cfg(any(doc, feature = "glb-v2"))]
+impl<A: BaseAddress, PINS> embedded_hal::i2c::ErrorType for I2c<A, PINS> {
+    type Error = Error;
+}
+
+#[cfg(any(doc, feature = "glb-v2"))]
+impl<A: BaseAddress, PINS> embedded_hal::i2c::I2c for I2c<A, PINS> {
+    #[inline]
+    fn transaction(
+        &mut self,
+        address: u8,
+        operations: &mut [embedded_hal::i2c::Operation<'_>],
+    ) -> Result<(), Self::Error> {
+        for op in operations {
+            match op {
+                embedded_hal::i2c::Operation::Write(_bytes) => {
+                    todo!()
+                }
+                embedded_hal::i2c::Operation::Read(bytes) => {
+                    let len = bytes.len();
+                    unsafe {
+                        self.i2c.config.modify(|config| {
+                            config
+                                .set_read_direction()
+                                .set_slave_address(address as u32)
+                                .set_packet_length(len - 1)
+                                .enable_master()
+                        })
+                    };
+
+                    let mut i = 0;
+                    while i < len {
+                        while self.i2c.fifo_config_1.read().receive_available_bytes() == 0 {
+                            core::hint::spin_loop();
+                        }
+                        let word = self.i2c.data_read.read();
+                        let bytes_to_read = core::cmp::min(len - i, 4);
+                        for j in 0..bytes_to_read {
+                            bytes[i] = (word >> (j * 8)) as u8;
+                            i += 1;
+                        }
+                    }
+
+                    unsafe { self.i2c.config.modify(|config| config.disable_master()) };
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 pub trait SclPin<const I: usize> {}
 
 pub trait SdaPin<const I: usize> {}
