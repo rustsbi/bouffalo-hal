@@ -12,7 +12,7 @@ base-address = "0.0.0"
 panic-halt = "0.2.0"
 embedded-io = "0.4.0"
 embedded-time = "0.12.1"
-embedded-hal = "1.0.0-alpha.11"
+embedded-hal = "1.0.0-rc.1"
 
 [dependencies.bl-rom-rt]
 git = "https://gitee.com/rustsbi/bl-rom-rt"

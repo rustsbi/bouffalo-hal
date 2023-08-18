@@ -12,7 +12,7 @@ edition = "2021"
 [dependencies]
 base-address = "0.0.0"
 volatile-register = "0.2.1"
-embedded-hal = "1.0.0-alpha.11"
+embedded-hal = "1.0.0-rc.1"
 embedded-time = "0.12.1"
 embedded-io = "0.4.0"
 cfg-if = "1.0.0"

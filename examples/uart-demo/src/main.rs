@@ -13,8 +13,8 @@ use bl_soc::{
     uart::{BitOrder, Config, Parity, Serial, StopBits, UartMuxes, WordLength},
     GLB, UART,
 };
-use embedded_hal::digital::OutputPin;
-use embedded_hal::serial::Write;
+use embedded_hal::digital::{OutputPin, PinState};
+use embedded_io::blocking::{Read, Write};
 use embedded_time::rate::*;
 use panic_halt as _;
 
@@ -54,16 +54,47 @@ fn main() -> ! {
     );
 
     let mut led = gpio.io8.into_floating_output();
+    let mut led_state = PinState::Low;
+    let mut buf = [0u8; 32];
+    let mut ch = b'\r';
+
+    #[rustfmt::skip]
+    writeln!(serial, "Welcome to console example by bl-soc & embedded-io🦀!").ok();
+    writeln!(serial, "Command helps: ").ok();
+    writeln!(serial, "    led [<none>|on|off|switch]: operate on LED").ok();
+
     loop {
-        serial.write("Hello Rust🦀!\r\n".as_bytes()).ok();
+        led.set_state(led_state).ok();
         serial.flush().ok();
-        led.set_low().ok();
-        for _ in 0..100_000 {
-            unsafe { core::arch::asm!("nop") }
+
+        write!(serial, "> ").ok();
+
+        let mut idx = 0;
+        while ch == b'\r' || ch == b'\n' {
+            serial.read_exact(core::slice::from_mut(&mut ch)).ok();
         }
-        led.set_high().ok();
-        for _ in 0..100_000 {
-            unsafe { core::arch::asm!("nop") }
+        while ch != b'\r' && ch != b'\n' && idx < buf.len() {
+            if ch == 0x08 && idx > 0 {
+                // backspace
+                write!(serial, "\x08 \x08").unwrap();
+                idx -= 1;
+            } else if ch != 0x08 {
+                write!(serial, "{}", ch as char).unwrap();
+                buf[idx] = ch;
+                idx += 1;
+            }
+            serial.read_exact(core::slice::from_mut(&mut ch)).ok();
+        }
+        ch = b'\r';
+        writeln!(serial, "").ok();
+        let command = core::str::from_utf8(&buf[..idx]).unwrap();
+
+        match command.trim() {
+            "led" => writeln!(serial, "LED state: {:?}", led_state).unwrap(),
+            "led on" => led_state = PinState::Low,
+            "led off" => led_state = PinState::High,
+            "led switch" => led_state = !led_state,
+            _ => writeln!(serial, "Unknown command: {}", command).unwrap(),
         }
     }
 }

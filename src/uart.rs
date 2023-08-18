@@ -1174,45 +1174,6 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
     }
 }
 
-impl embedded_hal::serial::Error for Error {
-    #[inline(always)]
-    fn kind(&self) -> embedded_hal::serial::ErrorKind {
-        use embedded_hal::serial::ErrorKind;
-        match self {
-            Error::Framing => ErrorKind::FrameFormat,
-            Error::Noise => ErrorKind::Noise,
-            Error::Overrun => ErrorKind::Overrun,
-            Error::Parity => ErrorKind::Parity,
-        }
-    }
-}
-
-impl<const I: usize, A: BaseAddress, PINS> embedded_hal::serial::ErrorType for Serial<I, A, PINS> {
-    type Error = Error;
-}
-
-impl<const I: usize, A: BaseAddress, PINS> embedded_hal::serial::Write for Serial<I, A, PINS> {
-    #[inline]
-    fn write(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
-        for &word in buffer {
-            while self.uart.fifo_config_1.read().transmit_available_bytes() == 0 {
-                core::hint::spin_loop();
-            }
-            unsafe { self.uart.data_write.write(word) };
-        }
-        Ok(())
-    }
-    #[inline]
-    fn flush(&mut self) -> Result<(), Self::Error> {
-        // There are maximum 32 bytes in transmit FIFO queue, wait until all bytes are available,
-        // meaning that all data in queue has been sent into UART bus.
-        while self.uart.fifo_config_1.read().transmit_available_bytes() != 32 {
-            core::hint::spin_loop();
-        }
-        Ok(())
-    }
-}
-
 impl embedded_io::Error for Error {
     #[inline(always)]
     fn kind(&self) -> embedded_io::ErrorKind {
@@ -1241,6 +1202,8 @@ impl<const I: usize, A: BaseAddress, PINS> embedded_io::blocking::Write for Seri
     }
     #[inline]
     fn flush(&mut self) -> Result<(), Self::Error> {
+        // There are maximum 32 bytes in transmit FIFO queue, wait until all bytes are available,
+        // meaning that all data in queue has been sent into UART bus.
         while self.uart.fifo_config_1.read().transmit_available_bytes() != 32 {
             core::hint::spin_loop();
         }
