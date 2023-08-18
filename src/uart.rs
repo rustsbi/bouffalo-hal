@@ -1181,11 +1181,11 @@ impl embedded_io::Error for Error {
     }
 }
 
-impl<const I: usize, A: BaseAddress, PINS> embedded_io::Io for Serial<I, A, PINS> {
+impl<const I: usize, A: BaseAddress, PINS> embedded_io::ErrorType for Serial<I, A, PINS> {
     type Error = Error;
 }
 
-impl<const I: usize, A: BaseAddress, PINS> embedded_io::blocking::Write for Serial<I, A, PINS> {
+impl<const I: usize, A: BaseAddress, PINS> embedded_io::Write for Serial<I, A, PINS> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         while self.uart.fifo_config_1.read().transmit_available_bytes() == 0 {
@@ -1211,7 +1211,7 @@ impl<const I: usize, A: BaseAddress, PINS> embedded_io::blocking::Write for Seri
     }
 }
 
-impl<const I: usize, A: BaseAddress, PINS> embedded_io::blocking::Read for Serial<I, A, PINS> {
+impl<const I: usize, A: BaseAddress, PINS> embedded_io::Read for Serial<I, A, PINS> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         while self.uart.fifo_config_1.read().receive_available_bytes() == 0 {

@@ -73,7 +73,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// #     uart::{BitOrder, Config, Parity, StopBits, WordLength},
 /// #     UART,
 /// # };
-/// # use embedded_io::blocking::Write;
+/// # use embedded_io::Write;
 /// # pub struct Serial<PINS> { pins: PINS }
 /// # impl<PINS> Serial<PINS> {
 /// #     pub fn new(_: UART<impl BaseAddress>, _: Config, _: Baud,
