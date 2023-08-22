@@ -24,6 +24,7 @@ pub mod gpio;
 pub mod hbn;
 pub mod i2c;
 pub mod i2s;
+pub mod ir;
 pub mod jtag;
 pub mod pwm;
 pub mod spi;
@@ -113,6 +114,22 @@ unsafe impl<A: BaseAddress> Send for I2S<A> {}
 
 impl<A: BaseAddress> ops::Deref for I2S<A> {
     type Target = i2s::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+/// Infrared remote peripheral.
+pub struct IR<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for IR<A> {}
+
+impl<A: BaseAddress> ops::Deref for IR<A> {
+    type Target = ir::RegisterBlock;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
