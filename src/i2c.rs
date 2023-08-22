@@ -14,13 +14,13 @@ use volatile_register::{RO, RW, WO};
 pub struct RegisterBlock {
     /// Function configuration register.
     pub config: RW<Config>,
-    /// Interrupt states.
+    /// Interrupt state register.
     pub interrupt_state: RO<InterruptState>,
-    /// Interrupt masks.
+    /// Interrupt mask register.
     pub interrupt_mask: RW<InterruptMask>,
-    /// Interrupt clear.
+    /// Clear interrupt register.
     pub interrupt_clear: WO<InterruptClear>,
-    /// Interrupt enable.
+    /// Interrupt enable register.
     pub interrupt_enable: RW<InterruptEnable>,
     /// Register address of slave device.
     pub sub_address: RW<u32>,
@@ -33,18 +33,18 @@ pub struct RegisterBlock {
     /// Duration of data phase.
     pub period_data: RW<PeriodData>,
     _reserved: [u8; 0x64],
-    /// FIFO configuration register 0.
+    /// First-in first-out queue configuration 0.
     pub fifo_config_0: RW<FifoConfig0>,
-    /// FIFO configuration register 1.
+    /// First-in first-out queue configuration 1.
     pub fifo_config_1: RW<FifoConfig1>,
-    /// FIFO write data register.
+    /// Write data into first-in first-out queue.
     pub data_write: WO<u32>,
-    /// FIFO read data register.
+    /// Read data from first-in first-out queue.
     pub data_read: RO<u32>,
 }
 
 /// Function configuration register.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Config(u32);
 
@@ -203,7 +203,7 @@ impl Config {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum SubAddressByteCount {
     One = 0,
     Two = 1,
@@ -211,8 +211,8 @@ pub enum SubAddressByteCount {
     Four = 3,
 }
 
-/// Interrupt states.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+/// Interrupt state register.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct InterruptState(u8);
 
@@ -225,7 +225,7 @@ impl InterruptState {
 }
 
 /// Interrupt mask register.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct InterruptMask(u8);
 
@@ -247,8 +247,8 @@ impl InterruptMask {
     }
 }
 
-/// Interrupt clear register.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+/// Clear interrupt register.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct InterruptClear(u8);
 
@@ -261,7 +261,7 @@ impl InterruptClear {
 }
 
 /// Interrupt enable register.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct InterruptEnable(u8);
 
@@ -296,7 +296,7 @@ pub enum Interrupt {
 }
 
 /// Bus busy state indicator.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct BusBusy(u32);
 
@@ -317,7 +317,7 @@ impl BusBusy {
 }
 
 /// Duration of start phase.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PeriodStart(u32);
 
@@ -337,7 +337,7 @@ impl PeriodStart {
 }
 
 /// Duration of stop phase.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PeriodStop(u32);
 
@@ -357,7 +357,7 @@ impl PeriodStop {
 }
 
 /// Duration of data phase.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PeriodData(u32);
 
@@ -376,8 +376,8 @@ impl PeriodData {
     }
 }
 
-/// FIFO configuration register 0.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+/// First-in first-out queue configuration 0.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct FifoConfig0(u32);
 
@@ -421,39 +421,39 @@ impl FifoConfig0 {
     pub fn is_dma_receive_enabled(self) -> bool {
         self.0 & Self::DMA_RECEIVE_ENABLE != 0
     }
-    /// Clear transmit FIFO.
+    /// Clear transmit first-in first-out queue.
     #[inline]
     pub fn clear_transmit_fifo(self) -> Self {
         Self(self.0 | Self::TRANSMIT_FIFO_CLEAR)
     }
-    /// Clear receive FIFO.
+    /// Clear receive first-in first-out queue.
     #[inline]
     pub fn clear_receive_fifo(self) -> Self {
         Self(self.0 | Self::RECEIVE_FIFO_CLEAR)
     }
-    /// Check if transmit FIFO is overflow.
+    /// Check if transmit first-in first-out queue has overflowed.
     #[inline]
     pub fn is_transmit_fifo_overflow(self) -> bool {
         self.0 & Self::TRANSMIT_FIFO_OVERFLOW != 0
     }
-    /// Check if transmit FIFO is underflow.
+    /// Check if transmit first-in first-out queue has underflowed.
     #[inline]
     pub fn is_transmit_fifo_underflow(self) -> bool {
         self.0 & Self::TRANSMIT_FIFO_UNDERFLOW != 0
     }
-    /// Check if receive FIFO is overflow.
+    /// Check if receive first-in first-out queue has overflowed.
     #[inline]
     pub fn is_receive_fifo_overflow(self) -> bool {
         self.0 & Self::RECEIVE_FIFO_OVERFLOW != 0
     }
-    /// Check if receive FIFO is underflow.
+    /// Check if receive first-in first-out queue has underflowed.
     #[inline]
     pub fn is_receive_fifo_underflow(self) -> bool {
         self.0 & Self::RECEIVE_FIFO_UNDERFLOW != 0
     }
 }
 
-/// FIFO configuration register 1.
+/// First-in first-out queue configuration 1.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct FifoConfig1(u32);
@@ -695,4 +695,28 @@ mod i2c_impls {
     impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 13, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
     impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 14, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
     impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 15, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RegisterBlock;
+    use memoffset::offset_of;
+
+    #[test]
+    fn struct_register_block_offset() {
+        assert_eq!(offset_of!(RegisterBlock, config), 0x00);
+        assert_eq!(offset_of!(RegisterBlock, interrupt_state), 0x04);
+        assert_eq!(offset_of!(RegisterBlock, interrupt_mask), 0x05);
+        assert_eq!(offset_of!(RegisterBlock, interrupt_clear), 0x06);
+        assert_eq!(offset_of!(RegisterBlock, interrupt_enable), 0x07);
+        assert_eq!(offset_of!(RegisterBlock, sub_address), 0x08);
+        assert_eq!(offset_of!(RegisterBlock, bus_busy), 0x0c);
+        assert_eq!(offset_of!(RegisterBlock, period_start), 0x10);
+        assert_eq!(offset_of!(RegisterBlock, period_stop), 0x14);
+        assert_eq!(offset_of!(RegisterBlock, period_data), 0x18);
+        assert_eq!(offset_of!(RegisterBlock, fifo_config_0), 0x80);
+        assert_eq!(offset_of!(RegisterBlock, fifo_config_1), 0x84);
+        assert_eq!(offset_of!(RegisterBlock, data_write), 0x88);
+        assert_eq!(offset_of!(RegisterBlock, data_read), 0x8c);
+    }
 }
