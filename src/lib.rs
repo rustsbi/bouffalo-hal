@@ -25,6 +25,7 @@ pub mod hbn;
 pub mod i2c;
 pub mod jtag;
 pub mod pwm;
+pub mod spi;
 pub mod uart;
 
 /// Global configuration registers.
@@ -111,6 +112,22 @@ unsafe impl<A: BaseAddress> Send for PWM<A> {}
 
 impl<A: BaseAddress> ops::Deref for PWM<A> {
     type Target = pwm::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+/// Serial peripheral bus peripheral.
+pub struct SPI<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for SPI<A> {}
+
+impl<A: BaseAddress> ops::Deref for SPI<A> {
+    type Target = spi::RegisterBlock;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
