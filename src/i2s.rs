@@ -1,8 +1,8 @@
-//! Inter-IC sound peripheral.
+//! Inter-IC sound bus peripheral.
 
 use volatile_register::{RO, RW, WO};
 
-/// Inter-IC sound peripheral registers.
+/// Inter-IC sound bus peripheral registers.
 #[repr(C)]
 pub struct RegisterBlock {
     /// Peripheral configuration register.

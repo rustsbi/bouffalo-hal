@@ -20,6 +20,10 @@ pub mod glb {
     pub mod v2;
 }
 
+pub mod auadc;
+pub mod audac;
+pub mod dma;
+pub mod emac;
 pub mod gpio;
 pub mod hbn;
 pub mod i2c;
@@ -27,8 +31,16 @@ pub mod i2s;
 pub mod ir;
 pub mod jtag;
 pub mod pwm;
+pub mod sdio;
 pub mod spi;
+pub mod timer;
 pub mod uart;
+
+/// Universal Serial Bus peripheral.
+pub mod usb {
+    #[path = "../usb_v1.rs"]
+    pub mod v1;
+}
 
 /// Global configuration registers.
 #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
@@ -105,7 +117,7 @@ impl<A: BaseAddress> ops::Deref for I2C<A> {
     }
 }
 
-/// Inter-IC sound peripheral.
+/// Inter-IC sound bus peripheral.
 pub struct I2S<A: BaseAddress> {
     base: A,
 }
@@ -162,6 +174,102 @@ unsafe impl<A: BaseAddress> Send for SPI<A> {}
 
 impl<A: BaseAddress> ops::Deref for SPI<A> {
     type Target = spi::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+/// Timer and watchdog peripheral.
+pub struct TIMER<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for TIMER<A> {}
+
+impl<A: BaseAddress> ops::Deref for TIMER<A> {
+    type Target = timer::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+/// Direct Memory Access peripheral.
+pub struct DMA<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for DMA<A> {}
+
+impl<A: BaseAddress> ops::Deref for DMA<A> {
+    type Target = dma::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+/// Secure Digital Input/Output peripheral.
+pub struct SDIO<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for SDIO<A> {}
+
+impl<A: BaseAddress> ops::Deref for SDIO<A> {
+    type Target = sdio::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+/// Audio Analog-Digital Converter peripheral.
+pub struct AUADC<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for AUADC<A> {}
+
+impl<A: BaseAddress> ops::Deref for AUADC<A> {
+    type Target = auadc::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+/// Audio Digital-Analog Converter peripheral.
+pub struct AUDAC<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for AUDAC<A> {}
+
+impl<A: BaseAddress> ops::Deref for AUDAC<A> {
+    type Target = audac::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+/// Ethernet Media Access Control peripheral.
+pub struct EMAC<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for EMAC<A> {}
+
+impl<A: BaseAddress> ops::Deref for EMAC<A> {
+    type Target = emac::RegisterBlock;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
