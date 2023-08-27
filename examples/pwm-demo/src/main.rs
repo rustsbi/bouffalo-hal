@@ -10,10 +10,10 @@ use bl_rom_rt::entry;
 use bl_soc::{
     clocks::Clocks,
     gpio::Pins,
+    prelude::*,
     pwm::{ClockSource::Xclk, Pwm, SingleEnd},
     GLB, PWM,
 };
-use embedded_hal::{digital::OutputPin, pwm::SetDutyCycle};
 use embedded_time::rate::units::Extensions;
 use panic_halt as _;
 

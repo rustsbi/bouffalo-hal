@@ -11,12 +11,10 @@ use bl_soc::{
     clocks::Clocks,
     gpio::Pins,
     i2c,
+    prelude::*,
     uart::{BitOrder, Config, Parity, Serial, StopBits, UartMuxes, WordLength},
     GLB, I2C, UART,
 };
-use embedded_hal::digital::OutputPin;
-use embedded_hal::i2c::I2c;
-use embedded_io::blocking::Write;
 use embedded_time::rate::*;
 use panic_halt as _;
 

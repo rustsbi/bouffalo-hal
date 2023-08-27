@@ -10,7 +10,6 @@ publish = false
 bl-soc = { path = "../..", features = ["bl808"] }
 base-address = "0.0.0"
 panic-halt = "0.2.0"
-embedded-hal = "1.0.0-rc.1"
 embedded-time = "0.12.1"
 
 [dependencies.bl-rom-rt]

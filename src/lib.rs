@@ -42,6 +42,17 @@ pub mod usb {
     pub mod v1;
 }
 
+#[doc(hidden)]
+pub mod prelude {
+    pub use embedded_hal::digital::{
+        InputPin as _embedded_hal_digital_InputPin, OutputPin as _embedded_hal_digital_OutputPin,
+        PinState,
+    };
+    pub use embedded_hal::i2c::I2c as _embedded_hal_i2c_I2c;
+    pub use embedded_hal::pwm::SetDutyCycle as _embedded_hal_pwm_SetDutyCycle;
+    pub use embedded_io::{Read, Write};
+}
+
 /// Global configuration registers.
 #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
 pub struct GLB<A: BaseAddress> {

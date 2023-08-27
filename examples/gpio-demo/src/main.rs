@@ -7,8 +7,7 @@
 
 use base_address::Static;
 use bl_rom_rt::entry;
-use bl_soc::gpio::Pins;
-use embedded_hal::digital::{InputPin, OutputPin, PinState};
+use bl_soc::{gpio::Pins, prelude::*};
 use panic_halt as _;
 
 #[entry]

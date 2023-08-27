@@ -10,11 +10,10 @@ use bl_rom_rt::entry;
 use bl_soc::{
     clocks::Clocks,
     gpio::Pins,
+    prelude::*,
     uart::{BitOrder, Config, Parity, Serial, StopBits, UartMuxes, WordLength},
     GLB, UART,
 };
-use embedded_hal::digital::{OutputPin, PinState};
-use embedded_io::blocking::{Read, Write};
 use embedded_time::rate::*;
 use panic_halt as _;
 
