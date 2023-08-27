@@ -28,7 +28,10 @@ fn main() -> ! {
     let glb: GLB<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let uart0: UART<Static<0x2000A000>> = unsafe { core::mem::transmute(()) };
     let uart_muxes: UartMuxes<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
-    let clocks = Clocks {};
+    let i2c: I2C<Static<0x30003000>> = unsafe { core::mem::transmute(()) };
+    let clocks = Clocks {
+        xtal: Hertz(40_000_000),
+    };
 
     // enable jtag
     gpio.io0.into_jtag_d0();
@@ -53,11 +56,9 @@ fn main() -> ! {
         2000000.Bd(),
         ((tx, sig2), (rx, sig3)),
         &clocks,
-        &glb,
     );
     let mut led = gpio.io8.into_floating_output();
 
-    let i2c: I2C<Static<0x30003000>> = unsafe { core::mem::transmute(()) };
     let scl = gpio.io6.into_i2c::<2>();
     let sda = gpio.io7.into_i2c::<2>();
     let mut i2c = i2c::I2c::new(i2c, (scl, sda), &glb);

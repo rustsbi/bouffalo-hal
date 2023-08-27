@@ -92,7 +92,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// # }
 /// # fn main() {
 /// # let p: Peripherals = unsafe { core::mem::transmute(()) };
-/// # let clocks = Clocks {};
+/// # let clocks = Clocks { xtal: Hertz(40_000_000) };
 /// // Prepare UART transmit and receive pins by converting io14 and io15 into
 /// // UART signal alternate mode.
 /// # #[cfg(feature = "glb-v2")]

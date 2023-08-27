@@ -14,7 +14,7 @@ use bl_soc::{
     pwm::{ClockSource::Xclk, Pwm, SingleEnd},
     GLB, PWM,
 };
-use embedded_time::rate::units::Extensions;
+use embedded_time::rate::{units::Extensions, Hertz};
 use panic_halt as _;
 
 #[entry]
@@ -22,7 +22,9 @@ fn main() -> ! {
     let gpio: Pins<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let glb: GLB<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let pwm: PWM<Static<0x2000A400>> = unsafe { core::mem::transmute(()) };
-    let clocks = Clocks {};
+    let clocks = Clocks {
+        xtal: Hertz(40_000_000),
+    };
 
     // enable jtag
     gpio.io0.into_jtag_d0();

@@ -1,6 +1,9 @@
 //! Universal Asynchronous Receiver/Transmitter.
+use crate::clocks::Clocks;
 #[cfg(feature = "glb-v2")]
 use crate::glb::v2::UartSignal;
+#[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
+use crate::GLB;
 use crate::{
     gpio::{Pin, Uart},
     UART,
@@ -8,12 +11,8 @@ use crate::{
 use base_address::BaseAddress;
 #[cfg(any(doc, feature = "glb-v2"))]
 use core::marker::PhantomData;
+use embedded_time::rate::Baud;
 use volatile_register::{RO, RW, WO};
-#[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
-use {
-    crate::{clocks::Clocks, GLB},
-    embedded_time::rate::Baud,
-};
 
 /// Universal Asynchoronous Receiver/Transmitter registers.
 #[repr(C)]
@@ -1088,37 +1087,18 @@ where
 /// Managed serial peripheral.
 pub struct Serial<const I: usize, A: BaseAddress, PINS> {
     uart: UART<A>,
-    #[cfg_attr(not(any(doc, feature = "glb-v1", feature = "glb-v2")), allow(unused))]
     pins: PINS,
 }
 
 impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
     /// Creates a serial instance with same baudrate for transmit and receive.
-    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
     #[inline]
-    pub fn new(
-        uart: UART<A>,
-        config: Config,
-        baudrate: Baud,
-        pins: PINS,
-        clocks: &Clocks,
-        glb: &GLB<impl BaseAddress>,
-    ) -> Self
+    pub fn new(uart: UART<A>, config: Config, baudrate: Baud, pins: PINS, clocks: &Clocks) -> Self
     where
         PINS: Pins<I>,
     {
-        // Enable clock
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                todo!()
-            } else if #[cfg(feature = "glb-v2")] {
-                unsafe { glb.clock_config_1.modify(|val| val.enable_uart::<I>()) };
-                unsafe { glb.uart_config.modify(|val| val.enable_clock()) };
-            }
-        }
-
-        // Calculate transmit interval
-        let uart_clock = clocks.uart_clock();
+        // Calculate transmit interval.
+        let uart_clock = clocks.uart_clock::<I>().expect("a valid UART clock source");
         let interval = uart_clock.0 / baudrate.0;
         if !(1..=65535).contains(&interval) {
             panic!("Impossible baudrate!");
@@ -1128,11 +1108,11 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
             .set_receive_time_interval(interval as u16);
         unsafe { uart.bit_period.write(val) };
 
-        // Write bit order
+        // Write bit order.
         let val = DataConfig(0).set_bit_order(config.bit_order);
         unsafe { uart.data_config.write(val) };
 
-        // Configure transmit feature
+        // Configure transmit feature.
         let mut val = TransmitConfig(0)
             .enable_freerun()
             .set_parity(config.parity)
@@ -1146,7 +1126,7 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
         }
         unsafe { uart.transmit_config.write(val) };
 
-        // Configure receive feature
+        // Configure receive feature.
         let mut val = ReceiveConfig(0)
             .set_parity(config.parity)
             .set_word_length(config.word_length);
@@ -1159,18 +1139,9 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
     }
 
     /// Release serial instance and return its peripheral and pins.
-    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
     #[inline]
-    pub fn free(self, glb: &GLB<impl BaseAddress>) -> (UART<A>, PINS) {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                todo!()
-            } else if #[cfg(feature = "glb-v2")] {
-                unsafe { glb.clock_config_1.modify(|val| val.disable_uart::<I>()) };
-                unsafe { glb.uart_config.modify(|val| val.disable_clock()) };
-                (self.uart, self.pins)
-            }
-        }
+    pub fn free(self) -> (UART<A>, PINS) {
+        (self.uart, self.pins)
     }
 }
 
@@ -1195,9 +1166,9 @@ impl<const I: usize, A: BaseAddress, PINS> embedded_io::Write for Serial<I, A, P
             self.uart.fifo_config_1.read().transmit_available_bytes() as usize,
             buf.len(),
         );
-        for &word in &buf[..len] {
-            unsafe { self.uart.data_write.write(word) };
-        }
+        buf.iter()
+            .take(len)
+            .for_each(|&word| unsafe { self.uart.data_write.write(word) });
         Ok(len)
     }
     #[inline]
@@ -1221,9 +1192,9 @@ impl<const I: usize, A: BaseAddress, PINS> embedded_io::Read for Serial<I, A, PI
             self.uart.fifo_config_1.read().receive_available_bytes() as usize,
             buf.len(),
         );
-        for i in 0..len {
-            buf[i] = self.uart.data_read.read();
-        }
+        buf.iter_mut()
+            .take(len)
+            .for_each(|slot| *slot = self.uart.data_read.read());
         Ok(len)
     }
 }

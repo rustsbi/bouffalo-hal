@@ -6,19 +6,19 @@ use embedded_time::rate::Hertz;
 #[derive(Debug, Clone)]
 pub struct Clocks {
     // todo: clock setting fields
+    pub xtal: Hertz,
 }
 
 impl Clocks {
-    /// Universal Asynchronous Receiver/Transmitter clock frequency.
-    #[inline]
-    pub const fn uart_clock(&self) -> Hertz {
-        // todo: calculate from Clocks structure fields
-        Hertz(80_000_000)
-    }
     /// Crystal oscillator clock frequency.
     #[inline]
     pub const fn xclk(&self) -> Hertz {
+        self.xtal
+    }
+    /// Universal Asynchronous Receiver/Transmitter clock frequency.
+    #[inline]
+    pub const fn uart_clock<const I: usize>(&self) -> Option<Hertz> {
         // todo: calculate from Clocks structure fields
-        Hertz(40_000_000)
+        Some(Hertz(80_000_000))
     }
 }
