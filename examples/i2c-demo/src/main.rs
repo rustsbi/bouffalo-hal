@@ -10,7 +10,7 @@ use bl_rom_rt::entry;
 use bl_soc::{
     clocks::Clocks,
     gpio::Pins,
-    i2c,
+    i2c::I2c,
     prelude::*,
     uart::{BitOrder, Config, Parity, Serial, StopBits, UartMuxes, WordLength},
     GLB, I2C, UART,
@@ -61,7 +61,7 @@ fn main() -> ! {
 
     let scl = gpio.io6.into_i2c::<2>();
     let sda = gpio.io7.into_i2c::<2>();
-    let mut i2c = i2c::I2c::new(i2c, (scl, sda), &glb);
+    let mut i2c = I2c::new(i2c, (scl, sda), &glb);
     i2c.enable_sub_address(SCREEN_TOUCH_SUB_ADDRESS);
 
     writeln!(serial, "Hello Rust🦀!").ok();
