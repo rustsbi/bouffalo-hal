@@ -11,10 +11,10 @@ crc = "3.0.1"
 cfg-if = "1.0.0"
 bl-soc = { git = "https://gitee.com/rustsbi/bl-soc", branch = "main", optional = true }
 base-address = { version = "0.0.0", optional = true }
+embedded-time = { version = "0.12.1", optional = true }
 
 [dev-dependencies]
 memoffset = "0.8.0"
-embedded-hal = "1.0.0-alpha.10"
 
 [features]
 default = ["rom-peripherals"]
@@ -27,7 +27,7 @@ bl808-lp = ["bl-soc/bl808"]
 # BL702, BL704 and BL706 chip series.
 bl702 = ["bl-soc/bl702"]
 # Provide ROM peripherals on #[entry] function.
-rom-peripherals = ["bl-rom-rt-macros/rom-peripherals", "dep:bl-soc", "dep:base-address"]
+rom-peripherals = ["bl-rom-rt-macros/rom-peripherals", "dep:bl-soc", "dep:base-address", "dep:embedded-time"]
 
 [workspace]
 members = [

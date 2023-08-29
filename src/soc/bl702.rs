@@ -174,6 +174,21 @@ pub struct Peripherals {
     // TODO: BL702 peripherals.
 }
 
+#[cfg(feature = "rom-peripherals")]
+pub use bl_soc::clocks::Clocks;
+
+// TODO: BL702 clock tree configuration.
+// Used by macros only.
+#[cfg(feature = "rom-peripherals")]
+#[doc(hidden)]
+#[inline(always)]
+pub fn __new_clocks(xtal_hz: u32) -> Clocks {
+    use embedded_time::rate::Hertz;
+    Clocks {
+        xtal: Hertz(xtal_hz),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{HalBasicConfig, HalBootheader, HalPllConfig, HalSysClkConfig};

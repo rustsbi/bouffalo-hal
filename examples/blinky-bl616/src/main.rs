@@ -5,13 +5,13 @@
 #![no_std]
 #![no_main]
 
-use bl_rom_rt::{entry, Peripherals};
+use bl_rom_rt::{entry, Clocks, Peripherals};
 use core::arch::asm;
 use embedded_hal::digital::OutputPin;
 use panic_halt as _;
 
 #[entry]
-fn main(p: Peripherals) -> ! {
+fn main(p: Peripherals, _c: Clocks) -> ! {
     p.gpio.io10.into_jtag_m0();
     p.gpio.io11.into_jtag_m0();
     p.gpio.io12.into_jtag_m0();

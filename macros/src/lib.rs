@@ -26,10 +26,10 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     #[cfg(feature = "rom-peripherals")]
-    if f.sig.inputs.len() > 1 {
+    if f.sig.inputs.len() != 2 {
         return parse::Error::new(
             f.sig.inputs.span(),
-            "`#[entry]` function with rom peripherlas should include zero or one parameter",
+            "`#[entry]` function with rom peripherlas should include exactly two parameters",
         )
         .to_compile_error()
         .into();
@@ -55,7 +55,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
         #[cfg(feature = "rom-peripherals")]
         return parse::Error::new(
             f.sig.span(),
-            "`#[entry]` function must have signature `[unsafe] fn([p: Peripherals]) -> !`",
+            "`#[entry]` function must have signature `[unsafe] fn(p: Peripherals, c: Clocks) -> !`",
         )
         .to_compile_error()
         .into();
@@ -73,16 +73,22 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
             #[allow(non_snake_case)]
             #[export_name = "main"]
             #(#attrs)*
-            pub #unsafety fn __bl_rom_rt__main() -> ! {
+            pub #unsafety fn main() -> ! {
                 #(#stmts)*
             }
         ),
         #[cfg(feature = "rom-peripherals")]
         () => quote!(
-            #[allow(non_snake_case)]
             #[export_name = "main"]
+            pub extern "C" fn main() -> ! {
+                let p = unsafe { core::mem::transmute(()) };
+                let c = bl_rom_rt::__new_clocks(40_000_000);
+                unsafe { __bl_rom_rt_macros__main(p, c) }
+            }
+            #[allow(non_snake_case)]
+            #[inline(always)]
             #(#attrs)*
-            pub #unsafety fn __bl_rom_rt__main(#inputs) -> ! {
+            #unsafety fn __bl_rom_rt_macros__main(#inputs) -> ! {
                 #(#stmts)*
             }
         ),

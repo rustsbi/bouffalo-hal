@@ -9,12 +9,12 @@
 #![no_std]
 #![no_main]
 
-use bl_rom_rt::{entry, Peripherals};
+use bl_rom_rt::{entry, Clocks, Peripherals};
 use embedded_hal::digital::OutputPin;
 use panic_halt as _;
 
 #[entry]
-fn main(p: Peripherals) -> ! {
+fn main(p: Peripherals, _c: Clocks) -> ! {
     let mut led = p.gpio.io8.into_floating_output();
     loop {
         led.set_low().ok();
