@@ -11,7 +11,7 @@ use bl_soc::{
     clocks::Clocks,
     gpio::Pins,
     prelude::*,
-    uart::{BitOrder, Config, Parity, Serial, StopBits, UartMuxes, WordLength},
+    uart::{BitOrder, Config, Parity, StopBits, UartMuxes, WordLength},
     UART,
 };
 use embedded_time::rate::*;
@@ -44,21 +44,14 @@ fn main() -> ! {
         stop_bits: StopBits::One,
         word_length: WordLength::Eight,
     };
-    let mut serial = Serial::new(
-        uart0,
-        config,
-        2000000.Bd(),
-        ((tx, sig2), (rx, sig3)),
-        &clocks,
-    );
+    let mut serial = uart0.freerun(config, 2000000.Bd(), ((tx, sig2), (rx, sig3)), &clocks);
 
     let mut led = gpio.io8.into_floating_output();
     let mut led_state = PinState::Low;
     let mut buf = [0u8; 32];
     let mut ch = b'\r';
 
-    #[rustfmt::skip]
-    writeln!(serial, "Welcome to console example by bl-soc & embedded-io🦀!").ok();
+    writeln!(serial, "Welcome to console example by bl-soc🦀!").ok();
     writeln!(serial, "Command helps: ").ok();
     writeln!(serial, "    led [<none>|on|off|switch]: operate on LED").ok();
 

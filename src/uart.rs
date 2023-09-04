@@ -1091,9 +1091,17 @@ pub struct Serial<const I: usize, A: BaseAddress, PINS> {
 }
 
 impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
-    /// Creates a serial instance with same baudrate for transmit and receive.
+    /// Creates a polling serial instance, without interrupt or DMA configurations.
+    ///
+    /// This structure sets the same baudrate for transmit and receive halves.
     #[inline]
-    pub fn new(uart: UART<A>, config: Config, baudrate: Baud, pins: PINS, clocks: &Clocks) -> Self
+    pub fn freerun(
+        uart: UART<A>,
+        config: Config,
+        baudrate: Baud,
+        pins: PINS,
+        clocks: &Clocks,
+    ) -> Self
     where
         PINS: Pins<I>,
     {
@@ -1142,6 +1150,36 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
     #[inline]
     pub fn free(self) -> (UART<A>, PINS) {
         (self.uart, self.pins)
+    }
+}
+
+/// Extend constructor to owned UART register blocks.
+pub trait UartExt<const I: usize, A: BaseAddress, PINS> {
+    /// Creates a polling serial instance, without interrupt or DMA configurations.
+    fn freerun(
+        self,
+        config: Config,
+        baudrate: Baud,
+        pins: PINS,
+        clocks: &Clocks,
+    ) -> Serial<I, A, PINS>
+    where
+        PINS: Pins<I>;
+}
+
+impl<const I: usize, A: BaseAddress, PINS> UartExt<I, A, PINS> for UART<A> {
+    #[inline]
+    fn freerun(
+        self,
+        config: Config,
+        baudrate: Baud,
+        pins: PINS,
+        clocks: &Clocks,
+    ) -> Serial<I, A, PINS>
+    where
+        PINS: Pins<I>,
+    {
+        Serial::freerun(self, config, baudrate, pins, clocks)
     }
 }
 

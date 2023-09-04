@@ -12,7 +12,7 @@ use bl_soc::{
     gpio::Pins,
     i2c::I2c,
     prelude::*,
-    uart::{BitOrder, Config, Parity, Serial, StopBits, UartMuxes, WordLength},
+    uart::{BitOrder, Config, Parity, StopBits, UartMuxes, WordLength},
     GLB, I2C, UART,
 };
 use embedded_time::rate::*;
@@ -50,13 +50,7 @@ fn main() -> ! {
         stop_bits: StopBits::One,
         word_length: WordLength::Eight,
     };
-    let mut serial = Serial::new(
-        uart0,
-        config,
-        2000000.Bd(),
-        ((tx, sig2), (rx, sig3)),
-        &clocks,
-    );
+    let mut serial = uart0.freerun(config, 2000000.Bd(), ((tx, sig2), (rx, sig3)), &clocks);
     let mut led = gpio.io8.into_floating_output();
 
     let scl = gpio.io6.into_i2c::<2>();
