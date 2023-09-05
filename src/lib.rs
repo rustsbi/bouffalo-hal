@@ -14,9 +14,7 @@ use core::ops;
 pub mod clocks;
 /// Global configuration peripheral.
 pub mod glb {
-    #[path = "../glb_v1.rs"]
     pub mod v1;
-    #[path = "../glb_v2.rs"]
     pub mod v2;
 }
 
@@ -38,7 +36,6 @@ pub mod uart;
 
 /// Universal Serial Bus peripheral.
 pub mod usb {
-    #[path = "../usb_v1.rs"]
     pub mod v1;
 }
 
