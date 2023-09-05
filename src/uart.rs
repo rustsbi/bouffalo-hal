@@ -1250,6 +1250,19 @@ pub struct Config {
     pub word_length: WordLength,
 }
 
+impl Default for Config {
+    /// Serial configuration defaults to 8-bit word, no parity check, 1 stop bit, LSB first.
+    #[inline]
+    fn default() -> Self {
+        Config {
+            bit_order: BitOrder::LsbFirst,
+            parity: Parity::None,
+            stop_bits: StopBits::One,
+            word_length: WordLength::Eight,
+        }
+    }
+}
+
 /// Order of the bits transmitted and received on the wire.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BitOrder {

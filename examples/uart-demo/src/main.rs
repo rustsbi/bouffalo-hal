@@ -38,12 +38,7 @@ fn main() -> ! {
     let sig2 = uart_muxes.sig2.into_transmit::<0>();
     let sig3 = uart_muxes.sig3.into_receive::<0>();
 
-    let config = Config {
-        bit_order: BitOrder::LsbFirst,
-        parity: Parity::None,
-        stop_bits: StopBits::One,
-        word_length: WordLength::Eight,
-    };
+    let config = Default::default();
     let mut serial = uart0.freerun(config, 2000000.Bd(), ((tx, sig2), (rx, sig3)), &clocks);
 
     let mut led = gpio.io8.into_floating_output();
