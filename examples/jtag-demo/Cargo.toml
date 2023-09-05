@@ -10,6 +10,7 @@ publish = false
 bl-soc = { path = "../..", features = ["bl808"] }
 base-address = "0.0.0"
 panic-halt = "0.2.0"
+riscv = "0.10.1"
 
 [dependencies.bl-rom-rt]
 git = "https://gitee.com/rustsbi/bl-rom-rt"

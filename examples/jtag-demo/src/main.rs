@@ -22,12 +22,8 @@ fn main() -> ! {
     let mut led = gpio.io8.into_floating_output();
     loop {
         led.set_low().ok();
-        for _ in 0..100_000 {
-            unsafe { core::arch::asm!("nop") }
-        }
+        unsafe { riscv::asm::delay(100_000) };
         led.set_high().ok();
-        for _ in 0..100_000 {
-            unsafe { core::arch::asm!("nop") }
-        }
+        unsafe { riscv::asm::delay(100_000) };
     }
 }

@@ -7,14 +7,7 @@
 
 use base_address::Static;
 use bl_rom_rt::entry;
-use bl_soc::{
-    clocks::Clocks,
-    gpio::Pins,
-    i2c::I2c,
-    prelude::*,
-    uart::{BitOrder, Config, Parity, StopBits, UartMuxes, WordLength},
-    GLB, I2C, UART,
-};
+use bl_soc::{clocks::Clocks, gpio::Pins, i2c::I2c, prelude::*, uart::UartMuxes, GLB, I2C, UART};
 use embedded_time::rate::*;
 use panic_halt as _;
 
@@ -44,7 +37,7 @@ fn main() -> ! {
     let sig2 = uart_muxes.sig2.into_transmit::<0>();
     let sig3 = uart_muxes.sig3.into_receive::<0>();
 
-    let config = Default::default();
+    let config = Default::defnault();
     let mut serial = uart0.freerun(config, 2000000.Bd(), ((tx, sig2), (rx, sig3)), &clocks);
     let mut led = gpio.io8.into_floating_output();
 
@@ -56,9 +49,7 @@ fn main() -> ! {
     writeln!(serial, "Hello Rust🦀!").ok();
     let mut buf = [0u8; 6];
     loop {
-        for _ in 0..100_000 {
-            unsafe { core::arch::asm!("nop") }
-        }
+        unsafe { riscv::asm::delay(100_000) };
         match i2c.read(SCREEN_ADDRESS, &mut buf) {
             Ok(_) => {
                 if buf[2] >> 4 == 8 {

@@ -7,13 +7,7 @@
 
 use base_address::Static;
 use bl_rom_rt::entry;
-use bl_soc::{
-    clocks::Clocks,
-    gpio::Pins,
-    prelude::*,
-    uart::{BitOrder, Config, Parity, StopBits, UartMuxes, WordLength},
-    UART,
-};
+use bl_soc::{clocks::Clocks, gpio::Pins, prelude::*, uart::UartMuxes, UART};
 use embedded_time::rate::*;
 use panic_halt as _;
 
