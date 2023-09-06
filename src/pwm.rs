@@ -661,7 +661,7 @@ pub struct Pwm<A: BaseAddress, S> {
 impl<A: BaseAddress, S0: Signal0, S1: Signal1> Pwm<A, (S0, S1)> {
     /// Creates a pulse width modulation instance with given signal settings.
     #[rustfmt::skip]
-    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
+    #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
     pub fn new(pwm: PWM<A>, signal_0: S0, signal_1: S1, glb: &GLB<impl BaseAddress>) -> Self {
         unsafe {

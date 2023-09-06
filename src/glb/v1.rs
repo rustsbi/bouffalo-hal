@@ -1,14 +1,13 @@
 //! Global configurations on BL602 and BL702 series.
 
-use core::cell::UnsafeCell;
 use volatile_register::{RO, RW, WO};
 
 /// Global configuration registers.
 #[repr(C)]
 pub struct RegisterBlock {
     _reserved0: [u8; 0x100],
-    /// Generic Purpose Input/Output config.
-    pub gpio_config: [GPIO_CONFIG; 16],
+    /// Generic Purpose Input/Output configuration register.
+    pub gpio_config: [RW<GpioConfig>; 16],
     _reserved1: [u8; 0x40],
     /// Read value from Generic Purpose Input/Output pins.
     pub gpio_input_value: RO<u32>,
@@ -27,32 +26,14 @@ pub struct RegisterBlock {
     /// Clear interrupt state of Generic Purpose Input/Output pins.
     pub gpio_interrupt_clear: WO<u32>,
     _reserved6: [u8; 0xc],
-    /// Generic Purpose Input/Output interrupt mode.
-    pub gpio_interrupt_mode: [GPIO_INTERRUPT_MODE; 16],
+    /// Generic Purpose Input/Output interrupt mode register.
+    pub gpio_interrupt_mode: [RW<GpioInterruptMode>; 16],
 }
 
 /// Generic Purpose Input/Output Configuration register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct GPIO_CONFIG(UnsafeCell<u32>);
-
-/// Configuration structure for current GPIO pin.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct GpioConfig(u32);
-
-impl GPIO_CONFIG {
-    /// Read GPIO pin configuration.
-    #[inline]
-    pub fn read(&self) -> GpioConfig {
-        GpioConfig(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write GPIO pin configuration.
-    #[inline]
-    pub fn write(&self, val: GpioConfig) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl GpioConfig {
     const INPUT_ENABLE: u32 = 1 << 0;
@@ -159,27 +140,9 @@ impl GpioConfig {
 }
 
 /// Generic Purpose Input/Output interrupt mode register.
-#[allow(non_camel_case_types)]
-#[repr(transparent)]
-pub struct GPIO_INTERRUPT_MODE(UnsafeCell<u32>);
-
-/// Interrupt mode structure for current GPIO pin.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct GpioInterruptMode(u32);
-
-impl GPIO_INTERRUPT_MODE {
-    /// Read GPIO interrupt mode.
-    #[inline]
-    pub fn read(&self) -> GpioInterruptMode {
-        GpioInterruptMode(unsafe { self.0.get().read_volatile() })
-    }
-    /// Write GPIO interrupt mode.
-    #[inline]
-    pub fn write(&self, val: GpioInterruptMode) {
-        unsafe { self.0.get().write_volatile(val.0) }
-    }
-}
 
 impl GpioInterruptMode {
     const INTERRUPT_MODE: u32 = 0x7;

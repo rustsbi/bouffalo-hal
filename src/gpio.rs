@@ -256,7 +256,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1].read().enable_schmitt(N & 0x1);
-                self.base.gpio_config[N >> 1].write(config);
+                unsafe { self.base.gpio_config[N >> 1].write(config) };
             } else if #[cfg(feature = "glb-v2")] {
                 let config = self.base.gpio_config[N].read().enable_schmitt();
                 unsafe { self.base.gpio_config[N].write(config) };
@@ -271,7 +271,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1].read().disable_schmitt(N & 0x1);
-                self.base.gpio_config[N >> 1].write(config);
+                unsafe { self.base.gpio_config[N >> 1].write(config) };
             } else if #[cfg(feature = "glb-v2")] {
                 let config = self.base.gpio_config[N].read().disable_schmitt();
                 unsafe { self.base.gpio_config[N].write(config) };
@@ -354,7 +354,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
         let config = self.base.gpio_interrupt_mode[N >> 1]
             .read()
             .set_interrupt_mode(N & 0x1, val);
-        self.base.gpio_interrupt_mode[N >> 1].write(config);
+        unsafe { self.base.gpio_interrupt_mode[N >> 1].write(config) };
     }
 }
 
@@ -384,7 +384,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Output<M>> {
     #[inline]
     pub fn set_drive(&mut self, val: Drive) {
         let config = self.base.gpio_config[N >> 1].read().set_drive(N & 0x1, val);
-        self.base.gpio_config[N >> 1].write(config);
+        unsafe { self.base.gpio_config[N >> 1].write(config) };
     }
 }
 
@@ -414,7 +414,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .set_function(N & 0x1, Function::Gpio)
                     .disable_input(N & 0x1)
                     .set_pull(N & 0x1, Pull::Up);
-                self.base.gpio_config[N >> 1].write(config);
+                unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
                 Pin {
@@ -449,7 +449,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .set_function(N & 0x1, Function::Gpio)
                     .disable_input(N & 0x1)
                     .set_pull(N & 0x1, Pull::Down);
-                self.base.gpio_config[N >> 1].write(config);
+                unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
                 Pin {
@@ -484,7 +484,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .set_function(N & 0x1, Function::Gpio)
                     .disable_input(N & 0x1)
                     .set_pull(N & 0x1, Pull::None);
-                self.base.gpio_config[N >> 1].write(config);
+                unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
                 Pin {
@@ -519,7 +519,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .set_function(N & 0x1, Function::Gpio)
                     .enable_input(N & 0x1)
                     .set_pull(N & 0x1, Pull::Up);
-                self.base.gpio_config[N >> 1].write(config);
+                unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
                 Pin {
@@ -554,7 +554,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .set_function(N & 0x1, Function::Gpio)
                     .enable_input(N & 0x1)
                     .set_pull(N & 0x1, Pull::Down);
-                self.base.gpio_config[N >> 1].write(config);
+                unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
                 Pin {
@@ -589,7 +589,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .set_function(N & 0x1, Function::Gpio)
                     .enable_input(N & 0x1)
                     .set_pull(N & 0x1, Pull::None);
-                self.base.gpio_config[N >> 1].write(config);
+                    unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
                 Pin {

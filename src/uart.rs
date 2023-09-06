@@ -1,9 +1,7 @@
 //! Universal Asynchronous Receiver/Transmitter.
 use crate::clocks::Clocks;
 #[cfg(feature = "glb-v2")]
-use crate::glb::v2::UartSignal;
-#[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
-use crate::GLB;
+use crate::{glb::v2::UartSignal, GLB};
 use crate::{
     gpio::{Pin, Uart},
     UART,
