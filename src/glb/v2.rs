@@ -204,7 +204,6 @@ impl I2cConfig {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct PwmConfig(u32);
-
 impl PwmConfig {
     const SIGNAL_0_SELECT: u32 = 1 << 0;
     const SIGNAL_1_SELECT: u32 = 1 << 1;
@@ -637,8 +636,8 @@ pub enum Pull {
 #[cfg(test)]
 mod tests {
     use super::{
-        Drive, Function, GpioConfig, InterruptMode, Mode, Pull, RegisterBlock, UartConfig,
-        UartMuxGroup, UartSignal,
+        Drive, Function, GpioConfig, I2cClockSource, I2cConfig, InterruptMode, Mode, Pull,
+        PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, UartConfig, UartMuxGroup, UartSignal,
     };
     use memoffset::offset_of;
 
@@ -799,5 +798,72 @@ mod tests {
         val = val.set_signal(2, UartSignal::Txd2);
         assert_eq!(val.0, 0xFF | (UartSignal::Txd2 as u32) << 8);
         assert_eq!(val.signal(2), UartSignal::Txd2);
+    }
+
+    #[test]
+    fn struct_i2c_config_functions() {
+        let mut config = I2cConfig(0x0);
+
+        config = config.set_clock_divide(1);
+        assert_eq!(config.0, 0x00010000);
+        assert_eq!(config.clock_divide(), 1);
+
+        config = I2cConfig(0x0);
+        config = config.set_clock_divide(0xff);
+        assert_eq!(config.0, 0x00FF0000);
+        assert_eq!(config.clock_divide(), 0xff);
+
+        config = I2cConfig(0x8);
+        config = config.set_clock_divide(1);
+        assert_eq!(config.0, 0x00010008);
+        assert_eq!(config.clock_divide(), 1);
+
+        config = I2cConfig(0x10);
+        config = config.set_clock_divide(0x0F);
+        assert_eq!(config.0, 0x000F0010);
+        assert_eq!(config.clock_divide(), 0x0F);
+
+        config = I2cConfig(0x0);
+        config = config.enable_clock();
+        assert_eq!(config.0, 0x01000000);
+        assert!(config.is_clock_enabled());
+
+        config = config.disable_clock();
+        assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_clock_enabled());
+
+        config = I2cConfig(0x0);
+        config = config.set_clock_source(I2cClockSource::Bclk);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(config.clock_source(), I2cClockSource::Bclk);
+
+        config = I2cConfig(0x0);
+        config = config.set_clock_source(I2cClockSource::Xclk);
+        assert_eq!(config.0, 0x02000000);
+        assert_eq!(config.clock_source(), I2cClockSource::Xclk);
+    }
+
+    #[test]
+    fn struct_pwm_config_functions() {
+        let mut config = PwmConfig(0x0);
+
+        config = config.set_signal_0(PwmSignal0::SingleEnd);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(config.signal_0(), PwmSignal0::SingleEnd);
+
+        config = PwmConfig(0x0);
+        config = config.set_signal_0(PwmSignal0::DifferentialEnd);
+        assert_eq!(config.0, 0x00000001);
+        assert_eq!(config.signal_0(), PwmSignal0::DifferentialEnd);
+
+        config = PwmConfig(0x0);
+        config = config.set_signal_1(PwmSignal1::SingleEnd);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(config.signal_1(), PwmSignal1::SingleEnd);
+
+        config = PwmConfig(0x0);
+        config = config.set_signal_1(PwmSignal1::BrushlessDcMotor);
+        assert_eq!(config.0, 0x00000002);
+        assert_eq!(config.signal_1(), PwmSignal1::BrushlessDcMotor);
     }
 }
