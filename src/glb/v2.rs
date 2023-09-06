@@ -628,8 +628,11 @@ pub enum Mode {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Pull {
+    /// No internal pulls.
     None = 0,
+    /// Internally pulled up.
     Up = 1,
+    /// Internally pulled down.
     Down = 2,
 }
 
