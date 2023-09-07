@@ -20,6 +20,7 @@ pub mod glb {
 
 pub mod auadc;
 pub mod audac;
+pub mod dbi;
 pub mod dma;
 pub mod emac;
 pub mod gpio;
