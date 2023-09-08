@@ -10,6 +10,7 @@ publish = false
 bl-rom-rt = { path = "../.." }
 embedded-hal = "1.0.0-rc.1"
 panic-halt = "0.2.0"
+riscv = "0.10.1"
 
 [features]
 default = ["bl808-d0"]
