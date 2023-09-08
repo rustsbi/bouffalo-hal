@@ -29,7 +29,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     if f.sig.inputs.len() != 2 {
         return parse::Error::new(
             f.sig.inputs.span(),
-            "`#[entry]` function with rom peripherlas should include exactly two parameters",
+            "`#[entry]` function with rom peripherals should include exactly two parameters",
         )
         .to_compile_error()
         .into();
@@ -93,5 +93,68 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
             }
         ),
     }
+    .into()
+}
+
+/// Interrupt handler function.
+#[proc_macro_attribute]
+pub fn interrupt(args: TokenStream, input: TokenStream) -> TokenStream {
+    if !args.is_empty() {
+        return parse::Error::new(
+            Span::call_site(),
+            "#[interrupt] attribute accepts no arguments",
+        )
+        .to_compile_error()
+        .into();
+    }
+
+    let f = parse_macro_input!(input as ItemFn);
+
+    if f.sig.inputs.len() != 0 {
+        return parse::Error::new(
+            f.sig.inputs.span(),
+            "`#[interrupt]` function should not include any parameter",
+        )
+        .to_compile_error()
+        .into();
+    }
+
+    let valid_signature = f.sig.constness.is_none()
+        && f.vis == Visibility::Inherited
+        && f.sig.abi.is_none()
+        && f.sig.inputs.is_empty()
+        && f.sig.generics.params.is_empty()
+        && f.sig.generics.where_clause.is_none()
+        && f.sig.variadic.is_none()
+        && match f.sig.output {
+            ReturnType::Default => true,
+            ReturnType::Type(_, ref ty) => match **ty {
+                Type::Tuple(ref tuple) => tuple.elems.is_empty(),
+                Type::Never(..) => true,
+                _ => false,
+            },
+        };
+
+    if !valid_signature {
+        return parse::Error::new(
+            f.sig.span(),
+            "`#[interrupt]` handlers must have signature `[unsafe] fn() [-> !]`",
+        )
+        .to_compile_error()
+        .into();
+    }
+
+    let attrs = f.attrs;
+    let unsafety = f.sig.unsafety;
+    let stmts = f.block.stmts;
+    let ident = f.sig.ident;
+    let output = f.sig.output;
+
+    quote!(
+        #(#attrs)*
+        pub #unsafety extern "C" fn #ident() #output {
+            #(#stmts)*
+        }
+    )
     .into()
 }

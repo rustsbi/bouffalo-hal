@@ -9,7 +9,7 @@
 #![no_std]
 #![no_main]
 
-use bl_rom_rt::{entry, Clocks, Peripherals};
+use bl_rom_rt::{entry, interrupt, Clocks, Peripherals};
 use embedded_hal::digital::OutputPin;
 use panic_halt as _;
 
@@ -26,4 +26,9 @@ fn main(p: Peripherals, _c: Clocks) -> ! {
             unsafe { core::arch::asm!("nop") }
         }
     }
+}
+
+#[interrupt]
+fn uart0() {
+    // TODO: interrupt handler content
 }
