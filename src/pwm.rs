@@ -1,11 +1,10 @@
 //! Pulse Width Modulation peripheral.
+use crate::glb::{
+    v2::{PwmSignal0, PwmSignal1},
+    GLBv2,
+};
 use crate::gpio::{self, Alternate, Pin};
 use crate::{clocks::Clocks, PWM};
-#[cfg(any(doc, feature = "glb-v2"))]
-use crate::{
-    glb::v2::{PwmSignal0, PwmSignal1},
-    GLB,
-};
 use base_address::BaseAddress;
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
@@ -621,34 +620,28 @@ pub struct BrushlessDcMotor;
 /// Valid settings for PWM signal 0.
 pub trait Signal0 {
     /// Signal value in `PwmConfig` register on `GLB` peripheral.
-    #[cfg(any(doc, feature = "glb-v2"))]
     const VALUE: PwmSignal0;
 }
 
 /// Valid settings for PWM signal 1.
 pub trait Signal1 {
     /// Signal value in `PwmConfig` register on `GLB` peripheral.
-    #[cfg(any(doc, feature = "glb-v2"))]
     const VALUE: PwmSignal1;
 }
 
 impl Signal0 for SingleEnd {
-    #[cfg(any(doc, feature = "glb-v2"))]
     const VALUE: PwmSignal0 = PwmSignal0::SingleEnd;
 }
 
 impl Signal0 for DifferentialEnd {
-    #[cfg(any(doc, feature = "glb-v2"))]
     const VALUE: PwmSignal0 = PwmSignal0::DifferentialEnd;
 }
 
 impl Signal1 for SingleEnd {
-    #[cfg(any(doc, feature = "glb-v2"))]
     const VALUE: PwmSignal1 = PwmSignal1::SingleEnd;
 }
 
 impl Signal1 for BrushlessDcMotor {
-    #[cfg(any(doc, feature = "glb-v2"))]
     const VALUE: PwmSignal1 = PwmSignal1::BrushlessDcMotor;
 }
 
@@ -661,9 +654,8 @@ pub struct Pwm<A: BaseAddress, S> {
 impl<A: BaseAddress, S0: Signal0, S1: Signal1> Pwm<A, (S0, S1)> {
     /// Creates a pulse width modulation instance with given signal settings.
     #[rustfmt::skip]
-    #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn new(pwm: PWM<A>, signal_0: S0, signal_1: S1, glb: &GLB<impl BaseAddress>) -> Self {
+    pub fn new(pwm: PWM<A>, signal_0: S0, signal_1: S1, glb: &GLBv2<impl BaseAddress>) -> Self {
         unsafe {
             glb.pwm_config
                 .modify(|config| config.set_signal_0(S0::VALUE).set_signal_1(S1::VALUE));

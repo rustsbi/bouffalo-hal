@@ -12,17 +12,13 @@ use base_address::BaseAddress;
 use core::ops;
 
 pub mod clocks;
-/// Global configuration peripheral.
-pub mod glb {
-    pub mod v1;
-    pub mod v2;
-}
 
 pub mod auadc;
 pub mod audac;
 pub mod dbi;
 pub mod dma;
 pub mod emac;
+pub mod glb;
 pub mod gpio;
 pub mod hbn;
 pub mod i2c;
@@ -52,32 +48,13 @@ pub mod prelude {
     pub use embedded_io::{Read, Write};
 }
 
-/// Global configuration registers.
-#[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
-pub struct GLB<A: BaseAddress> {
-    base: A,
-}
+#[cfg(feature = "glb-v1")]
+#[doc(inline)]
+pub use glb::GLBv1 as GLB;
 
-#[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
-unsafe impl<A: BaseAddress> Send for GLB<A> {}
-
-#[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
-impl<A: BaseAddress> ops::Deref for GLB<A> {
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "glb-v1")] {
-            type Target = glb::v1::RegisterBlock;
-        } else if #[cfg(feature = "glb-v2")] {
-            type Target = glb::v2::RegisterBlock;
-        } else {
-            type Target = glb::v2::RegisterBlock;
-        }
-    }
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(self.base.ptr() as *const _) }
-    }
-}
+#[cfg(feature = "glb-v2")]
+#[doc(inline)]
+pub use glb::GLBv2 as GLB;
 
 /// Universal Asynchronous Receiver/Transmitter.
 pub struct UART<A: BaseAddress> {

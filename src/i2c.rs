@@ -1,11 +1,9 @@
 //! Inter-Integrated Circuit bus.
-#[cfg(any(doc, feature = "glb-v2"))]
 use crate::{
-    glb::v2::I2cClockSource,
+    glb::{v2::I2cClockSource, GLBv2},
     gpio::{self, Pin},
-    GLB, I2C,
+    I2C,
 };
-#[cfg(any(doc, feature = "glb-v2"))]
 use base_address::BaseAddress;
 use volatile_register::{RO, RW, WO};
 
@@ -496,18 +494,16 @@ impl FifoConfig1 {
     }
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
+/// Managed Inter-Integrated Circuit peripheral.
 pub struct I2c<A: BaseAddress, PINS> {
     i2c: I2C<A>,
     pins: PINS,
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
 impl<A: BaseAddress, SCL, SDA> I2c<A, (SCL, SDA)> {
     /// Create a new Inter-Integrated Circuit instance.
-    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
     #[inline]
-    pub fn new<const I: usize>(i2c: I2C<A>, pins: (SCL, SDA), glb: &GLB<impl BaseAddress>) -> Self
+    pub fn new<const I: usize>(i2c: I2C<A>, pins: (SCL, SDA), glb: &GLBv2<impl BaseAddress>) -> Self
     where
         SCL: SclPin<I>,
         SDA: SdaPin<I>,
@@ -555,24 +551,16 @@ impl<A: BaseAddress, SCL, SDA> I2c<A, (SCL, SDA)> {
     }
 
     /// Release the I2C instance and return the pins.
-    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
     #[inline]
-    pub fn free(self, glb: &GLB<impl BaseAddress>) -> (I2C<A>, (SCL, SDA)) {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                todo!()
-            } else if #[cfg(feature = "glb-v2")] {
-                unsafe {
-                    glb.i2c_config.modify(|config| config.disable_clock());
-                    glb.clock_config_1.modify(|config| config.disable_i2c());
-                }
-                (self.i2c, self.pins)
-            }
+    pub fn free(self, glb: &GLBv2<impl BaseAddress>) -> (I2C<A>, (SCL, SDA)) {
+        unsafe {
+            glb.i2c_config.modify(|config| config.disable_clock());
+            glb.clock_config_1.modify(|config| config.disable_i2c());
         }
+        (self.i2c, self.pins)
     }
 
     /// Enable sub-address.
-    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
     #[inline]
     pub fn enable_sub_address(&mut self, sub_address: u8) {
         // TODO: support sub-address with more than one byte
@@ -587,7 +575,6 @@ impl<A: BaseAddress, SCL, SDA> I2c<A, (SCL, SDA)> {
     }
 
     /// Disable sub-address.
-    #[cfg(any(doc, feature = "glb-v1", feature = "glb-v2"))]
     #[inline]
     pub fn disable_sub_address(&mut self) {
         unsafe {
@@ -605,7 +592,6 @@ pub enum Error {
     Other,
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
 impl embedded_hal::i2c::Error for Error {
     #[inline(always)]
     fn kind(&self) -> embedded_hal::i2c::ErrorKind {
@@ -616,12 +602,10 @@ impl embedded_hal::i2c::Error for Error {
     }
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
 impl<A: BaseAddress, PINS> embedded_hal::i2c::ErrorType for I2c<A, PINS> {
     type Error = Error;
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
 impl<A: BaseAddress, PINS> embedded_hal::i2c::I2c for I2c<A, PINS> {
     #[inline]
     fn transaction(
@@ -671,7 +655,6 @@ pub trait SclPin<const I: usize> {}
 
 pub trait SdaPin<const I: usize> {}
 
-#[cfg(any(doc, feature = "glb-v2"))]
 #[rustfmt::skip]
 mod i2c_impls {
     use super::*;

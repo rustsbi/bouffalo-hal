@@ -1,15 +1,11 @@
 //! Universal Asynchronous Receiver/Transmitter.
 use crate::clocks::Clocks;
-#[cfg(feature = "glb-v2")]
-use crate::glb::v2::UartSignal;
-#[cfg(any(doc, feature = "glb-v2"))]
-use crate::GLB;
+use crate::glb::{v2::UartSignal, GLBv2};
 use crate::{
     gpio::{Pin, Uart},
     UART,
 };
 use base_address::BaseAddress;
-#[cfg(any(doc, feature = "glb-v2"))]
 use core::marker::PhantomData;
 use embedded_time::rate::Baud;
 use volatile_register::{RO, RW, WO};
@@ -763,7 +759,6 @@ pub struct MuxTxd<const I: usize>;
 /// Multiplex to Receive (type state).
 pub struct MuxRxd<const I: usize>;
 
-#[cfg(feature = "glb-v2")]
 impl<const I: usize> MuxRts<I> {
     #[inline]
     fn to_signal() -> UartSignal {
@@ -776,7 +771,6 @@ impl<const I: usize> MuxRts<I> {
     }
 }
 
-#[cfg(feature = "glb-v2")]
 impl<const I: usize> MuxCts<I> {
     #[inline]
     fn to_signal() -> UartSignal {
@@ -789,7 +783,6 @@ impl<const I: usize> MuxCts<I> {
     }
 }
 
-#[cfg(feature = "glb-v2")]
 impl<const I: usize> MuxTxd<I> {
     #[inline]
     fn to_signal() -> UartSignal {
@@ -802,7 +795,6 @@ impl<const I: usize> MuxTxd<I> {
     }
 }
 
-#[cfg(feature = "glb-v2")]
 impl<const I: usize> MuxRxd<I> {
     #[inline]
     fn to_signal() -> UartSignal {
@@ -816,13 +808,11 @@ impl<const I: usize> MuxRxd<I> {
 }
 
 /// Global peripheral UART signal multiplexer.
-#[cfg(any(doc, feature = "glb-v2"))]
 pub struct UartMux<A: BaseAddress, const N: usize, M> {
-    base: GLB<A>,
+    base: GLBv2<A>,
     _mode: PhantomData<M>,
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
 impl<A: BaseAddress, const N: usize, M> UartMux<A, N, M> {
     /// Configure the internal UART signal to Request-to-Send (RTS).
     #[inline]
@@ -875,7 +865,6 @@ impl<A: BaseAddress, const N: usize, M> UartMux<A, N, M> {
 }
 
 /// Available UART signal multiplexers.
-#[cfg(any(doc, feature = "glb-v2"))]
 pub struct UartMuxes<A: BaseAddress> {
     /// Multiplexer of UART signal 0.
     pub sig0: UartMux<A, 0, MuxRts<0>>,
@@ -964,7 +953,6 @@ pub trait Pins<const U: usize> {
     const RXD: bool;
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
 impl<A1, A2, const I: usize, const U: usize, const N: usize> Pins<U>
     for (Pin<A1, N, Uart>, UartMux<A2, I, MuxTxd<U>>)
 where
@@ -978,7 +966,6 @@ where
     const RXD: bool = false;
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
 impl<
         A1,
         A2,
@@ -1008,7 +995,6 @@ where
     const RXD: bool = true;
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
 impl<
         A1,
         A2,
@@ -1038,7 +1024,6 @@ where
     const RXD: bool = false;
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
 impl<
         A1,
         A2,
