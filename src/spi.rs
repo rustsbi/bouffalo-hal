@@ -615,7 +615,7 @@ impl FifoConfig1 {
 
 #[cfg(test)]
 mod tests {
-    use super::RegisterBlock;
+    use super::{Config, FrameSize, Phase, Polarity, RegisterBlock};
     use memoffset::offset_of;
 
     #[test]
@@ -631,5 +631,150 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, fifo_config_1), 0x84);
         assert_eq!(offset_of!(RegisterBlock, data_write), 0x88);
         assert_eq!(offset_of!(RegisterBlock, data_read), 0x8c);
+    }
+
+    #[test]
+    fn struct_config_functions() {
+        let mut config = Config(0x0);
+
+        config = config.enable_master();
+        assert_eq!(config.0, 0x00000001);
+
+        config = Config(0x0);
+        config = config.disable_master();
+        assert_eq!(config.0, 0x00000000);
+
+        config = Config(0x0);
+        let is_master_enable = config.is_master_enabled();
+        assert_eq!(is_master_enable, false);
+
+        config = Config(0x0);
+        config = config.enable_slave();
+        assert_eq!(config.0, 0x00000002);
+
+        config = Config(0x0);
+        config = config.disable_slave();
+        assert_eq!(config.0, 0x00000000);
+
+        config = Config(0x0);
+        let is_slave_enable = config.is_slave_enabled();
+        assert_eq!(is_slave_enable, false);
+
+        config = Config(0x0);
+        config.set_frame_size(FrameSize::Eight);
+        assert_eq!(config.0, 0x0);
+        assert_eq!(config.frame_size(), FrameSize::Eight);
+
+        config = Config(0x1);
+        config.set_frame_size(FrameSize::Sixteen);
+        assert_eq!(config.0, 0x1);
+        assert_eq!(config.frame_size(), FrameSize::Eight);
+
+        config = Config(0x2);
+        config.set_frame_size(FrameSize::TwentyFour);
+        assert_eq!(config.0, 0x2);
+        assert_eq!(config.frame_size(), FrameSize::Eight);
+
+        config = Config(0x3);
+        config.set_frame_size(FrameSize::ThirtyTwo);
+        assert_eq!(config.0, 0x3);
+        assert_eq!(config.frame_size(), FrameSize::Eight);
+
+        config = Config(0x0);
+        config = config.set_clock_polarity(Polarity::IdleHigh);
+        assert_eq!(config.0, 0x00000010);
+        assert_eq!(config.clock_polarity(), Polarity::IdleHigh);
+
+        config = Config(0x1);
+        config = config.set_clock_polarity(Polarity::IdleLow);
+        assert_eq!(config.0, 0x00000001);
+        assert_eq!(config.clock_polarity(), Polarity::IdleLow);
+
+        config = Config(0x0);
+        config = config.set_clock_phase(Phase::CaptureOnFirstTransition);
+        assert_eq!(config.0, 0x000000020);
+        assert_eq!(config.clock_phase(), Phase::CaptureOnFirstTransition);
+
+        config = Config(0x1);
+        config = config.set_clock_phase(Phase::CaptureOnSecondTransition);
+        assert_eq!(config.0, 0x00000001);
+        assert_eq!(config.clock_phase(), Phase::CaptureOnSecondTransition);
+
+        config = Config(0x0);
+        config = config.enable_bit_inverse();
+        assert_eq!(config.0, 0x00000040);
+
+        config = Config(0x0);
+        config = config.disable_bit_inverse();
+        assert_eq!(config.0, 0x00000000);
+
+        config = Config(0x0);
+        let is_bit_inverse_enabled = config.is_bit_inverse_enabled();
+        assert_eq!(is_bit_inverse_enabled, false);
+
+        config = Config(0x0);
+        config = config.enable_byte_inverse();
+        assert_eq!(config.0, 0x00000080);
+
+        config = Config(0x0);
+        config = config.disable_byte_inverse();
+        assert_eq!(config.0, 0x00000000);
+
+        config = Config(0x0);
+        let is_byte_inverse_enabled = config.is_byte_inverse_enabled();
+        assert_eq!(is_byte_inverse_enabled, false);
+
+        config = Config(0x0);
+        config = config.enable_receive_ignore();
+        assert_eq!(config.0, 0x00000100);
+
+        config = Config(0x0);
+        config = config.disable_receive_ignore();
+        assert_eq!(config.0, 0x00000000);
+
+        config = Config(0x0);
+        let is_receive_ignore_enabled = config.is_receive_ignore_enabled();
+        assert_eq!(is_receive_ignore_enabled, false);
+
+        config = Config(0x0);
+        config = config.enable_master_continuous();
+        assert_eq!(config.0, 0x00000200);
+
+        config = Config(0x0);
+        config = config.disable_master_continuous();
+        assert_eq!(config.0, 0x00000000);
+
+        config = Config(0x0);
+        let is_master_continuous_enabled = config.is_master_continuous_enabled();
+        assert_eq!(is_master_continuous_enabled, false);
+
+        config = Config(0x0);
+        config = config.enable_slave_three_pin();
+        assert_eq!(config.0, 0x00000400);
+
+        config = Config(0x0);
+        config = config.disable_slave_three_pin();
+        assert_eq!(config.0, 0x00000000);
+
+        config = Config(0x0);
+        let is_slave_three_pin_enabled = config.is_slave_three_pin_enabled();
+        assert_eq!(is_slave_three_pin_enabled, false);
+
+        config = Config(0x0);
+        config = config.enable_deglitch();
+        assert_eq!(config.0, 0x00000800);
+
+        config = Config(0x0);
+        config = config.disable_deglitch();
+        assert_eq!(config.0, 0x00000000);
+
+        config = Config(0x0);
+        let is_deglitch_enabled = config.is_deglitch_enabled();
+        assert_eq!(is_deglitch_enabled, false);
+
+        config = Config(0x0);
+        config = config.set_deglitch_cycle(0);
+        assert_eq!(config.0, 0x0);
+        assert_eq!(config.deglitch_cycle(), 0);
     }
 }
