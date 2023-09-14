@@ -615,7 +615,10 @@ impl FifoConfig1 {
 
 #[cfg(test)]
 mod tests {
-    use super::{Config, FrameSize, Phase, Polarity, RegisterBlock};
+    use super::{
+        BusBusy, Config, FifoConfig0, FifoConfig1, FrameSize, Interrupt, InterruptConfig,
+        PeriodInterval, PeriodSignal, Phase, Polarity, ReceiveIgnore, RegisterBlock, SlaveTimeout,
+    };
     use memoffset::offset_of;
 
     #[test]
@@ -774,7 +777,226 @@ mod tests {
 
         config = Config(0x0);
         config = config.set_deglitch_cycle(0);
-        assert_eq!(config.0, 0x0);
+        assert_eq!(config.0, 0x00000000);
         assert_eq!(config.deglitch_cycle(), 0);
+    }
+
+    #[test]
+    fn struct_interrupt_config_functions() {
+        let mut config = InterruptConfig(0x0);
+
+        let has_interrupt = config.has_interrupt(Interrupt::TransferEnd);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(has_interrupt, false);
+
+        config = InterruptConfig(0x0);
+        config.mask_interrupt(Interrupt::FifoError);
+        assert_eq!(config.0, 0x00000000);
+
+        config = InterruptConfig(0x0);
+        config.unmask_interrupt(Interrupt::FifoError);
+        assert_eq!(config.0, 0x00000000);
+
+        config = InterruptConfig(0x0);
+        let is_interrupted = config.is_interrupted(Interrupt::TransferEnd);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(is_interrupted, false);
+
+        config = InterruptConfig(0x0);
+        config.clear_interrupt(Interrupt::SlaveTimeout);
+        assert_eq!(config.0, 0x00000000);
+
+        config = InterruptConfig(0x0);
+        config.enable_interrupt(Interrupt::SlaveUnderrun);
+        assert_eq!(config.0, 0x00000000);
+
+        config = InterruptConfig(0x0);
+        config.disable_interrupt(Interrupt::ReceiveFifoReady);
+        assert_eq!(config.0, 0x00000000);
+
+        config = InterruptConfig(0x0);
+        let is_interrupt_enabled = config.is_interrupt_enabled(Interrupt::TransferEnd);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(is_interrupt_enabled, false);
+    }
+
+    #[test]
+    fn struct_bus_busy_functions() {
+        let mut val = BusBusy(0x0);
+
+        let is_bus_busy = val.is_bus_busy();
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(is_bus_busy, false);
+
+        val = BusBusy(0x1);
+        let is_bus_busy = val.is_bus_busy();
+        assert_eq!(val.0, 0x00000001);
+        assert_eq!(is_bus_busy, true);
+    }
+
+    #[test]
+    fn struct_period_signal_functions() {
+        let mut val = PeriodSignal(0x0);
+
+        val = val.set_start_condition(0x0);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.start_condition(), 0x00000000);
+
+        val = PeriodSignal(0x0);
+        val = val.set_stop_condition(0x0);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.stop_condition(), 0);
+
+        val = PeriodSignal(0x0);
+        val = val.set_data_phase_0(0x0);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.data_phase_0(), 0x00000000);
+
+        val = PeriodSignal(0x0);
+        val = val.set_data_phase_1(0x0);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.data_phase_1(), 0x00000000);
+    }
+
+    #[test]
+    fn struct_period_interval_functions() {
+        let mut val = PeriodInterval(0x0);
+
+        val = val.set_frame_interval(0x0);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.frame_interval(), 0x0);
+
+        val = PeriodInterval(0x1);
+        val = val.set_frame_interval(0x0);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.frame_interval(), 0x0);
+    }
+
+    #[test]
+    fn struct_receive_ignore_functions() {
+        let mut val = ReceiveIgnore(0x0);
+
+        val = val.set_start_point(0x0);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.start_point(), 0x00000000);
+
+        val = ReceiveIgnore(0x1);
+        val = val.set_start_point(0x0);
+        assert_eq!(val.0, 0x00000001);
+        assert_eq!(val.start_point(), 0x00000000);
+
+        val = ReceiveIgnore(0x0);
+        val = val.set_stop_point(0x0);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.stop_point(), 0x00000000);
+
+        val = ReceiveIgnore(0x1);
+        val = val.set_stop_point(0x0);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.stop_point(), 0x00000000);
+    }
+
+    #[test]
+    fn struct_slave_timeout_functions() {
+        let mut val = SlaveTimeout(0x0);
+
+        val = val.set_threshold(0x0);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.threshold(), 0x00000000);
+
+        val = SlaveTimeout(0x1);
+        val = val.set_threshold(0x1);
+        assert_eq!(val.0, 0x00000001);
+        assert_eq!(val.threshold(), 0x00000001);
+    }
+
+    #[test]
+    fn struct_fifo_config0_functions() {
+        let mut config = FifoConfig0(0x0);
+
+        config = config.enable_dma_transmit();
+        assert_eq!(config.0, 0x00000001);
+
+        config = FifoConfig0(0x0);
+        config = config.disable_dma_transmit();
+        assert_eq!(config.0, 0x00000000);
+
+        config = FifoConfig0(0x0);
+        let is_dma_transmit_enabled = config.is_dma_transmit_enabled();
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(is_dma_transmit_enabled, false);
+
+        config = FifoConfig0(0x0);
+        config = config.enable_dma_receive();
+        assert_eq!(config.0, 0x00000002);
+
+        config = FifoConfig0(0x0);
+        config = config.disable_dma_receive();
+        assert_eq!(config.0, 0x00000000);
+
+        config = FifoConfig0(0x0);
+        let is_dma_receive_enabled = config.is_dma_receive_enabled();
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(is_dma_receive_enabled, false);
+
+        config = FifoConfig0(0x0);
+        config = config.clear_transmit_fifo();
+        assert_eq!(config.0, 0x00000004);
+
+        config = FifoConfig0(0x0);
+        config = config.clear_receive_fifo();
+        assert_eq!(config.0, 0x00000008);
+
+        config = FifoConfig0(0x0);
+        let is_transmit_overflow = config.is_transmit_overflow();
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(is_transmit_overflow, false);
+
+        config = FifoConfig0(0x0);
+        let is_transmit_underflow = config.is_transmit_underflow();
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(is_transmit_underflow, false);
+
+        config = FifoConfig0(0x0);
+        let is_receive_overflow = config.is_receive_overflow();
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(is_receive_overflow, false);
+
+        config = FifoConfig0(0x0);
+        let is_receive_underflow = config.is_receive_underflow();
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(is_receive_underflow, false);
+    }
+
+    #[test]
+    fn struct_fifo_config1_functions() {
+        let mut config = FifoConfig1(0x0);
+
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(config.receive_available_bytes(), 0x00000000);
+
+        config = FifoConfig1(0x0);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(config.receive_available_bytes(), 0x00000000);
+
+        config = FifoConfig1(0x0);
+        config = config.set_transmit_threshold(0x0);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(config.transmit_threshold(), 0x00000000);
+
+        config = FifoConfig1(0x1);
+        config = config.set_transmit_threshold(0x0);
+        assert_eq!(config.0, 0x00000001);
+        assert_eq!(config.transmit_threshold(), 0x00000000);
+
+        config = FifoConfig1(0x0);
+        config = config.set_receive_threshold(0x0);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(config.transmit_threshold(), 0x00000000);
+
+        config = FifoConfig1(0x1);
+        config = config.set_receive_threshold(0x0);
+        assert_eq!(config.0, 0x00000001);
+        assert_eq!(config.transmit_threshold(), 0x00000000);
     }
 }
