@@ -89,7 +89,7 @@ impl Config {
             FrameSize::TwentyFour => 2,
             FrameSize::ThirtyTwo => 3,
         };
-        Self(self.0 & !Self::FRAME_SIZE | val << 2)
+        Self((self.0 & !Self::FRAME_SIZE) | (val << 2))
     }
     /// Get data frame size.
     #[inline]
@@ -594,7 +594,7 @@ impl FifoConfig1 {
     /// Set transmit FIFO threshold.
     #[inline]
     pub const fn set_transmit_threshold(self, val: u8) -> Self {
-        Self(self.0 & !Self::TRANSMIT_THRESHOLD | ((val as u32) << 16))
+        Self(self.0 & !Self::TRANSMIT_THRESHOLD | (((val as u32) << 16) & Self::TRANSMIT_THRESHOLD))
     }
     /// Get transmit FIFO threshold.
     #[inline]
@@ -604,7 +604,7 @@ impl FifoConfig1 {
     /// Set receive FIFO threshold.
     #[inline]
     pub const fn set_receive_threshold(self, val: u8) -> Self {
-        Self(self.0 & !Self::RECEIVE_THRESHOLD | ((val as u32) << 24))
+        Self(self.0 & !Self::RECEIVE_THRESHOLD | (((val as u32) << 24) & Self::RECEIVE_THRESHOLD))
     }
     /// Get receive FIFO threshold.
     #[inline]
@@ -642,143 +642,101 @@ mod tests {
 
         config = config.enable_master();
         assert_eq!(config.0, 0x00000001);
-
-        config = Config(0x0);
+        assert!(config.is_master_enabled());
         config = config.disable_master();
         assert_eq!(config.0, 0x00000000);
-
-        config = Config(0x0);
-        let is_master_enable = config.is_master_enabled();
-        assert_eq!(is_master_enable, false);
+        assert!(!config.is_master_enabled());
 
         config = Config(0x0);
         config = config.enable_slave();
         assert_eq!(config.0, 0x00000002);
-
-        config = Config(0x0);
+        assert!(config.is_slave_enabled());
         config = config.disable_slave();
         assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_slave_enabled());
 
         config = Config(0x0);
-        let is_slave_enable = config.is_slave_enabled();
-        assert_eq!(is_slave_enable, false);
-
-        config = Config(0x0);
-        config.set_frame_size(FrameSize::Eight);
+        config = config.set_frame_size(FrameSize::Eight);
         assert_eq!(config.0, 0x0);
         assert_eq!(config.frame_size(), FrameSize::Eight);
-
-        config = Config(0x1);
-        config.set_frame_size(FrameSize::Sixteen);
-        assert_eq!(config.0, 0x1);
-        assert_eq!(config.frame_size(), FrameSize::Eight);
-
-        config = Config(0x2);
-        config.set_frame_size(FrameSize::TwentyFour);
-        assert_eq!(config.0, 0x2);
-        assert_eq!(config.frame_size(), FrameSize::Eight);
-
-        config = Config(0x3);
-        config.set_frame_size(FrameSize::ThirtyTwo);
-        assert_eq!(config.0, 0x3);
-        assert_eq!(config.frame_size(), FrameSize::Eight);
+        config = config.set_frame_size(FrameSize::Sixteen);
+        assert_eq!(config.0, 0x4);
+        assert_eq!(config.frame_size(), FrameSize::Sixteen);
+        config = config.set_frame_size(FrameSize::TwentyFour);
+        assert_eq!(config.0, 0x8);
+        assert_eq!(config.frame_size(), FrameSize::TwentyFour);
+        config = config.set_frame_size(FrameSize::ThirtyTwo);
+        assert_eq!(config.0, 0xc);
+        assert_eq!(config.frame_size(), FrameSize::ThirtyTwo);
 
         config = Config(0x0);
         config = config.set_clock_polarity(Polarity::IdleHigh);
         assert_eq!(config.0, 0x00000010);
         assert_eq!(config.clock_polarity(), Polarity::IdleHigh);
-
-        config = Config(0x1);
         config = config.set_clock_polarity(Polarity::IdleLow);
-        assert_eq!(config.0, 0x00000001);
+        assert_eq!(config.0, 0x00000000);
         assert_eq!(config.clock_polarity(), Polarity::IdleLow);
 
         config = Config(0x0);
         config = config.set_clock_phase(Phase::CaptureOnFirstTransition);
-        assert_eq!(config.0, 0x000000020);
+        assert_eq!(config.0, 0x00000020);
         assert_eq!(config.clock_phase(), Phase::CaptureOnFirstTransition);
-
-        config = Config(0x1);
         config = config.set_clock_phase(Phase::CaptureOnSecondTransition);
-        assert_eq!(config.0, 0x00000001);
+        assert_eq!(config.0, 0x00000000);
         assert_eq!(config.clock_phase(), Phase::CaptureOnSecondTransition);
 
         config = Config(0x0);
         config = config.enable_bit_inverse();
         assert_eq!(config.0, 0x00000040);
-
-        config = Config(0x0);
+        assert!(config.is_bit_inverse_enabled());
         config = config.disable_bit_inverse();
         assert_eq!(config.0, 0x00000000);
-
-        config = Config(0x0);
-        let is_bit_inverse_enabled = config.is_bit_inverse_enabled();
-        assert_eq!(is_bit_inverse_enabled, false);
+        assert!(!config.is_bit_inverse_enabled());
 
         config = Config(0x0);
         config = config.enable_byte_inverse();
         assert_eq!(config.0, 0x00000080);
-
-        config = Config(0x0);
+        assert!(config.is_byte_inverse_enabled());
         config = config.disable_byte_inverse();
         assert_eq!(config.0, 0x00000000);
-
-        config = Config(0x0);
-        let is_byte_inverse_enabled = config.is_byte_inverse_enabled();
-        assert_eq!(is_byte_inverse_enabled, false);
+        assert!(!config.is_byte_inverse_enabled());
 
         config = Config(0x0);
         config = config.enable_receive_ignore();
         assert_eq!(config.0, 0x00000100);
-
-        config = Config(0x0);
+        assert!(config.is_receive_ignore_enabled());
         config = config.disable_receive_ignore();
         assert_eq!(config.0, 0x00000000);
-
-        config = Config(0x0);
-        let is_receive_ignore_enabled = config.is_receive_ignore_enabled();
-        assert_eq!(is_receive_ignore_enabled, false);
+        assert!(!config.is_receive_ignore_enabled());
 
         config = Config(0x0);
         config = config.enable_master_continuous();
         assert_eq!(config.0, 0x00000200);
-
-        config = Config(0x0);
+        assert!(config.is_master_continuous_enabled());
         config = config.disable_master_continuous();
         assert_eq!(config.0, 0x00000000);
-
-        config = Config(0x0);
-        let is_master_continuous_enabled = config.is_master_continuous_enabled();
-        assert_eq!(is_master_continuous_enabled, false);
+        assert!(!config.is_master_continuous_enabled());
 
         config = Config(0x0);
         config = config.enable_slave_three_pin();
         assert_eq!(config.0, 0x00000400);
-
-        config = Config(0x0);
+        assert!(config.is_slave_three_pin_enabled());
         config = config.disable_slave_three_pin();
         assert_eq!(config.0, 0x00000000);
-
-        config = Config(0x0);
-        let is_slave_three_pin_enabled = config.is_slave_three_pin_enabled();
-        assert_eq!(is_slave_three_pin_enabled, false);
+        assert!(!config.is_slave_three_pin_enabled());
 
         config = Config(0x0);
         config = config.enable_deglitch();
         assert_eq!(config.0, 0x00000800);
-
-        config = Config(0x0);
+        assert!(config.is_deglitch_enabled());
         config = config.disable_deglitch();
         assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_deglitch_enabled());
 
         config = Config(0x0);
-        let is_deglitch_enabled = config.is_deglitch_enabled();
-        assert_eq!(is_deglitch_enabled, false);
-
-        config = Config(0x0);
-        config = config.set_deglitch_cycle(0);
-        assert_eq!(config.0, 0x00000000);
-        assert_eq!(config.deglitch_cycle(), 0);
+        config = config.set_deglitch_cycle(0x11);
+        assert_eq!(config.0, 0x00011000);
+        assert_eq!(config.deglitch_cycle(), 0x01);
     }
 
     #[test]
@@ -790,124 +748,94 @@ mod tests {
         assert_eq!(has_interrupt, false);
 
         config = InterruptConfig(0x0);
-        config.mask_interrupt(Interrupt::FifoError);
+        config = config.mask_interrupt(Interrupt::FifoError);
+        assert_eq!(config.0, 0x00002000);
+        config = config.unmask_interrupt(Interrupt::FifoError);
         assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_interrupted(Interrupt::FifoError));
 
         config = InterruptConfig(0x0);
-        config.unmask_interrupt(Interrupt::FifoError);
-        assert_eq!(config.0, 0x00000000);
-
-        config = InterruptConfig(0x0);
-        let is_interrupted = config.is_interrupted(Interrupt::TransferEnd);
-        assert_eq!(config.0, 0x00000000);
-        assert_eq!(is_interrupted, false);
-
-        config = InterruptConfig(0x0);
-        config.clear_interrupt(Interrupt::SlaveTimeout);
-        assert_eq!(config.0, 0x00000000);
-
-        config = InterruptConfig(0x0);
-        config.enable_interrupt(Interrupt::SlaveUnderrun);
-        assert_eq!(config.0, 0x00000000);
-
-        config = InterruptConfig(0x0);
-        config.disable_interrupt(Interrupt::ReceiveFifoReady);
-        assert_eq!(config.0, 0x00000000);
-
-        config = InterruptConfig(0x0);
-        let is_interrupt_enabled = config.is_interrupt_enabled(Interrupt::TransferEnd);
-        assert_eq!(config.0, 0x00000000);
-        assert_eq!(is_interrupt_enabled, false);
+        config = config.clear_interrupt(Interrupt::SlaveTimeout);
+        assert_eq!(config.0, 0x00080000);
+        config = config.enable_interrupt(Interrupt::SlaveTimeout);
+        assert_eq!(config.0, 0x08080000);
+        config = config.disable_interrupt(Interrupt::SlaveTimeout);
+        assert_eq!(config.0, 0x00080000);
+        assert!(!config.is_interrupt_enabled(Interrupt::SlaveTimeout));
     }
 
     #[test]
     fn struct_bus_busy_functions() {
         let mut val = BusBusy(0x0);
-
-        let is_bus_busy = val.is_bus_busy();
-        assert_eq!(val.0, 0x00000000);
-        assert_eq!(is_bus_busy, false);
+        assert!(!val.is_bus_busy());
 
         val = BusBusy(0x1);
-        let is_bus_busy = val.is_bus_busy();
-        assert_eq!(val.0, 0x00000001);
-        assert_eq!(is_bus_busy, true);
+        assert!(val.is_bus_busy());
     }
 
     #[test]
     fn struct_period_signal_functions() {
         let mut val = PeriodSignal(0x0);
 
-        val = val.set_start_condition(0x0);
-        assert_eq!(val.0, 0x00000000);
-        assert_eq!(val.start_condition(), 0x00000000);
+        val = val.set_start_condition(0x66);
+        assert_eq!(val.0, 0x00000066);
+        assert_eq!(val.start_condition(), 0x66);
 
         val = PeriodSignal(0x0);
-        val = val.set_stop_condition(0x0);
-        assert_eq!(val.0, 0x00000000);
-        assert_eq!(val.stop_condition(), 0);
+        val = val.set_stop_condition(0x77);
+        assert_eq!(val.0, 0x00007700);
+        assert_eq!(val.stop_condition(), 0x77);
 
         val = PeriodSignal(0x0);
-        val = val.set_data_phase_0(0x0);
-        assert_eq!(val.0, 0x00000000);
-        assert_eq!(val.data_phase_0(), 0x00000000);
+        val = val.set_data_phase_0(0x88);
+        assert_eq!(val.0, 0x00880000);
+        assert_eq!(val.data_phase_0(), 0x88);
 
         val = PeriodSignal(0x0);
-        val = val.set_data_phase_1(0x0);
-        assert_eq!(val.0, 0x00000000);
-        assert_eq!(val.data_phase_1(), 0x00000000);
+        val = val.set_data_phase_1(0x55);
+        assert_eq!(val.0, 0x55000000);
+        assert_eq!(val.data_phase_1(), 0x55);
     }
 
     #[test]
     fn struct_period_interval_functions() {
         let mut val = PeriodInterval(0x0);
 
-        val = val.set_frame_interval(0x0);
-        assert_eq!(val.0, 0x00000000);
-        assert_eq!(val.frame_interval(), 0x0);
+        val = val.set_frame_interval(0x11);
+        assert_eq!(val.0, 0x00000011);
+        assert_eq!(val.frame_interval(), 0x11);
 
-        val = PeriodInterval(0x1);
-        val = val.set_frame_interval(0x0);
-        assert_eq!(val.0, 0x00000000);
-        assert_eq!(val.frame_interval(), 0x0);
+        val = PeriodInterval(0x0);
+        val = val.set_frame_interval(0x22);
+        assert_eq!(val.0, 0x00000022);
+        assert_eq!(val.frame_interval(), 0x22);
     }
 
     #[test]
     fn struct_receive_ignore_functions() {
         let mut val = ReceiveIgnore(0x0);
 
-        val = val.set_start_point(0x0);
-        assert_eq!(val.0, 0x00000000);
-        assert_eq!(val.start_point(), 0x00000000);
-
-        val = ReceiveIgnore(0x1);
-        val = val.set_start_point(0x0);
-        assert_eq!(val.0, 0x00000001);
-        assert_eq!(val.start_point(), 0x00000000);
+        val = val.set_start_point(0x13);
+        assert_eq!(val.0, 0x00130000);
+        assert_eq!(val.start_point(), 0x13);
 
         val = ReceiveIgnore(0x0);
-        val = val.set_stop_point(0x0);
-        assert_eq!(val.0, 0x00000000);
-        assert_eq!(val.stop_point(), 0x00000000);
-
-        val = ReceiveIgnore(0x1);
-        val = val.set_stop_point(0x0);
-        assert_eq!(val.0, 0x00000000);
-        assert_eq!(val.stop_point(), 0x00000000);
+        val = val.set_stop_point(0x24);
+        assert_eq!(val.0, 0x00000004);
+        assert_eq!(val.stop_point(), 0x04);
     }
 
     #[test]
     fn struct_slave_timeout_functions() {
         let mut val = SlaveTimeout(0x0);
 
-        val = val.set_threshold(0x0);
-        assert_eq!(val.0, 0x00000000);
-        assert_eq!(val.threshold(), 0x00000000);
+        val = val.set_threshold(0x555);
+        assert_eq!(val.0, 0x00000555);
+        assert_eq!(val.threshold(), 0x555);
 
-        val = SlaveTimeout(0x1);
-        val = val.set_threshold(0x1);
-        assert_eq!(val.0, 0x00000001);
-        assert_eq!(val.threshold(), 0x00000001);
+        val = val.set_threshold(0x666);
+        assert_eq!(val.0, 0x00000666);
+        assert_eq!(val.threshold(), 0x666);
     }
 
     #[test]
@@ -916,28 +844,16 @@ mod tests {
 
         config = config.enable_dma_transmit();
         assert_eq!(config.0, 0x00000001);
-
-        config = FifoConfig0(0x0);
         config = config.disable_dma_transmit();
         assert_eq!(config.0, 0x00000000);
-
-        config = FifoConfig0(0x0);
-        let is_dma_transmit_enabled = config.is_dma_transmit_enabled();
-        assert_eq!(config.0, 0x00000000);
-        assert_eq!(is_dma_transmit_enabled, false);
+        assert!(!config.is_dma_transmit_enabled());
 
         config = FifoConfig0(0x0);
         config = config.enable_dma_receive();
         assert_eq!(config.0, 0x00000002);
-
-        config = FifoConfig0(0x0);
         config = config.disable_dma_receive();
         assert_eq!(config.0, 0x00000000);
-
-        config = FifoConfig0(0x0);
-        let is_dma_receive_enabled = config.is_dma_receive_enabled();
-        assert_eq!(config.0, 0x00000000);
-        assert_eq!(is_dma_receive_enabled, false);
+        assert!(!config.is_dma_receive_enabled());
 
         config = FifoConfig0(0x0);
         config = config.clear_transmit_fifo();
@@ -947,56 +863,45 @@ mod tests {
         config = config.clear_receive_fifo();
         assert_eq!(config.0, 0x00000008);
 
-        config = FifoConfig0(0x0);
-        let is_transmit_overflow = config.is_transmit_overflow();
-        assert_eq!(config.0, 0x00000000);
-        assert_eq!(is_transmit_overflow, false);
+        config = FifoConfig0(0x10);
+        assert!(config.is_transmit_overflow());
+
+        config = FifoConfig0(0x20);
+        assert!(config.is_transmit_underflow());
+
+        config = FifoConfig0(0x40);
+        assert!(config.is_receive_overflow());
+
+        config = FifoConfig0(0x80);
+        assert!(config.is_receive_underflow());
 
         config = FifoConfig0(0x0);
-        let is_transmit_underflow = config.is_transmit_underflow();
-        assert_eq!(config.0, 0x00000000);
-        assert_eq!(is_transmit_underflow, false);
-
-        config = FifoConfig0(0x0);
-        let is_receive_overflow = config.is_receive_overflow();
-        assert_eq!(config.0, 0x00000000);
-        assert_eq!(is_receive_overflow, false);
-
-        config = FifoConfig0(0x0);
-        let is_receive_underflow = config.is_receive_underflow();
-        assert_eq!(config.0, 0x00000000);
-        assert_eq!(is_receive_underflow, false);
+        assert!(!config.is_transmit_overflow());
+        assert!(!config.is_transmit_underflow());
+        assert!(!config.is_receive_overflow());
+        assert!(!config.is_receive_underflow());
     }
 
     #[test]
     fn struct_fifo_config1_functions() {
-        let mut config = FifoConfig1(0x0);
-
-        assert_eq!(config.0, 0x00000000);
-        assert_eq!(config.receive_available_bytes(), 0x00000000);
-
-        config = FifoConfig1(0x0);
-        assert_eq!(config.0, 0x00000000);
-        assert_eq!(config.receive_available_bytes(), 0x00000000);
+        let mut config = FifoConfig1(0x00003f00);
+        assert_eq!(config.receive_available_bytes(), 0x3f);
+        config = FifoConfig1(0x0000fe00);
+        assert_eq!(config.receive_available_bytes(), 0x3e);
 
         config = FifoConfig1(0x0);
-        config = config.set_transmit_threshold(0x0);
-        assert_eq!(config.0, 0x00000000);
-        assert_eq!(config.transmit_threshold(), 0x00000000);
-
-        config = FifoConfig1(0x1);
-        config = config.set_transmit_threshold(0x0);
-        assert_eq!(config.0, 0x00000001);
-        assert_eq!(config.transmit_threshold(), 0x00000000);
+        config = config.set_transmit_threshold(0x11);
+        assert_eq!(config.0, 0x00110000);
+        assert_eq!(config.transmit_threshold(), 0x11);
 
         config = FifoConfig1(0x0);
-        config = config.set_receive_threshold(0x0);
-        assert_eq!(config.0, 0x00000000);
-        assert_eq!(config.transmit_threshold(), 0x00000000);
+        config = config.set_receive_threshold(0x12);
+        assert_eq!(config.0, 0x12000000);
+        assert_eq!(config.receive_threshold(), 0x12);
 
-        config = FifoConfig1(0x1);
-        config = config.set_receive_threshold(0x0);
-        assert_eq!(config.0, 0x00000001);
-        assert_eq!(config.transmit_threshold(), 0x00000000);
+        config = FifoConfig1(0x0);
+        config = config.set_receive_threshold(0x3f);
+        assert_eq!(config.0, 0x1f000000);
+        assert_eq!(config.receive_threshold(), 0x1f);
     }
 }
