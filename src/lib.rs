@@ -9,11 +9,17 @@ pub mod soc;
 #[cfg(feature = "rom-peripherals")]
 cfg_if::cfg_if! {
     if #[cfg(feature = "bl616")] {
-        pub use soc::bl616::{Peripherals, Clocks, __new_clocks};
+        pub use soc::bl616::{Peripherals, Clocks};
+        #[doc(hidden)]
+        pub use soc::bl616::__new_clocks;
     } else if #[cfg(feature = "bl702")] {
-        pub use soc::bl702::{Peripherals, Clocks, __new_clocks};
+        pub use soc::bl702::{Peripherals, Clocks};
+        #[doc(hidden)]
+        pub use soc::bl702::__new_clocks;
     } else if #[cfg(any(feature = "bl808-m0", feature = "bl808-d0"))] {
-        pub use soc::bl808::{Peripherals, Clocks, __new_clocks};
+        pub use soc::bl808::{Peripherals, Clocks};
+        #[doc(hidden)]
+        pub use soc::bl808::__new_clocks;
     }
 }
 

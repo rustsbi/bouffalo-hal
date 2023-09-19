@@ -4,6 +4,9 @@
 
 use crate::HalFlashConfig;
 
+#[cfg(feature = "rom-peripherals")]
+use base_address::Static;
+
 #[cfg(feature = "bl702")]
 use crate::Stack;
 
@@ -171,6 +174,8 @@ struct HalBasicConfig {
 /// Peripherals available on ROM start.
 #[cfg(feature = "rom-peripherals")]
 pub struct Peripherals {
+    /// Global configuration peripheral.
+    pub glb: bl_soc::glb::GLBv1<Static<0x40000000>>,
     // TODO: BL702 peripherals.
 }
 

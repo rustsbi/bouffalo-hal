@@ -354,7 +354,7 @@ impl HalCpuCfg {
 #[cfg(feature = "rom-peripherals")]
 pub struct Peripherals {
     /// Global configuration peripheral.
-    pub glb: bl_soc::GLB<Static<0x20000000>>,
+    pub glb: bl_soc::glb::GLBv2<Static<0x20000000>>,
     /// General Purpose Input/Output pins.
     pub gpio: bl_soc::gpio::Pins<Static<0x20000000>>,
     /// UART signal multiplexers.
