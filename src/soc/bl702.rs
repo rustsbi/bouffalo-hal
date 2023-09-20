@@ -176,7 +176,20 @@ struct HalBasicConfig {
 pub struct Peripherals {
     /// Global configuration peripheral.
     pub glb: bl_soc::glb::GLBv1<Static<0x40000000>>,
-    // TODO: BL702 peripherals.
+    /// Universal Asynchronous Receiver/Transmitter peripheral 0.
+    pub uart0: bl_soc::UART<Static<0x4000A000>>,
+    /// Universal Asynchronous Receiver/Transmitter peripheral 1.
+    pub uart1: bl_soc::UART<Static<0x4000A100>>,
+    /// Seriel Peripheral Interface peripheral.
+    pub spi: bl_soc::SPI<Static<0x4000A200>>,
+    /// Inter-Integrated Circuit bus peripheral.
+    pub i2c: bl_soc::I2C<Static<0x4000A300>>,
+    /// Pulse Width Modulation peripheral.
+    pub pwn: bl_soc::PWM<Static<0x4000A400>>,
+    /// Ethernet Media Access Control peripheral.
+    pub emac: bl_soc::EMAC<Static<0x4000D000>>,
+    /// Hibernation control peripheral.
+    pub hbn: bl_soc::HBN<Static<0x4000F000>>,
 }
 
 #[cfg(feature = "rom-peripherals")]

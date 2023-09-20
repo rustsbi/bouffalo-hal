@@ -363,6 +363,8 @@ pub struct Peripherals {
     pub uart0: bl_soc::UART<Static<0x2000A000>>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
     pub uart1: bl_soc::UART<Static<0x2000A100>>,
+    /// Seriel Peripheral Interface peripheral 0.
+    pub spi: bl_soc::SPI<Static<0x2000A200>>,
     /// Inter-Integrated Circuit bus peripheral 0.
     pub i2c0: bl_soc::I2C<Static<0x2000A300>>,
     /// Pulse Width Modulation peripheral.
@@ -373,12 +375,16 @@ pub struct Peripherals {
     pub uart2: bl_soc::UART<Static<0x2000AA00>>,
     /// Hibernation control peripheral.
     pub hbn: bl_soc::HBN<Static<0x2000F000>>,
+    /// Ethernet Media Access Control peripheral.
+    pub emac: bl_soc::EMAC<Static<0x20070000>>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 3.
     pub uart3: bl_soc::UART<Static<0x30002000>>,
     /// Inter-Integrated Circuit bus peripheral 2.
     pub i2c2: bl_soc::I2C<Static<0x30003000>>,
     /// Inter-Integrated Circuit bus peripheral 3.
     pub i2c3: bl_soc::I2C<Static<0x30004000>>,
+    /// Seriel Peripheral Interface peripheral 1.
+    pub spi1: bl_soc::SPI<Static<0x30008000>>,
 }
 
 #[cfg(feature = "rom-peripherals")]
