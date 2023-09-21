@@ -1,6 +1,14 @@
 //! Serial peripheral bus peripheral.
 
+use crate::gpio;
+use crate::gpio::Pin;
+use crate::SPI;
+use base_address::BaseAddress;
 use volatile_register::{RO, RW, WO};
+#[cfg(any(doc, feature = "glb-v2"))]
+use crate::{glb::v2::SpiMode, GLB};
+#[cfg(any(doc, feature = "glb-v2"))]
+use embedded_hal::spi::Mode;
 
 /// Serial peripheral bus registers.
 #[repr(C)]
@@ -26,9 +34,10 @@ pub struct RegisterBlock {
     /// First-in first-out queue configuration register 1.
     pub fifo_config_1: RW<FifoConfig1>,
     /// First-in first-out queue write data register.
-    pub data_write: WO<u32>,
+    pub data_write: WO<u8>,
+    _reserved2: [u8; 0x3],
     /// First-in first-out queue read data register.
-    pub data_read: RO<u32>,
+    pub data_read: RO<u8>,
 }
 
 /// Peripheral configuration register.
@@ -612,6 +621,236 @@ impl FifoConfig1 {
         ((self.0 & Self::RECEIVE_THRESHOLD) >> 24) as u8
     }
 }
+
+/// Managed Serial Peripheral Interface peripheral.
+pub struct Spi<A: BaseAddress, PINS, const I: usize> {
+    spi: SPI<A>,
+    pins: PINS,
+}
+
+impl<A: BaseAddress, PINS, const I: usize> Spi<A, PINS, I> {
+    /// Create a new Serial Peripheral Interface instance.
+    #[cfg(any(doc, feature = "glb-v2"))]
+    #[inline]
+    pub fn new(spi: SPI<A>, pins: PINS, mode: Mode, glb: &GLB<impl BaseAddress>) -> Self
+    where
+        PINS: Pins<I>,
+    {
+        let mut config = Config(0)
+            .disable_deglitch()
+            .disable_slave_three_pin()
+            .enable_master_continuous()
+            .disable_byte_inverse()
+            .disable_bit_inverse()
+            .set_frame_size(FrameSize::Eight)
+            .disable_master();
+
+        config = match mode.phase {
+            embedded_hal::spi::Phase::CaptureOnFirstTransition => {
+                config.set_clock_phase(Phase::CaptureOnFirstTransition)
+            }
+
+            embedded_hal::spi::Phase::CaptureOnSecondTransition => {
+                config.set_clock_phase(Phase::CaptureOnSecondTransition)
+            }
+        };
+
+        config = match mode.polarity {
+            embedded_hal::spi::Polarity::IdleHigh => config.set_clock_polarity(Polarity::IdleHigh),
+            embedded_hal::spi::Polarity::IdleLow => config.set_clock_polarity(Polarity::IdleLow),
+        };
+
+        unsafe {
+            glb.param_config
+                .modify(|c| c.set_spi_mode::<I>(SpiMode::Master));
+
+            spi.config.write(config);
+            spi.fifo_config_0
+                .write(FifoConfig0(0).disable_dma_receive().disable_dma_transmit());
+            spi.fifo_config_1.write(
+                FifoConfig1(0)
+                    .set_receive_threshold(0)
+                    .set_transmit_threshold(0),
+            );
+            spi.period_signal.write(
+                PeriodSignal(0)
+                    .set_data_phase_0(1)
+                    .set_data_phase_1(1)
+                    .set_start_condition(1)
+                    .set_stop_condition(1),
+            );
+            spi.period_interval
+                .write(PeriodInterval(0).set_frame_interval(1));
+        }
+        Spi { spi, pins }
+    }
+
+    /// Release the SPI instance and return the pins.
+    #[cfg(any(doc, feature = "glb-v2"))]
+    #[inline]
+    pub fn free(self) -> (SPI<A>, PINS) {
+        (self.spi, self.pins)
+    }
+}
+
+/// SPI error.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum Error {
+    Other,
+}
+
+#[cfg(any(doc, feature = "glb-v2"))]
+impl embedded_hal::spi::Error for Error {
+    #[inline(always)]
+    fn kind(&self) -> embedded_hal::spi::ErrorKind {
+        use embedded_hal::spi::ErrorKind;
+        match self {
+            Error::Other => ErrorKind::Other,
+        }
+    }
+}
+
+#[cfg(any(doc, feature = "glb-v2"))]
+impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::ErrorType for Spi<A, PINS, I> {
+    type Error = Error;
+}
+
+#[cfg(any(doc, feature = "glb-v2"))]
+impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiBus for Spi<A, PINS, I> {
+    #[inline]
+    fn read(&mut self, buf: &mut [u8]) -> Result<(), Self::Error> {
+        unsafe { self.spi.config.modify(|config| config.enable_master()) };
+
+        buf.iter_mut().for_each(|slot| {
+            while self.spi.fifo_config_1.read().receive_available_bytes() == 0 {
+                core::hint::spin_loop();
+            }
+            *slot = self.spi.data_read.read()
+        });
+
+        unsafe { self.spi.config.modify(|config| config.disable_master()) };
+        Ok(())
+    }
+    #[inline]
+    fn write(&mut self, buf: &[u8]) -> Result<(), Self::Error> {
+        unsafe { self.spi.config.modify(|config| config.enable_master()) };
+
+        buf.iter().for_each(|&word| {
+            while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
+                core::hint::spin_loop();
+            }
+            unsafe { self.spi.data_write.write(word) }
+        });
+
+        unsafe { self.spi.config.modify(|config| config.disable_master()) };
+        Ok(())
+    }
+    #[inline]
+    fn transfer(&mut self, _read: &mut [u8], _write: &[u8]) -> Result<(), Self::Error> {
+        todo!()
+    }
+    #[inline]
+    fn transfer_in_place(&mut self, _words: &mut [u8]) -> Result<(), Self::Error> {
+        todo!()
+    }
+    #[inline]
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        while self.spi.fifo_config_1.read().transmit_available_bytes() != 32 {
+            core::hint::spin_loop();
+        }
+        while self.spi.fifo_config_1.read().receive_available_bytes() != 32 {
+            core::hint::spin_loop();
+        }
+        Ok(())
+    }
+}
+
+#[cfg(any(doc, feature = "glb-v2"))]
+impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiDevice for Spi<A, PINS, I> {
+    fn transaction(
+        &mut self,
+        operations: &mut [embedded_hal::spi::Operation<'_, u8>],
+    ) -> Result<(), Self::Error> {
+        for op in operations {
+            match op {
+                embedded_hal::spi::Operation::Read(buf) => {
+                    unsafe { self.spi.config.modify(|config| config.enable_master()) };
+
+                    buf.iter_mut().for_each(|slot| {
+                        while self.spi.fifo_config_1.read().receive_available_bytes() == 0 {
+                            core::hint::spin_loop();
+                        }
+                        *slot = self.spi.data_read.read()
+                    });
+
+                    unsafe { self.spi.config.modify(|config| config.disable_master()) };
+                }
+                embedded_hal::spi::Operation::Write(buf) => {
+                    unsafe { self.spi.config.modify(|config| config.enable_master()) };
+
+                    buf.iter().for_each(|&word| {
+                        while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
+                            core::hint::spin_loop();
+                        }
+                        unsafe { self.spi.data_write.write(word) }
+                    });
+
+                    unsafe { self.spi.config.modify(|config| config.disable_master()) };
+                }
+                embedded_hal::spi::Operation::Transfer(_read, _write) => {
+                    todo!()
+                }
+                embedded_hal::spi::Operation::TransferInPlace(_buf) => {
+                    todo!()
+                }
+                embedded_hal::spi::Operation::DelayUs(_delay) => {
+                    todo!()
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Valid SPI pins.
+pub trait Pins<const I: usize> {}
+
+impl<A1, A2, A3, const N1: usize, const N2: usize, const N3: usize> Pins<1>
+    for (
+        Pin<A1, N1, gpio::Spi<1>>,
+        Pin<A2, N2, gpio::Spi<1>>,
+        Pin<A3, N3, gpio::Spi<1>>,
+    )
+where
+    A1: BaseAddress,
+    A2: BaseAddress,
+    A3: BaseAddress,
+    Pin<A1, N1, gpio::Spi<1>>: HasClkSignal,
+    Pin<A2, N2, gpio::Spi<1>>: HasMosiSignal,
+    Pin<A3, N3, gpio::Spi<1>>: HasCsSignal,
+{
+}
+
+/// Check if target gpio `Pin` is internally connected to SPI clock signal.
+pub trait HasClkSignal {}
+
+impl<A: BaseAddress> HasClkSignal for Pin<A, 19, gpio::Spi<1>> {}
+
+/// Check if target gpio `Pin` is internally connected to SPI MISO signal.
+pub trait HasMisoSignal {}
+
+impl<A: BaseAddress> HasMisoSignal for Pin<A, 26, gpio::Spi<1>> {}
+
+/// Check if target gpio `Pin` is internally connected to SPI MOSI signal.
+pub trait HasMosiSignal {}
+
+impl<A: BaseAddress> HasMosiSignal for Pin<A, 25, gpio::Spi<1>> {}
+
+/// Check if target gpio `Pin` is internally connected to SPI CS signal.
+pub trait HasCsSignal {}
+
+impl<A: BaseAddress> HasCsSignal for Pin<A, 12, gpio::Spi<1>> {}
 
 #[cfg(test)]
 mod tests {

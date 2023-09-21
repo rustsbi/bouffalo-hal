@@ -403,6 +403,45 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Output<M>> {
     }
 }
 
+#[cfg(feature = "glb-v2")]
+impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+    /// Configures the pin to operate as a SPI pin.
+    #[inline]
+    pub fn into_spi<const I: usize>(self) -> Pin<A, N, Spi<I>>
+    where
+        Spi<I>: Alternate,
+    {
+        let config = GpioConfig::RESET_VALUE
+            .enable_input()
+            .disable_output()
+            .enable_schmitt()
+            .set_pull(Pull::Up)
+            .set_drive(Drive::Drive0)
+            .set_function(Spi::<I>::F);
+        unsafe {
+            self.base.gpio_config[N].write(config);
+        }
+
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+}
+
+/// Serial Peripheral Interface mode (type state).
+pub struct Spi<const F: usize>;
+
+impl Alternate for Spi<0> {
+    #[cfg(feature = "glb-v2")]
+    const F: Function = Function::Spi0;
+}
+
+impl Alternate for Spi<1> {
+    #[cfg(feature = "glb-v2")]
+    const F: Function = Function::Spi1;
+}
+
 impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     /// Configures the pin to operate as a pull up output pin.
     #[inline]

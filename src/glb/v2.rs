@@ -13,17 +13,19 @@ pub struct RegisterBlock {
     pub i2c_config: RW<I2cConfig>,
     _reserved2: [u8; 0x4B],
     pub pwm_config: RW<PwmConfig>,
-    _reserved3: [u8; 0x3b0],
+    _reserved3: [u8; 0x33b],
+    pub param_config: RW<ParamConfig>,
+    _reserved4: [u8; 0x70],
     // TODO: clock_config_0, clock_config_2, clock_config_3 registers
     /// Clock generation configuration 1.
     pub clock_config_1: RW<ClockConfig1>,
-    _reserved4: [u8; 0x33c],
+    _reserved5: [u8; 0x33c],
     /// Generic Purpose Input/Output config.
     pub gpio_config: [RW<GpioConfig>; 46],
-    _reserved5: [u8; 0x148],
+    _reserved6: [u8; 0x148],
     /// Read value from Generic Purpose Input/Output pins.
     pub gpio_input: [RO<u32>; 2],
-    _reserved6: [u8; 0x18],
+    _reserved7: [u8; 0x18],
     /// Write value to Generic Purpose Input/Output pins.
     pub gpio_output: [RW<u32>; 2],
     /// Set pin output value to high.
@@ -256,6 +258,62 @@ pub enum PwmSignal1 {
     SingleEnd = 0,
     /// Positive signals for PWM0 channel 0, 1, 2 and external break signal for PWM0.
     BrushlessDcMotor = 1,
+}
+
+/// Param configuration register.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct ParamConfig(u32);
+
+impl ParamConfig {
+    const SPI_0_MASTER_MODE: u32 = 0x1 << 12;
+    const SPI_1_MASTER_MODE: u32 = 0x1 << 27;
+
+    /// Set mode for Serial Peripheral Interface.
+    #[inline]
+    pub const fn set_spi_mode<const I: usize>(self, mode: SpiMode) -> Self {
+        match mode {
+            SpiMode::Master => match I {
+                0 => Self(self.0 | Self::SPI_0_MASTER_MODE),
+                1 => Self(self.0 | Self::SPI_1_MASTER_MODE),
+                _ => unreachable!(),
+            },
+            SpiMode::Slave => match I {
+                0 => Self(self.0 & !Self::SPI_0_MASTER_MODE),
+                1 => Self(self.0 & !Self::SPI_1_MASTER_MODE),
+                _ => unreachable!(),
+            },
+        }
+    }
+    /// Get mode for Serial Peripheral Interface.
+    #[inline]
+    pub const fn spi_mode<const I: usize>(self) -> SpiMode {
+        match I {
+            0 => {
+                if self.0 & Self::SPI_0_MASTER_MODE != 0 {
+                    SpiMode::Master
+                } else {
+                    SpiMode::Slave
+                }
+            }
+            1 => {
+                if self.0 & Self::SPI_1_MASTER_MODE != 0 {
+                    SpiMode::Master
+                } else {
+                    SpiMode::Slave
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+}
+
+/// Mode for Serial Peripheral Interface Bus.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum SpiMode {
+    Master = 0,
+    Slave = 1,
 }
 
 /// Clock generation configuration register 1.
