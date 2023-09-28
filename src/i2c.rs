@@ -171,17 +171,17 @@ impl Config {
     }
     /// Set slave address.
     #[inline]
-    pub fn set_slave_address(self, address: u32) -> Self {
-        Self((self.0 & !Self::SLAVE_ADDRESS) | (address << 8))
+    pub fn set_slave_address(self, address: u16) -> Self {
+        Self((self.0 & !Self::SLAVE_ADDRESS) | (((address & 0x3ff) as u32) << 8))
     }
     /// Get slave address.
     #[inline]
-    pub fn get_slave_address(self) -> u32 {
-        (self.0 & Self::SLAVE_ADDRESS) >> 8
+    pub fn get_slave_address(self) -> u16 {
+        (((self.0 & Self::SLAVE_ADDRESS) >> 8) & 0x3ff) as u16
     }
     /// Set packet length.
     #[inline]
-    pub fn set_packet_length(self, length: usize) -> Self {
+    pub fn set_packet_length(self, length: u8) -> Self {
         Self((self.0 & !Self::PACKET_LENGTH) | ((length as u32) << 20))
     }
     /// Get packet length.
@@ -619,12 +619,12 @@ impl<A: BaseAddress, PINS> embedded_hal::i2c::I2c for I2c<A, PINS> {
                     todo!()
                 }
                 embedded_hal::i2c::Operation::Read(bytes) => {
-                    let len = bytes.len();
+                    let len = bytes.len() as u8;
                     unsafe {
                         self.i2c.config.modify(|config| {
                             config
                                 .set_read_direction()
-                                .set_slave_address(address as u32)
+                                .set_slave_address(address as u16)
                                 .set_packet_length(len - 1)
                                 .enable_master()
                         })
@@ -638,7 +638,7 @@ impl<A: BaseAddress, PINS> embedded_hal::i2c::I2c for I2c<A, PINS> {
                         let word = self.i2c.data_read.read();
                         let bytes_to_read = core::cmp::min(len - i, 4);
                         for j in 0..bytes_to_read {
-                            bytes[i] = (word >> (j * 8)) as u8;
+                            bytes[i as usize] = (word >> (j * 8)) as u8;
                             i += 1;
                         }
                     }
@@ -682,7 +682,11 @@ mod i2c_impls {
 
 #[cfg(test)]
 mod tests {
-    use super::RegisterBlock;
+    use super::{
+        BusBusy, Config, FifoConfig0, FifoConfig1, Interrupt, InterruptClear, InterruptEnable,
+        InterruptMask, InterruptState, PeriodData, PeriodStart, PeriodStop, RegisterBlock,
+        SubAddressByteCount,
+    };
     use memoffset::offset_of;
 
     #[test]
@@ -701,5 +705,238 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, fifo_config_1), 0x84);
         assert_eq!(offset_of!(RegisterBlock, data_write), 0x88);
         assert_eq!(offset_of!(RegisterBlock, data_read), 0x8c);
+    }
+
+    #[test]
+    fn struct_config_functions() {
+        let mut config = Config(0x0);
+
+        config = config.enable_master();
+        assert_eq!(config.0, 0x00000001);
+        assert!(config.is_master_enabled());
+        config = config.disable_master();
+        assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_master_enabled());
+
+        config = Config(0x0);
+        config = config.set_read_direction();
+        assert_eq!(config.0, 0x00000002);
+        assert!(config.is_read_direction());
+        assert!(!config.is_write_direction());
+        config = config.set_write_direction();
+        assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_read_direction());
+        assert!(config.is_write_direction());
+
+        config = Config(0x0);
+        config = config.enable_deglitch();
+        assert_eq!(config.0, 0x00000004);
+        assert!(config.is_deglitch_enabled());
+        config = config.disable_deglitch();
+        assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_deglitch_enabled());
+
+        config = Config(0x0);
+        config = config.enable_scl_sync();
+        assert_eq!(config.0, 0x00000008);
+        assert!(config.is_scl_sync_enabled());
+        config = config.disable_scl_sync();
+        assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_scl_sync_enabled());
+
+        config = Config(0x0);
+        config = config.enable_sub_address();
+        assert_eq!(config.0, 0x00000010);
+        assert!(config.is_sub_address_enabled());
+        config = config.disable_sub_address();
+        assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_sub_address_enabled());
+
+        config = Config(0x0);
+        config = config.set_sub_address_byte_count(SubAddressByteCount::One);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(
+            config.get_sub_address_byte_count(),
+            SubAddressByteCount::One
+        );
+
+        config = Config(0x0);
+        config = config.set_sub_address_byte_count(SubAddressByteCount::Two);
+        assert_eq!(config.0, 0x00000020);
+        assert_eq!(
+            config.get_sub_address_byte_count(),
+            SubAddressByteCount::Two
+        );
+
+        config = Config(0x0);
+        config = config.set_sub_address_byte_count(SubAddressByteCount::Three);
+        assert_eq!(config.0, 0x00000040);
+        assert_eq!(
+            config.get_sub_address_byte_count(),
+            SubAddressByteCount::Three
+        );
+
+        config = Config(0x0);
+        config = config.set_sub_address_byte_count(SubAddressByteCount::Four);
+        assert_eq!(config.0, 0x00000060);
+        assert_eq!(
+            config.get_sub_address_byte_count(),
+            SubAddressByteCount::Four
+        );
+
+        config = Config(0x0);
+        config = config.enable_ten_bit_address();
+        assert_eq!(config.0, 0x00000080);
+        assert!(config.is_ten_bit_address_enabled());
+        config = config.disable_ten_bit_address();
+        assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_ten_bit_address_enabled());
+
+        config = Config(0x0);
+        config = config.set_slave_address(0x17ff);
+        assert_eq!(config.0, 0x0003ff00);
+        assert_eq!(config.get_slave_address(), 0x3ff);
+
+        config = Config(0x0);
+        config = config.set_packet_length(0x66);
+        assert_eq!(config.0, 0x06600000);
+        assert_eq!(config.get_packet_length(), 0x66);
+
+        config = Config(0x0);
+        config = config.set_deglitch_cycle_count(0x01);
+        assert_eq!(config.0, 0x10000000);
+        assert_eq!(config.get_deglitch_cycle_count(), 0x01);
+    }
+
+    #[test]
+    fn struct_interrupt_state_fuctions() {
+        let val = InterruptState(0x0);
+        assert!(!val.has_interrupt(Interrupt::TransferEnd));
+    }
+
+    #[test]
+    fn struct_interrupt_mask_functions() {
+        let mut val = InterruptMask(0x0);
+        val = val.mask_interrupt(Interrupt::TransferEnd);
+        assert_eq!(val.0, 0x00000001);
+        assert!(val.is_interrupt_masked(Interrupt::TransferEnd));
+
+        val = InterruptMask(0x0);
+        val = val.unmask_interrupt(Interrupt::TransferEnd);
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_interrupt_masked(Interrupt::TransferEnd));
+    }
+
+    #[test]
+    fn struct_interrupt_clear_functions() {
+        let mut val = InterruptClear(0x0);
+        val = val.clear_interrupt(Interrupt::FifoError);
+        assert_eq!(val.0, 0x00000020);
+    }
+
+    #[test]
+    fn struct_interrupt_enable_functions() {
+        let mut val = InterruptEnable(0x0);
+        val = val.enable_interrupt(Interrupt::ArbitrationLost);
+        assert_eq!(val.0, 0x00000010);
+        assert!(val.is_interrupt_enabled(Interrupt::ArbitrationLost));
+
+        val = InterruptEnable(0x0);
+        val = val.disable_interrupt(Interrupt::ArbitrationLost);
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_interrupt_enabled(Interrupt::ArbitrationLost));
+    }
+
+    #[test]
+    fn struct_bus_busy_functions() {
+        let mut bus_busy = BusBusy(0x0);
+        bus_busy = bus_busy.clear_bus_busy();
+        assert_eq!(bus_busy.0, 0x00000002);
+        assert!(!bus_busy.is_bus_busy());
+    }
+
+    #[test]
+    fn struct_period_start_functions() {
+        let mut idx = PeriodStart(0x0);
+        idx = idx.set_phase(0x01, 0xff);
+        assert_eq!(idx.0, 0x0000ff00);
+
+        idx = PeriodStart(0x0);
+        assert_eq!(idx.phase(0x0), 0x00);
+    }
+
+    #[test]
+    fn struct_period_stop_functions() {
+        let mut idx = PeriodStop(0x0);
+        idx = idx.set_phase(0x01, 0xff);
+        assert_eq!(idx.0, 0x0000ff00);
+
+        idx = PeriodStop(0x0);
+        assert_eq!(idx.phase(0x0), 0x00);
+    }
+    #[test]
+    fn struct_period_data_functions() {
+        let mut idx = PeriodData(0x0);
+        idx = idx.set_phase(0x01, 0xff);
+        assert_eq!(idx.0, 0x0000ff00);
+
+        idx = PeriodData(0x0);
+        assert_eq!(idx.phase(0x0), 0x00);
+    }
+
+    #[test]
+    fn struct_fifo_config0_functions() {
+        let mut fifo_config = FifoConfig0(0x0);
+        fifo_config = fifo_config.enable_dma_transmit();
+        assert_eq!(fifo_config.0, 0x00000001);
+        assert!(fifo_config.is_dma_transmit_enabled());
+
+        fifo_config = FifoConfig0(0x0);
+        fifo_config = fifo_config.disable_dma_transmit();
+        assert_eq!(fifo_config.0, 0x00000000);
+        assert!(!fifo_config.is_dma_transmit_enabled());
+
+        let mut fifo_config = FifoConfig0(0x0);
+        fifo_config = fifo_config.enable_dma_receive();
+        assert_eq!(fifo_config.0, 0x00000002);
+        assert!(fifo_config.is_dma_receive_enabled());
+
+        fifo_config = FifoConfig0(0x0);
+        fifo_config = fifo_config.disable_dma_receive();
+        assert_eq!(fifo_config.0, 0x00000000);
+        assert!(!fifo_config.is_dma_receive_enabled());
+
+        fifo_config = FifoConfig0(0x0);
+        fifo_config = fifo_config.clear_transmit_fifo();
+        assert_eq!(fifo_config.0, 0x00000004);
+
+        fifo_config = FifoConfig0(0x0);
+        fifo_config = fifo_config.clear_receive_fifo();
+        assert_eq!(fifo_config.0, 0x00000008);
+
+        fifo_config = FifoConfig0(0x0);
+        assert!(!fifo_config.is_transmit_fifo_overflow());
+        assert!(!fifo_config.is_transmit_fifo_underflow());
+        assert!(!fifo_config.is_receive_fifo_overflow());
+        assert!(!fifo_config.is_receive_fifo_underflow());
+    }
+
+    #[test]
+    fn struct_fifo_config1_functions() {
+        let mut fifo_config = FifoConfig1(0x0);
+        assert_eq!(fifo_config.transmit_available_bytes(), 0x00);
+        assert_eq!(fifo_config.receive_available_bytes(), 0x00);
+
+        fifo_config = fifo_config.set_transmit_threshold(0x01);
+        assert_eq!(fifo_config.0, 0x00010000);
+
+        fifo_config = FifoConfig1(0x0);
+        assert_eq!(fifo_config.transmit_threshold(), 0x00);
+
+        fifo_config = fifo_config.set_receive_threshold(0x01);
+        assert_eq!(fifo_config.0, 0x01000000);
+
+        fifo_config = FifoConfig1(0x0);
+        assert_eq!(fifo_config.receive_threshold(), 0x00);
     }
 }
