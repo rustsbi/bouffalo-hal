@@ -20,6 +20,7 @@ pub mod dma;
 pub mod emac;
 pub mod glb;
 pub mod gpio;
+pub mod gpip;
 pub mod hbn;
 pub mod i2c;
 pub mod i2s;
@@ -257,6 +258,22 @@ unsafe impl<A: BaseAddress> Send for EMAC<A> {}
 
 impl<A: BaseAddress> ops::Deref for EMAC<A> {
     type Target = emac::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+///	Generic DAC, ADC and ACOMP interface control peripheral.
+pub struct GPIP<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for GPIP<A> {}
+
+impl<A: BaseAddress> ops::Deref for GPIP<A> {
+    type Target = gpip::RegisterBlock;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
