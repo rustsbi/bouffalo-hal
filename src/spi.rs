@@ -3,12 +3,12 @@
 use crate::gpio;
 use crate::gpio::Pin;
 use crate::SPI;
-use base_address::BaseAddress;
-use volatile_register::{RO, RW, WO};
 #[cfg(any(doc, feature = "glb-v2"))]
 use crate::{glb::v2::SpiMode, GLB};
+use base_address::BaseAddress;
 #[cfg(any(doc, feature = "glb-v2"))]
 use embedded_hal::spi::Mode;
+use volatile_register::{RO, RW, WO};
 
 /// Serial peripheral bus registers.
 #[repr(C)]
@@ -810,6 +810,20 @@ impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiDevice for Spi<
             }
         }
         Ok(())
+    }
+}
+
+// This part of implementation using `embedded_hal_027` is designed for backward compatibility of
+// ecosystem crates, as some of them depends on embedded-hal v0.2.7 traits.
+// We encourage ecosystem developers to use embedded-hal v1.0.0 traits; after that, this part of code
+// would be removed in the future.
+impl<A: BaseAddress, PINS, const I: usize> embedded_hal_027::blocking::spi::Write<u8>
+    for Spi<A, PINS, I>
+{
+    type Error = Error;
+    #[inline]
+    fn write(&mut self, words: &[u8]) -> Result<(), Self::Error> {
+        <Self as embedded_hal::spi::SpiBus>::write(self, words)
     }
 }
 
