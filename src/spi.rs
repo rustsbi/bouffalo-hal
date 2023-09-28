@@ -1,12 +1,9 @@
 //! Serial peripheral bus peripheral.
 
-use crate::gpio;
-use crate::gpio::Pin;
+use crate::glb::{v2::SpiMode, GLBv2};
+use crate::gpio::{self, Pin};
 use crate::SPI;
-#[cfg(any(doc, feature = "glb-v2"))]
-use crate::{glb::v2::SpiMode, GLB};
 use base_address::BaseAddress;
-#[cfg(any(doc, feature = "glb-v2"))]
 use embedded_hal::spi::Mode;
 use volatile_register::{RO, RW, WO};
 
@@ -630,9 +627,8 @@ pub struct Spi<A: BaseAddress, PINS, const I: usize> {
 
 impl<A: BaseAddress, PINS, const I: usize> Spi<A, PINS, I> {
     /// Create a new Serial Peripheral Interface instance.
-    #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn new(spi: SPI<A>, pins: PINS, mode: Mode, glb: &GLB<impl BaseAddress>) -> Self
+    pub fn new(spi: SPI<A>, pins: PINS, mode: Mode, glb: &GLBv2<impl BaseAddress>) -> Self
     where
         PINS: Pins<I>,
     {
@@ -686,7 +682,6 @@ impl<A: BaseAddress, PINS, const I: usize> Spi<A, PINS, I> {
     }
 
     /// Release the SPI instance and return the pins.
-    #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
     pub fn free(self) -> (SPI<A>, PINS) {
         (self.spi, self.pins)
@@ -700,7 +695,6 @@ pub enum Error {
     Other,
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
 impl embedded_hal::spi::Error for Error {
     #[inline(always)]
     fn kind(&self) -> embedded_hal::spi::ErrorKind {
@@ -711,12 +705,10 @@ impl embedded_hal::spi::Error for Error {
     }
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
 impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::ErrorType for Spi<A, PINS, I> {
     type Error = Error;
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
 impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiBus for Spi<A, PINS, I> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<(), Self::Error> {
@@ -766,7 +758,6 @@ impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiBus for Spi<A, 
     }
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
 impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiDevice for Spi<A, PINS, I> {
     fn transaction(
         &mut self,

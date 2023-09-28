@@ -13,6 +13,9 @@ panic-halt = "0.2.0"
 embedded-time = "0.12.1"
 embedded-hal = "1.0.0-rc.1"
 riscv = "0.10.1"
+display-interface-spi = "0.4.1"
+mipidsi = "0.7.1"
+embedded-graphics = "0.8.1"
 
 [dependencies.bl-rom-rt]
 git = "https://gitee.com/rustsbi/bl-rom-rt"

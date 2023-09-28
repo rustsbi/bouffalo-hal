@@ -8,7 +8,17 @@
 use base_address::Static;
 use bl_rom_rt::entry;
 use bl_soc::{gpio::Pins, prelude::*, spi::Spi, GLB, SPI};
-use embedded_hal::spi::SpiDevice;
+use embedded_graphics::{
+    draw_target::DrawTarget,
+    image::*,
+    mono_font::{ascii::FONT_10X20, MonoTextStyle},
+    pixelcolor::Rgb565,
+    prelude::*,
+    text::Text,
+};
+use embedded_hal::spi::MODE_0;
+use mipidsi::options::ColorInversion;
+use mipidsi::Builder;
 use panic_halt as _;
 
 #[entry]
@@ -30,64 +40,29 @@ fn main() -> ! {
     let spi_cs = gpio.io12.into_spi::<1>();
     let spi_mosi = gpio.io25.into_spi::<1>();
     let spi_clk = gpio.io19.into_spi::<1>();
-    let mut lcd_dc = gpio.io13.into_floating_output();
+    let lcd_dc = gpio.io13.into_floating_output();
     let mut lcd_bl = gpio.io11.into_floating_output();
-    let mut lcd_rst = gpio.io24.into_floating_output();
-    let mut lcd = Spi::new(
-        spi,
-        (spi_clk, spi_mosi, spi_cs),
-        embedded_hal::spi::MODE_0,
-        &glb,
-    );
-    let mut data = [0u8; 4];
+    let lcd_rst = gpio.io24.into_floating_output();
+    let spi_lcd = Spi::new(spi, (spi_clk, spi_mosi, spi_cs), MODE_0, &glb);
 
+    let mut delay = riscv::delay::McycleDelay::new(40_000_000);
+    let di = display_interface_spi::SPIInterfaceNoCS::new(spi_lcd, lcd_dc);
+
+    let mut display = Builder::st7789(di)
+        .with_invert_colors(ColorInversion::Inverted)
+        .init(&mut delay, Some(lcd_rst))
+        .unwrap();
     lcd_bl.set_high().ok();
-    lcd_rst.set_low().ok();
-    unsafe { riscv::asm::delay(1000) }
-    lcd_rst.set_high().ok();
+    display.clear(Rgb565::BLACK).unwrap();
 
-    // lcd init
-    lcd_dc.set_low().ok();
-    lcd.write(&0x01_u8.to_be_bytes()).ok(); // SOFTWARE_RESET
-    lcd.write(&0x11_u8.to_be_bytes()).ok(); // SLEEP_OFF
-    lcd.write(&0x29_u8.to_be_bytes()).ok(); // DISPALY_ON
-    lcd.write(&0x3A_u8.to_be_bytes()).ok(); // PIXEL_FORMAT_SET
-    lcd_dc.set_high().ok();
-    lcd.write(&0x55_u8.to_be_bytes()).ok();
-    lcd_dc.set_low().ok();
-    lcd.write(&0x36_u8.to_be_bytes()).ok(); // MEMORY_ACCESS_CTL
-    lcd_dc.set_high().ok();
-    lcd.write(&0x60_u8.to_be_bytes()).ok();
+    let raw_image_data = ImageRawLE::new(include_bytes!("ferris.raw"), 86);
+    let ferris = Image::new(&raw_image_data, Point::new(0, 20));
+    ferris.draw(&mut display).unwrap();
 
-    // darw a blue square
-    data[0] = 0x00;
-    data[1] = 0x30;
-    data[2] = 0x00;
-    data[3] = 0xA0;
-    lcd_dc.set_low().ok();
-    lcd.write(&0x2A_u8.to_be_bytes()).ok(); // HORIZONTAL_ADDRESS_SET
-    lcd_dc.set_high().ok();
-    lcd.write(&data).ok();
-
-    data[0] = 0x00;
-    data[1] = 0x30;
-    data[2] = 0x00;
-    data[3] = 0xA0;
-    lcd_dc.set_low().ok();
-    lcd.write(&0x2b_u8.to_be_bytes()).ok(); // VERTICAL_ADDRESS_SET
-    lcd_dc.set_high().ok();
-    lcd.write(&data).ok();
-
-    data[0] = 0xFF;
-    data[1] = 0xE0;
-    data[2] = 0xFF;
-    data[3] = 0xE0;
-    lcd_dc.set_low().ok();
-    lcd.write(&0x2c_u8.to_be_bytes()).ok(); // MEMORY_WRITE
-    lcd_dc.set_high().ok();
-    for _ in 0..112 * 112 / 2 {
-        lcd.write(&data).ok();
-    }
+    let style = MonoTextStyle::new(&FONT_10X20, Rgb565::WHITE);
+    Text::new("Hello World!", Point::new(10, 100), style)
+        .draw(&mut display)
+        .unwrap();
 
     loop {
         led.set_state(led_state).ok();
