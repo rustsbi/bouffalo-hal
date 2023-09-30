@@ -1,8 +1,8 @@
-//! Serial peripheral bus peripheral.
+//! Serial Peripheral Interface peripheral.
 
 use volatile_register::{RO, RW, WO};
 
-/// Serial peripheral bus registers.
+/// Serial Peripheral Interface registers.
 #[repr(C)]
 pub struct RegisterBlock {
     /// Peripheral configuration register.
