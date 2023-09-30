@@ -706,9 +706,12 @@ pub enum Pull {
 
 #[cfg(test)]
 mod tests {
+    use crate::glb::v2::SpiClockSource;
+
     use super::{
         Drive, Function, GpioConfig, I2cClockSource, I2cConfig, InterruptMode, Mode, Pull,
-        PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, UartConfig, UartMuxGroup, UartSignal,
+        PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, SpiConfig, UartConfig, UartMuxGroup,
+        UartSignal,
     };
     use memoffset::offset_of;
 
@@ -914,6 +917,44 @@ mod tests {
         config = config.set_clock_source(I2cClockSource::Xclk);
         assert_eq!(config.0, 0x02000000);
         assert_eq!(config.clock_source(), I2cClockSource::Xclk);
+    }
+
+    #[test]
+    fn struct_spi_config_functions() {
+        let mut config = SpiConfig(0x0);
+
+        config = config.set_clock_divide(1);
+        assert_eq!(config.0, 0x00000001);
+        assert_eq!(config.clock_divide(), 1);
+
+        config = SpiConfig(0x0);
+        config = config.set_clock_divide(0xff);
+        assert_eq!(config.0, 0x000000ff);
+        assert_eq!(config.clock_divide(), 0xff);
+
+        config = SpiConfig(0x0);
+        config = config.set_clock_divide(0x0F);
+        assert_eq!(config.0, 0x0000000f);
+        assert_eq!(config.clock_divide(), 0x0f);
+
+        config = SpiConfig(0x0);
+        config = config.enable_clock();
+        assert_eq!(config.0, 0x00000100);
+        assert!(config.is_clock_enabled());
+
+        config = config.disable_clock();
+        assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_clock_enabled());
+
+        config = SpiConfig(0x0);
+        config = config.set_clock_source(SpiClockSource::MuxPll160M);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(config.clock_source(), SpiClockSource::MuxPll160M);
+
+        config = SpiConfig(0x0);
+        config = config.set_clock_source(SpiClockSource::Xclk);
+        assert_eq!(config.0, 0x00000200);
+        assert_eq!(config.clock_source(), SpiClockSource::Xclk);
     }
 
     #[test]
