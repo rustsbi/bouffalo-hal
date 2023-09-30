@@ -107,3 +107,55 @@ impl CpuConfig1 {
         ((self.0 & Self::CPU_CLOCK_DIVIDE) >> 0) as u8
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::glb::mm::{CpuClockSource, CpuRootClockSource};
+
+    use super::{CpuConfig0, CpuConfig1};
+
+    #[test]
+    fn struct_cpu_config0_functions() {
+        let mut config = CpuConfig0(0x0);
+        config = config.enable_cpu_clock();
+        assert_eq!(config.0, 0x00000002);
+        assert!(config.is_cpu_clock_enabled());
+
+        config = config.disable_cpu_clock();
+        assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_cpu_clock_enabled());
+
+        config = CpuConfig0(0x0);
+        config = config.set_cpu_clock_source(CpuClockSource::MuxPll240M);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(config.cpu_clock_source(), CpuClockSource::MuxPll240M);
+
+        config = CpuConfig0(0x0);
+        config = config.set_cpu_clock_source(CpuClockSource::MuxPll320M);
+        assert_eq!(config.0, 0x00000100);
+        assert_eq!(config.cpu_clock_source(), CpuClockSource::MuxPll240M);
+
+        config = CpuConfig0(0x0);
+        config = config.set_cpu_clock_source(CpuClockSource::CpuPll400M);
+        assert_eq!(config.0, 0x00000200);
+        assert_eq!(config.cpu_clock_source(), CpuClockSource::MuxPll240M);
+
+        config = CpuConfig0(0x0);
+        config = config.set_cpu_root_clock_source(CpuRootClockSource::Xclk);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(config.cpu_root_clock_source(), CpuRootClockSource::Xclk);
+
+        config = CpuConfig0(0x0);
+        config = config.set_cpu_root_clock_source(CpuRootClockSource::Pll);
+        assert_eq!(config.0, 0x00000100);
+        assert_eq!(config.cpu_root_clock_source(), CpuRootClockSource::Xclk);
+    }
+
+    #[test]
+    fn struct_cpu_config1_functions() {
+        let mut config = CpuConfig1(0x0);
+        config = config.set_cpu_clock_divide(0x01);
+        assert_eq!(config.0, 0x00000001);
+        assert_eq!(config.cpu_clock_divide(), 0x01);
+    }
+}
