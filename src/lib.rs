@@ -248,6 +248,22 @@ impl<A: BaseAddress> ops::Deref for GPIP<A> {
     }
 }
 
+///	Generic DAC, ADC and ACOMP interface control peripheral.
+pub struct GPIP<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for GPIP<A> {}
+
+impl<A: BaseAddress> ops::Deref for GPIP<A> {
+    type Target = gpip::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
 /// Wrapper type for manipulations of a field in a register.
 ///
 /// * LEN: the length of the field in bits.

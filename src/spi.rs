@@ -1,4 +1,4 @@
-//! Serial peripheral bus peripheral.
+//! Serial Peripheral Interface peripheral.
 
 use crate::glb::{v2::SpiMode, GLBv2};
 use crate::gpio::{self, Pin};
@@ -7,7 +7,7 @@ use base_address::BaseAddress;
 use embedded_hal::spi::Mode;
 use volatile_register::{RO, RW, WO};
 
-/// Serial peripheral bus registers.
+/// Serial Peripheral Interface registers.
 #[repr(C)]
 pub struct RegisterBlock {
     /// Peripheral configuration register.

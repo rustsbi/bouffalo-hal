@@ -10,22 +10,27 @@ pub struct RegisterBlock {
     /// Universal Asynchronous Receiver/Transmitter signal multiplexer.
     pub uart_mux_group: [RW<UartMuxGroup>; 2],
     _reserved1: [u8; 0x24],
+    /// Inter-Integrated Circuit configuration register.
     pub i2c_config: RW<I2cConfig>,
-    _reserved2: [u8; 0x4B],
+    _reserved2: [u8; 0x2c],
+    /// Serial Peripheral Interface configuration register.
+    pub spi_config: RW<SpiConfig>,
+    _reserved3: [u8; 0x1c],
+    /// Pulse Width Modulation configuration register.
     pub pwm_config: RW<PwmConfig>,
-    _reserved3: [u8; 0x33b],
+    _reserved4: [u8; 0x33b],
     pub param_config: RW<ParamConfig>,
-    _reserved4: [u8; 0x70],
+    _reserved5: [u8; 0x70],
     // TODO: clock_config_0, clock_config_2, clock_config_3 registers
     /// Clock generation configuration 1.
     pub clock_config_1: RW<ClockConfig1>,
-    _reserved5: [u8; 0x33c],
+    _reserved6: [u8; 0x33c],
     /// Generic Purpose Input/Output config.
     pub gpio_config: [RW<GpioConfig>; 46],
-    _reserved6: [u8; 0x148],
+    _reserved7: [u8; 0x148],
     /// Read value from Generic Purpose Input/Output pins.
     pub gpio_input: [RO<u32>; 2],
-    _reserved7: [u8; 0x18],
+    _reserved8: [u8; 0x18],
     /// Write value to Generic Purpose Input/Output pins.
     pub gpio_output: [RW<u32>; 2],
     /// Set pin output value to high.
@@ -202,10 +207,73 @@ impl I2cConfig {
     }
 }
 
+/// Serial Peripheral Interface clock source.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum SpiClockSource {
+    /// 160-MHz mutiplexer PLL.
+    MuxPll160M = 0,
+    /// Crystal oscillator clock.
+    Xclk = 1,
+}
+
+/// Serial Peripheral Interface configuration register.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct SpiConfig(u32);
+
+impl SpiConfig {
+    const CLOCK_DIVIDE: u32 = 0xff << 0;
+    const CLOCK_ENABLE: u32 = 1 << 8;
+    const CLOCK_SELECT: u32 = 1 << 9;
+    // TODO const SWAP_SELECT: u32 = 1 << 16;
+
+    /// Set peripheral clock divide factor.
+    #[inline]
+    pub const fn set_clock_divide(self, val: u8) -> Self {
+        Self((self.0 & !Self::CLOCK_DIVIDE) | ((val as u32) << 0))
+    }
+    /// Get peripheral clock divide factor.
+    #[inline]
+    pub const fn clock_divide(self) -> u8 {
+        ((self.0 & Self::CLOCK_DIVIDE) >> 0) as u8
+    }
+    /// Enable clock for Serial Peripheral Interface peripheral.
+    #[inline]
+    pub const fn enable_clock(self) -> Self {
+        Self(self.0 | Self::CLOCK_ENABLE)
+    }
+    /// Disable clock for Serial Peripheral Interface peripheral.
+    #[inline]
+    pub const fn disable_clock(self) -> Self {
+        Self(self.0 & !Self::CLOCK_ENABLE)
+    }
+    /// Check if clock for Serial Peripheral Interface peripheral is enabled.
+    #[inline]
+    pub const fn is_clock_enabled(self) -> bool {
+        self.0 & Self::CLOCK_ENABLE != 0
+    }
+    /// Set clock source for Serial Peripheral Interface peripheral.
+    #[inline]
+    pub const fn set_clock_source(self, val: SpiClockSource) -> Self {
+        Self((self.0 & !Self::CLOCK_SELECT) | ((val as u32) << 9))
+    }
+    /// Get clock source for Serial Peripheral Interface peripheral.
+    #[inline]
+    pub const fn clock_source(self) -> SpiClockSource {
+        match (self.0 & Self::CLOCK_SELECT) >> 9 {
+            0 => SpiClockSource::MuxPll160M,
+            1 => SpiClockSource::Xclk,
+            _ => unreachable!(),
+        }
+    }
+}
+
 /// Pulse Width Modulation configuration register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct PwmConfig(u32);
+
 impl PwmConfig {
     const SIGNAL_0_SELECT: u32 = 1 << 0;
     const SIGNAL_1_SELECT: u32 = 1 << 1;
@@ -696,9 +764,12 @@ pub enum Pull {
 
 #[cfg(test)]
 mod tests {
+    use crate::glb::v2::SpiClockSource;
+
     use super::{
         Drive, Function, GpioConfig, I2cClockSource, I2cConfig, InterruptMode, Mode, Pull,
-        PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, UartConfig, UartMuxGroup, UartSignal,
+        PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, SpiConfig, UartConfig, UartMuxGroup,
+        UartSignal,
     };
     use memoffset::offset_of;
 
@@ -706,7 +777,10 @@ mod tests {
     fn struct_register_block_offset() {
         assert_eq!(offset_of!(RegisterBlock, uart_config), 0x150);
         assert_eq!(offset_of!(RegisterBlock, uart_mux_group), 0x154);
+        assert_eq!(offset_of!(RegisterBlock, i2c_config), 0x180);
+        assert_eq!(offset_of!(RegisterBlock, spi_config), 0x1b0);
         assert_eq!(offset_of!(RegisterBlock, pwm_config), 0x1d0);
+        assert_eq!(offset_of!(RegisterBlock, param_config), 0x510);
         assert_eq!(offset_of!(RegisterBlock, clock_config_1), 0x584);
         assert_eq!(offset_of!(RegisterBlock, gpio_config), 0x8c4);
         assert_eq!(offset_of!(RegisterBlock, gpio_input), 0xac4);
@@ -902,6 +976,44 @@ mod tests {
         config = config.set_clock_source(I2cClockSource::Xclk);
         assert_eq!(config.0, 0x02000000);
         assert_eq!(config.clock_source(), I2cClockSource::Xclk);
+    }
+
+    #[test]
+    fn struct_spi_config_functions() {
+        let mut config = SpiConfig(0x0);
+
+        config = config.set_clock_divide(1);
+        assert_eq!(config.0, 0x00000001);
+        assert_eq!(config.clock_divide(), 1);
+
+        config = SpiConfig(0x0);
+        config = config.set_clock_divide(0xff);
+        assert_eq!(config.0, 0x000000ff);
+        assert_eq!(config.clock_divide(), 0xff);
+
+        config = SpiConfig(0x0);
+        config = config.set_clock_divide(0x0F);
+        assert_eq!(config.0, 0x0000000f);
+        assert_eq!(config.clock_divide(), 0x0f);
+
+        config = SpiConfig(0x0);
+        config = config.enable_clock();
+        assert_eq!(config.0, 0x00000100);
+        assert!(config.is_clock_enabled());
+
+        config = config.disable_clock();
+        assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_clock_enabled());
+
+        config = SpiConfig(0x0);
+        config = config.set_clock_source(SpiClockSource::MuxPll160M);
+        assert_eq!(config.0, 0x00000000);
+        assert_eq!(config.clock_source(), SpiClockSource::MuxPll160M);
+
+        config = SpiConfig(0x0);
+        config = config.set_clock_source(SpiClockSource::Xclk);
+        assert_eq!(config.0, 0x00000200);
+        assert_eq!(config.clock_source(), SpiClockSource::Xclk);
     }
 
     #[test]
