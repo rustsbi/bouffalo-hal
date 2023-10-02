@@ -245,6 +245,24 @@ impl<A: BaseAddress, const N: usize, M> OutputPin for Pin<A, N, Output<M>> {
     }
 }
 
+// This part of implementation using `embedded_hal_027` is designed for backward compatibility of
+// ecosystem crates, as some of them depends on embedded-hal v0.2.7 traits.
+// We encourage ecosystem developers to use embedded-hal v1.0.0 traits; after that, this part of code
+// would be removed in the future.
+impl<A: BaseAddress, const N: usize, M> embedded_hal_027::digital::v2::OutputPin
+    for Pin<A, N, Output<M>>
+{
+    type Error = core::convert::Infallible;
+    #[inline]
+    fn set_low(&mut self) -> Result<(), Self::Error> {
+        <Self as OutputPin>::set_low(self)
+    }
+    #[inline]
+    fn set_high(&mut self) -> Result<(), Self::Error> {
+        <Self as OutputPin>::set_high(self)
+    }
+}
+
 // We do not support StatefulOutputPin and ToggleableOutputPin here, because the hardware does not
 // have such functionality to read back the previously set pin state.
 // It is recommended that users add a variable to store the pin state if necessary; see examples/gpio-demo.
@@ -401,6 +419,45 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Output<M>> {
         let config = self.base.gpio_config[N].read().set_drive(val);
         unsafe { self.base.gpio_config[N].write(config) };
     }
+}
+
+#[cfg(feature = "glb-v2")]
+impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+    /// Configures the pin to operate as a SPI pin.
+    #[inline]
+    pub fn into_spi<const I: usize>(self) -> Pin<A, N, Spi<I>>
+    where
+        Spi<I>: Alternate,
+    {
+        let config = GpioConfig::RESET_VALUE
+            .enable_input()
+            .disable_output()
+            .enable_schmitt()
+            .set_pull(Pull::Up)
+            .set_drive(Drive::Drive0)
+            .set_function(Spi::<I>::F);
+        unsafe {
+            self.base.gpio_config[N].write(config);
+        }
+
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+}
+
+/// Serial Peripheral Interface mode (type state).
+pub struct Spi<const F: usize>;
+
+impl Alternate for Spi<0> {
+    #[cfg(feature = "glb-v2")]
+    const F: Function = Function::Spi0;
+}
+
+impl Alternate for Spi<1> {
+    #[cfg(feature = "glb-v2")]
+    const F: Function = Function::Spi1;
 }
 
 impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {

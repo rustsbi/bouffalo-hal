@@ -13,8 +13,7 @@ use core::ops;
 
 pub mod clocks;
 
-pub mod auadc;
-pub mod audac;
+pub mod audio;
 pub mod dbi;
 pub mod dma;
 pub mod emac;
@@ -217,38 +216,6 @@ impl<A: BaseAddress> ops::Deref for SDIO<A> {
     }
 }
 
-/// Audio Analog-Digital Converter peripheral.
-pub struct AUADC<A: BaseAddress> {
-    base: A,
-}
-
-unsafe impl<A: BaseAddress> Send for AUADC<A> {}
-
-impl<A: BaseAddress> ops::Deref for AUADC<A> {
-    type Target = auadc::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(self.base.ptr() as *const _) }
-    }
-}
-
-/// Audio Digital-Analog Converter peripheral.
-pub struct AUDAC<A: BaseAddress> {
-    base: A,
-}
-
-unsafe impl<A: BaseAddress> Send for AUDAC<A> {}
-
-impl<A: BaseAddress> ops::Deref for AUDAC<A> {
-    type Target = audac::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(self.base.ptr() as *const _) }
-    }
-}
-
 /// Ethernet Media Access Control peripheral.
 pub struct EMAC<A: BaseAddress> {
     base: A,
@@ -258,6 +225,22 @@ unsafe impl<A: BaseAddress> Send for EMAC<A> {}
 
 impl<A: BaseAddress> ops::Deref for EMAC<A> {
     type Target = emac::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+///	Generic DAC, ADC and ACOMP interface control peripheral.
+pub struct GPIP<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for GPIP<A> {}
+
+impl<A: BaseAddress> ops::Deref for GPIP<A> {
+    type Target = gpip::RegisterBlock;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
