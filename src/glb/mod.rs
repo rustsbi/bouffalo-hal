@@ -47,7 +47,7 @@ pub struct MMGLB<A: BaseAddress> {
 unsafe impl<A: BaseAddress> Send for MMGLB<A> {}
 
 impl<A: BaseAddress> ops::Deref for MMGLB<A> {
-    type Target = v2::RegisterBlock;
+    type Target = mm::RegisterBlock;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
