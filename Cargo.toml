@@ -24,7 +24,13 @@ memoffset = "0.9.0"
 
 [workspace]
 members = [
-    "examples/*"
+    "examples/gpio-demo",
+    "examples/i2c-demo",
+    "examples/jtag-demo",
+    "examples/multicore-demo/mcu",
+    "examples/multicore-demo/dsp",
+    "examples/pwm-demo",
+    "examples/uart-demo",
 ]
 
 [features]
