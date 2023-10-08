@@ -25,6 +25,7 @@ pub mod i2c;
 pub mod i2s;
 pub mod ir;
 pub mod jtag;
+pub mod lz4d;
 pub mod pwm;
 pub mod sdio;
 pub mod spi;
@@ -145,6 +146,22 @@ unsafe impl<A: BaseAddress> Send for PWM<A> {}
 
 impl<A: BaseAddress> ops::Deref for PWM<A> {
     type Target = pwm::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(self.base.ptr() as *const _) }
+    }
+}
+
+/// Hardware LZ4 Decompressor.
+pub struct LZ4D<A: BaseAddress> {
+    base: A,
+}
+
+unsafe impl<A: BaseAddress> Send for LZ4D<A> {}
+
+impl<A: BaseAddress> ops::Deref for LZ4D<A> {
+    type Target = lz4d::RegisterBlock;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
