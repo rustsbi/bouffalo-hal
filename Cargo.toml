@@ -27,6 +27,7 @@ members = [
     "examples/gpio-demo",
     "examples/i2c-demo",
     "examples/jtag-demo",
+    "examples/lz4d-demo",
     "examples/multicore-demo/mcu",
     "examples/multicore-demo/dsp",
     "examples/pwm-demo",
