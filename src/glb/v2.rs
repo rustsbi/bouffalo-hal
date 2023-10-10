@@ -395,6 +395,7 @@ impl ClockConfig1 {
     const I2C: u32 = 0x1 << 19;
     const PWM: u32 = 0x1 << 20;
     const UART2: u32 = 0x1 << 26;
+    const LZ4D: u32 = 0x1 << 29;
 
     /// Enable clock gate for Universal Asynchronous Receiver/Transmitter peripheral.
     #[inline]
@@ -458,6 +459,21 @@ impl ClockConfig1 {
     #[inline]
     pub const fn is_pwm_enabled(self) -> bool {
         self.0 & Self::PWM != 0
+    }
+    /// Enable clock gate for hardware LZ4 decompressor peripheral.
+    #[inline]
+    pub const fn enable_lz4d(self) -> Self {
+        Self(self.0 | Self::LZ4D)
+    }
+    /// Disable clock gate for hardware LZ4 decompressor peripheral.
+    #[inline]
+    pub const fn disable_lz4d(self) -> Self {
+        Self(self.0 & !Self::LZ4D)
+    }
+    /// Check if clock gate for hardware LZ4 decompressor is enabled.
+    #[inline]
+    pub const fn is_lz4d_enabled(self) -> bool {
+        self.0 & Self::LZ4D != 0
     }
 }
 

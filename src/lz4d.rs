@@ -1,5 +1,13 @@
 //! Hardware LZ4 Decompressor.
+use as_slice::{AsMutSlice, AsSlice};
+use base_address::BaseAddress;
+use core::{
+    ops::{Deref, DerefMut},
+    pin::Pin,
+};
 use volatile_register::{RO, RW};
+
+use crate::LZ4D;
 
 /// Hardware LZ4 decompressor registers.
 #[repr(C)]
@@ -107,7 +115,7 @@ impl SourceEnd {
     /// Set end address.
     #[inline]
     pub const fn end(self) -> u32 {
-        ((self.0 & Self::END) >> 9) as u32
+        ((self.0 & Self::END) >> 0) as u32
     }
 }
 
@@ -199,6 +207,97 @@ pub enum Interrupt {
     Done = 0,
     /// Error occurred while decompression.
     Error = 1,
+}
+
+/// Progress on an ongoing decompression procedure.
+pub struct Decompress<A: BaseAddress, R, W> {
+    lz4d: LZ4D<A>,
+    resource: Resources<R, W>,
+}
+
+impl<A: BaseAddress, R, W> Decompress<A, R, W> {
+    /// Checks whether the decompression is still ongoing.
+    #[inline]
+    pub fn is_ongoing(&self) -> bool {
+        !self
+            .lz4d
+            .interrupt_state
+            .read()
+            .has_interrupt(Interrupt::Done)
+    }
+    /// Try to cancel an in process decompression.
+    #[inline]
+    pub fn cancel(&self) {
+        unsafe {
+            self.lz4d.config.modify(|v| v.disable());
+        }
+    }
+    /// Waits for the decompression to end.
+    #[inline]
+    pub fn wait(self) -> Result<(Resources<R, W>, usize), (Resources<R, W>, Error)> {
+        loop {
+            let state = self.lz4d.interrupt_state.read();
+            if state.has_interrupt(Interrupt::Done) {
+                let len = self.lz4d.destination_end.read().end()
+                    - self.lz4d.destination_start.read().start();
+                return Ok((self.resource, len as usize));
+            }
+            if state.has_interrupt(Interrupt::Error) {
+                return Err((self.resource, Error));
+            }
+            core::hint::spin_loop();
+        }
+    }
+}
+
+/// LZ4 decompressor error.
+#[derive(Copy, Clone, Debug)]
+pub struct Error;
+
+/// Owned resource pair of decompression.
+#[derive(Copy, Clone, Debug)]
+pub struct Resources<R, W> {
+    /// Decompression input buffer.
+    pub input: Pin<R>,
+    /// Decompression output buffer.
+    pub output: Pin<W>,
+}
+
+/// Extend constructor to owned LZ4D register blocks.
+pub trait Lz4dExt<A: BaseAddress> {
+    /// Create and start an LZ4D decompression request.
+    fn decompress<R, W>(self, input: Pin<R>, output: Pin<W>) -> Decompress<A, R, W>
+    where
+        R: Deref + 'static,
+        R::Target: AsSlice<Element = u8>,
+        W: DerefMut + 'static,
+        W::Target: AsMutSlice<Element = u8>;
+}
+
+impl<A: BaseAddress> Lz4dExt<A> for LZ4D<A> {
+    /// Create and start an LZ4D decompression request.
+    #[inline]
+    fn decompress<R, W>(self, input: Pin<R>, output: Pin<W>) -> Decompress<A, R, W>
+    where
+        R: Deref + 'static,
+        R::Target: AsSlice<Element = u8>,
+        W: DerefMut + 'static,
+        W::Target: AsMutSlice<Element = u8>,
+    {
+        unsafe {
+            self.config.modify(|v| v.disable());
+            self.source_start
+                .write(SourceStart(input.as_slice().as_ptr() as u32));
+            self.destination_start
+                .write(DestinationStart(output.as_slice().as_ptr() as u32));
+            self.config.modify(|v| v.enable());
+        }
+        let resource = Resources { input, output };
+        Decompress {
+            lz4d: self,
+            resource,
+        }
+    }
 }
 
 #[cfg(test)]

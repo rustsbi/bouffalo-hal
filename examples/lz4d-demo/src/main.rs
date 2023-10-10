@@ -8,6 +8,7 @@
 use base_address::Static;
 use bl_rom_rt::entry;
 use bl_soc::{clocks::Clocks, gpio::Pins, prelude::*, uart::UartMuxes, GLB, LZ4D, UART};
+use core::pin::Pin;
 use embedded_time::rate::*;
 use panic_halt as _;
 
@@ -43,67 +44,22 @@ fn main() -> ! {
     writeln!(serial, "Hardware accelerated LZ4 decompression example.").ok();
     unsafe { glb.clock_config_1.modify(|v| v.enable_lz4d()) };
 
-    for i in 0..12 {
-        let a = i * 0x04 + 0x2000AD00;
-        let val = unsafe { *(a as *const u32) };
-        writeln!(serial, "(0x{:08x}) = 0x{:08x}", a, val).ok();
-    }
-
-    unsafe { lz4d.config.modify(|v| v.disable()) };
-    writeln!(
-        serial,
-        "Input address: 0x{:08x}",
-        LZ4_INPUT as *const _ as usize as u32
-    )
-    .ok();
-    unsafe {
-        lz4d.source_start
-            .write(core::mem::transmute(LZ4_INPUT as *const _ as usize as u32))
-    };
-    writeln!(serial, "Output address: 0x{:08x}", unsafe {
-        &LZ4_OUTPUT as *const _ as usize as u32
-    })
-    .ok();
-    unsafe {
-        lz4d.destination_start.write(core::mem::transmute(
-            &mut LZ4_OUTPUT as *mut _ as usize as u32,
-        ))
-    };
-    writeln!(
-        serial,
-        "Input address {:?}, Output address {:?}",
-        lz4d.source_start.read(),
-        lz4d.destination_start.read()
-    )
-    .ok();
-    unsafe { lz4d.config.modify(|v| v.enable()) };
-
-    for i in 0..12 {
-        let a = i * 0x04 + 0x2000AD00;
-        let val = unsafe { *(a as *const u32) };
-        writeln!(serial, "(0x{:08x}) = 0x{:08x}", a, val).ok();
-    }
+    let decompress = lz4d.decompress(Pin::new(&LZ4_INPUT), Pin::new(unsafe { &mut LZ4_OUTPUT }));
 
     loop {
-        let finished = lz4d
-            .interrupt_state
-            .read()
-            .has_interrupt(bl_soc::lz4d::Interrupt::Done);
-        if finished {
-            let len = lz4d.destination_end.read().end();
-            writeln!(
-                serial,
-                "Decompression finished, output length is {} bytes. The decompressed text is:",
-                len
-            )
-            .ok();
-            serial.write_all(unsafe { &LZ4_OUTPUT }).unwrap();
+        if decompress.is_ongoing() {
+            writeln!(serial, "Decompression is in progress...").ok();
+            unsafe { riscv::asm::delay(100_000) }
+        } else {
+            let (resource, len) = decompress.wait().unwrap();
+            writeln!(serial, "Decompression finished, output {} bytes.", len).ok();
+            writeln!(serial, "The decompressed text is:").ok();
+            serial
+                .write_all(&Pin::into_inner(resource.output)[..len])
+                .unwrap();
             loop {
                 unsafe { riscv::asm::wfi() }
             }
-        } else {
-            writeln!(serial, "Decompression is in progress...").ok();
-            unsafe { riscv::asm::delay(100_000) }
         }
     }
 }

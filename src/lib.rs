@@ -39,6 +39,7 @@ pub mod usb {
 
 #[doc(hidden)]
 pub mod prelude {
+    pub use crate::lz4d::Lz4dExt as _bl_soc_lz4d_Lz4dExt;
     pub use crate::uart::UartExt as _bl_soc_uart_UartExt;
     pub use embedded_hal::digital::{
         InputPin as _embedded_hal_digital_InputPin, OutputPin as _embedded_hal_digital_OutputPin,
