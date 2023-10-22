@@ -703,6 +703,27 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     }
 }
 
+/// Multi-media cluster UART alternate (type state).
+pub struct MmUart;
+
+impl Alternate for MmUart {
+    #[cfg(feature = "glb-v2")]
+    const F: Function = Function::MmUart;
+}
+
+#[cfg(feature = "glb-v2")]
+impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+    /// Configures the pin to operate as multi-media cluster UART signal.
+    #[inline]
+    pub fn into_mm_uart(self) -> Pin<A, N, MmUart> {
+        unsafe { self.base.gpio_config[N].write(UART_GPIO_CONFIG.set_function(Function::MmUart)) };
+        Pin {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+}
+
 /// Pulse Width Modulation signal mode (type state).
 pub struct Pwm<const F: usize>;
 

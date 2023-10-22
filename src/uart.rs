@@ -1,6 +1,7 @@
 //! Universal Asynchronous Receiver/Transmitter.
 use crate::clocks::Clocks;
 use crate::glb::{v2::UartSignal, GLBv2};
+use crate::gpio::MmUart;
 use crate::{
     gpio::{Pin, Uart},
     UART,
@@ -941,6 +942,35 @@ impl<A: BaseAddress> HasUartSignal<7> for Pin<A, 43, Uart> {}
 impl<A: BaseAddress> HasUartSignal<8> for Pin<A, 44, Uart> {}
 impl<A: BaseAddress> HasUartSignal<9> for Pin<A, 45, Uart> {}
 
+/// Check if target gpio `Pin` is internally connected to multi-media UART transmit signal.
+pub trait HasMmUartTxd {}
+
+/// Check if target gpio `Pin` is internally connected to multi-media UART receive signal.
+pub trait HasMmUartRxd {}
+
+/// Check if target gpio `Pin` is internally connected to multi-media UART request-to-send signal.
+pub trait HasMmUartRts {}
+
+/// Check if target gpio `Pin` is internally connected to multi-media UART clear-to-send signal.
+pub trait HasMmUartCts {}
+
+impl<A: BaseAddress> HasMmUartTxd for Pin<A, 0, MmUart> {}
+impl<A: BaseAddress> HasMmUartRxd for Pin<A, 1, MmUart> {}
+impl<A: BaseAddress> HasMmUartRts for Pin<A, 2, MmUart> {}
+impl<A: BaseAddress> HasMmUartCts for Pin<A, 3, MmUart> {}
+impl<A: BaseAddress> HasMmUartTxd for Pin<A, 4, MmUart> {}
+impl<A: BaseAddress> HasMmUartRxd for Pin<A, 5, MmUart> {}
+impl<A: BaseAddress> HasMmUartRts for Pin<A, 6, MmUart> {}
+impl<A: BaseAddress> HasMmUartCts for Pin<A, 7, MmUart> {}
+impl<A: BaseAddress> HasMmUartTxd for Pin<A, 8, MmUart> {}
+impl<A: BaseAddress> HasMmUartRxd for Pin<A, 9, MmUart> {}
+impl<A: BaseAddress> HasMmUartRts for Pin<A, 10, MmUart> {}
+impl<A: BaseAddress> HasMmUartCts for Pin<A, 11, MmUart> {}
+impl<A: BaseAddress> HasMmUartTxd for Pin<A, 12, MmUart> {}
+impl<A: BaseAddress> HasMmUartRxd for Pin<A, 13, MmUart> {}
+impl<A: BaseAddress> HasMmUartRts for Pin<A, 14, MmUart> {}
+impl<A: BaseAddress> HasMmUartCts for Pin<A, 15, MmUart> {}
+
 /// Valid UART pins.
 pub trait Pins<const U: usize> {
     /// Checks if this pin configuration includes Request-to-Send feature.
@@ -1067,6 +1097,30 @@ where
     const CTS: bool = true;
     const TXD: bool = true;
     const RXD: bool = false;
+}
+
+impl<A1, const U: usize, const N: usize> Pins<U> for Pin<A1, N, MmUart>
+where
+    A1: BaseAddress,
+    Pin<A1, N, MmUart>: HasMmUartTxd,
+{
+    const RTS: bool = false;
+    const CTS: bool = false;
+    const TXD: bool = true;
+    const RXD: bool = false;
+}
+
+impl<A1, A2, const U: usize, const N: usize> Pins<U> for (Pin<A1, N, MmUart>, Pin<A2, N, MmUart>)
+where
+    A1: BaseAddress,
+    A2: BaseAddress,
+    Pin<A1, N, MmUart>: HasMmUartTxd,
+    Pin<A2, N, MmUart>: HasMmUartRxd,
+{
+    const RTS: bool = false;
+    const CTS: bool = false;
+    const TXD: bool = true;
+    const RXD: bool = true;
 }
 
 /// Managed serial peripheral.
