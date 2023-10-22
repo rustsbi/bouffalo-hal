@@ -13,6 +13,6 @@ panic-halt = "0.2.0"
 riscv = "0.10.1"
 
 [features]
-default = ["bl808-d0"]
-bl808-d0 = ["bl-rom-rt/bl808-d0"]
-bl808-m0 = ["bl-rom-rt/bl808-m0"]
+default = ["bl808-dsp"]
+bl808-dsp = ["bl-rom-rt/bl808-dsp"]
+bl808-mcu = ["bl-rom-rt/bl808-mcu"]

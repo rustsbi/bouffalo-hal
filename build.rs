@@ -6,10 +6,10 @@ fn main() {
 
     #[cfg(feature = "bl616")]
     std::fs::write(ld, LINKER_SCRIPT_BL616).unwrap();
-    #[cfg(feature = "bl808-m0")]
-    std::fs::write(ld, LINKER_SCRIPT_BL808_M0).unwrap();
-    #[cfg(feature = "bl808-d0")]
-    std::fs::write(ld, LINKER_SCRIPT_BL808_D0).unwrap();
+    #[cfg(feature = "bl808-mcu")]
+    std::fs::write(ld, LINKER_SCRIPT_BL808_MCU).unwrap();
+    #[cfg(feature = "bl808-dsp")]
+    std::fs::write(ld, LINKER_SCRIPT_BL808_DSP).unwrap();
     #[cfg(feature = "bl702")]
     std::fs::write(ld, LINKER_SCRIPT_BL702).unwrap();
 
@@ -83,8 +83,8 @@ SECTIONS {
     }
 }";
 
-#[cfg(feature = "bl808-m0")]
-const LINKER_SCRIPT_BL808_M0: &[u8] = b"
+#[cfg(feature = "bl808-mcu")]
+const LINKER_SCRIPT_BL808_MCU: &[u8] = b"
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
 MEMORY {
@@ -153,8 +153,8 @@ SECTIONS {
     }
 }";
 
-#[cfg(feature = "bl808-d0")]
-const LINKER_SCRIPT_BL808_D0: &[u8] = b"
+#[cfg(feature = "bl808-dsp")]
+const LINKER_SCRIPT_BL808_DSP: &[u8] = b"
 OUTPUT_ARCH(riscv)
 ENTRY(_start) 
 MEMORY {
@@ -226,15 +226,15 @@ SECTIONS {
     }
 }
 PROVIDE(bmx_dsp_bus_err = default_handler);
-PROVIDE(d0_reserved1 = default_handler);
-PROVIDE(d0_reserved2 = default_handler);
-PROVIDE(d0_reserved3 = default_handler);
+PROVIDE(dsp_reserved1 = default_handler);
+PROVIDE(dsp_reserved2 = default_handler);
+PROVIDE(dsp_reserved3 = default_handler);
 PROVIDE(uart3 = default_handler);
-PROVIDE(i2_c2 = default_handler);
-PROVIDE(i2_c3 = default_handler);
+PROVIDE(i2c2 = default_handler);
+PROVIDE(i2c3 = default_handler);
 PROVIDE(spi1 = default_handler);
-PROVIDE(d0_reserved4 = default_handler);
-PROVIDE(d0_reserved5 = default_handler);
+PROVIDE(dsp_reserved4 = default_handler);
+PROVIDE(dsp_reserved5 = default_handler);
 PROVIDE(seof_int0 = default_handler);
 PROVIDE(seof_int1 = default_handler);
 PROVIDE(seof_int2 = default_handler);
@@ -257,14 +257,14 @@ PROVIDE(dma2_int4 = default_handler);
 PROVIDE(dma2_int5 = default_handler);
 PROVIDE(dma2_int6 = default_handler);
 PROVIDE(dma2_int7 = default_handler);
-PROVIDE(d0_reserved6 = default_handler);
-PROVIDE(d0_reserved7 = default_handler);
-PROVIDE(d0_reserved8 = default_handler);
-PROVIDE(d0_reserved9 = default_handler);
-PROVIDE(d0_reserved10 = default_handler);
+PROVIDE(dsp_reserved6 = default_handler);
+PROVIDE(dsp_reserved7 = default_handler);
+PROVIDE(dsp_reserved8 = default_handler);
+PROVIDE(dsp_reserved9 = default_handler);
+PROVIDE(dsp_reserved10 = default_handler);
 PROVIDE(mipi_csi = default_handler);
 PROVIDE(ipc_d0 = default_handler);
-PROVIDE(d0_reserved11 = default_handler);
+PROVIDE(dsp_reserved11 = default_handler);
 PROVIDE(mjdec = default_handler);
 PROVIDE(dvp2_bus_int4 = default_handler);
 PROVIDE(dvp2_bus_int5 = default_handler);
@@ -275,17 +275,17 @@ PROVIDE(dma2_d_int1 = default_handler);
 PROVIDE(display = default_handler);
 PROVIDE(pwm = default_handler);
 PROVIDE(seof_int3 = default_handler);
-PROVIDE(d0_reserved12 = default_handler);
-PROVIDE(d0_reserved13 = default_handler);
+PROVIDE(dsp_reserved12 = default_handler);
+PROVIDE(dsp_reserved13 = default_handler);
 PROVIDE(osd = default_handler);
 PROVIDE(dbi = default_handler);
-PROVIDE(d0_reserved14 = default_handler);
+PROVIDE(dsp_reserved14 = default_handler);
 PROVIDE(osda_bus_drain = default_handler);
 PROVIDE(osdb_bus_drain = default_handler);
 PROVIDE(osd_pb = default_handler);
-PROVIDE(d0_reserved15 = default_handler);
+PROVIDE(dsp_reserved15 = default_handler);
 PROVIDE(mipi_dsi = default_handler);
-PROVIDE(d0_reserved16 = default_handler);
+PROVIDE(dsp_reserved16 = default_handler);
 PROVIDE(timer0 = default_handler);
 PROVIDE(timer1 = default_handler);
 PROVIDE(wdt = default_handler);

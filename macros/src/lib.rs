@@ -144,13 +144,13 @@ pub fn interrupt(args: TokenStream, input: TokenStream) -> TokenStream {
         .into();
     }
 
-    #[cfg(feature = "bl808-d0")]
-    if !BL808_D0_INTERRUPTS.contains(&format!("{}", f.sig.ident).as_str()) {
+    #[cfg(feature = "bl808-dsp")]
+    if !BL808_DSP_INTERRUPTS.contains(&format!("{}", f.sig.ident).as_str()) {
         return parse::Error::new(
             f.sig.ident.span(),
             format!(
                 "invalid `#[interrupt]` source. Must be one of: {}.",
-                BL808_D0_INTERRUPTS.join(", ")
+                BL808_DSP_INTERRUPTS.join(", ")
             ),
         )
         .to_compile_error()
@@ -173,18 +173,18 @@ pub fn interrupt(args: TokenStream, input: TokenStream) -> TokenStream {
     .into()
 }
 
-#[cfg(feature = "bl808-d0")]
-const BL808_D0_INTERRUPTS: [&'static str; 67] = [
+#[cfg(feature = "bl808-dsp")]
+const BL808_DSP_INTERRUPTS: [&'static str; 67] = [
     "bmx_dsp_bus_err",
-    "d0_reserved1",
-    "d0_reserved2",
-    "d0_reserved3",
+    "dsp_reserved1",
+    "dsp_reserved2",
+    "dsp_reserved3",
     "uart3",
-    "i2_c2",
-    "i2_c3",
+    "i2c2",
+    "i2c3",
     "spi1",
-    "d0_reserved4",
-    "d0_reserved5",
+    "dsp_reserved4",
+    "dsp_reserved5",
     "seof_int0",
     "seof_int1",
     "seof_int2",
@@ -207,14 +207,14 @@ const BL808_D0_INTERRUPTS: [&'static str; 67] = [
     "dma2_int5",
     "dma2_int6",
     "dma2_int7",
-    "d0_reserved6",
-    "d0_reserved7",
-    "d0_reserved8",
-    "d0_reserved9",
-    "d0_reserved10",
+    "dsp_reserved6",
+    "dsp_reserved7",
+    "dsp_reserved8",
+    "dsp_reserved9",
+    "dsp_reserved10",
     "mipi_csi",
     "ipc_d0",
-    "d0_reserved11",
+    "dsp_reserved11",
     "mjdec",
     "dvp2_bus_int4",
     "dvp2_bus_int5",
@@ -225,17 +225,17 @@ const BL808_D0_INTERRUPTS: [&'static str; 67] = [
     "display",
     "pwm",
     "seof_int3",
-    "d0_reserved12",
-    "d0_reserved13",
+    "dsp_reserved12",
+    "dsp_reserved13",
     "osd",
     "dbi",
-    "d0_reserved14",
+    "dsp_reserved14",
     "osda_bus_drain",
     "osdb_bus_drain",
     "osd_pb",
-    "d0_reserved15",
+    "dsp_reserved15",
     "mipi_dsi",
-    "d0_reserved16",
+    "dsp_reserved16",
     "timer0",
     "timer1",
     "wdt",

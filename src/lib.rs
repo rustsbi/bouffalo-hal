@@ -16,7 +16,7 @@ cfg_if::cfg_if! {
         pub use soc::bl702::{Peripherals, Clocks};
         #[doc(hidden)]
         pub use soc::bl702::__new_clocks;
-    } else if #[cfg(any(feature = "bl808-m0", feature = "bl808-d0"))] {
+    } else if #[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp"))] {
         pub use soc::bl808::{Peripherals, Clocks};
         #[doc(hidden)]
         pub use soc::bl808::__new_clocks;
