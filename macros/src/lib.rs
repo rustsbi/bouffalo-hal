@@ -152,6 +152,7 @@ pub fn interrupt(args: TokenStream, input: TokenStream) -> TokenStream {
 
     quote!(
         #(#attrs)*
+        #[no_mangle]
         pub #unsafety extern "C" fn #ident() #output {
             #(#stmts)*
         }

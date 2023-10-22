@@ -23,6 +23,10 @@ cfg_if::cfg_if! {
     }
 }
 
+#[doc(hidden)]
+#[no_mangle]
+pub extern "C" fn default_handler() {}
+
 /// RISC-V program stack.
 ///
 /// In standard RISC-V ABI specification, the stack grows downward and

@@ -193,6 +193,8 @@ SECTIONS {
     .text : ALIGN(8) {
         stext = .;
         KEEP(*(.text.entry))
+        . = ALIGN(4);
+        *(.trap.trap-entry)
         *(.text .text.*)
         . = ALIGN(8);
         etext = .;
@@ -222,7 +224,75 @@ SECTIONS {
     /DISCARD/ : {
         *(.eh_frame)
     }
-}";
+}
+PROVIDE(bmx_dsp_bus_err = default_handler);
+PROVIDE(d0_reserved1 = default_handler);
+PROVIDE(d0_reserved2 = default_handler);
+PROVIDE(d0_reserved3 = default_handler);
+PROVIDE(uart3 = default_handler);
+PROVIDE(i2_c2 = default_handler);
+PROVIDE(i2_c3 = default_handler);
+PROVIDE(spi1 = default_handler);
+PROVIDE(d0_reserved4 = default_handler);
+PROVIDE(d0_reserved5 = default_handler);
+PROVIDE(seof_int0 = default_handler);
+PROVIDE(seof_int1 = default_handler);
+PROVIDE(seof_int2 = default_handler);
+PROVIDE(dvp2_bus_int0 = default_handler);
+PROVIDE(dvp2_bus_int1 = default_handler);
+PROVIDE(dvp2_bus_int2 = default_handler);
+PROVIDE(dvp2_bus_int3 = default_handler);
+PROVIDE(h264_bs = default_handler);
+PROVIDE(h264_frame = default_handler);
+PROVIDE(h264_seq_done = default_handler);
+PROVIDE(mjpeg = default_handler);
+PROVIDE(h264_s_bs = default_handler);
+PROVIDE(h264_s_frame = default_handler);
+PROVIDE(h264_s_seq_done = default_handler);
+PROVIDE(dma2_int0 = default_handler);
+PROVIDE(dma2_int1 = default_handler);
+PROVIDE(dma2_int2 = default_handler);
+PROVIDE(dma2_int3 = default_handler);
+PROVIDE(dma2_int4 = default_handler);
+PROVIDE(dma2_int5 = default_handler);
+PROVIDE(dma2_int6 = default_handler);
+PROVIDE(dma2_int7 = default_handler);
+PROVIDE(d0_reserved6 = default_handler);
+PROVIDE(d0_reserved7 = default_handler);
+PROVIDE(d0_reserved8 = default_handler);
+PROVIDE(d0_reserved9 = default_handler);
+PROVIDE(d0_reserved10 = default_handler);
+PROVIDE(mipi_csi = default_handler);
+PROVIDE(ipc_d0 = default_handler);
+PROVIDE(d0_reserved11 = default_handler);
+PROVIDE(mjdec = default_handler);
+PROVIDE(dvp2_bus_int4 = default_handler);
+PROVIDE(dvp2_bus_int5 = default_handler);
+PROVIDE(dvp2_bus_int6 = default_handler);
+PROVIDE(dvp2_bus_int7 = default_handler);
+PROVIDE(dma2_d_int0 = default_handler);
+PROVIDE(dma2_d_int1 = default_handler);
+PROVIDE(display = default_handler);
+PROVIDE(pwm = default_handler);
+PROVIDE(seof_int3 = default_handler);
+PROVIDE(d0_reserved12 = default_handler);
+PROVIDE(d0_reserved13 = default_handler);
+PROVIDE(osd = default_handler);
+PROVIDE(dbi = default_handler);
+PROVIDE(d0_reserved14 = default_handler);
+PROVIDE(osda_bus_drain = default_handler);
+PROVIDE(osdb_bus_drain = default_handler);
+PROVIDE(osd_pb = default_handler);
+PROVIDE(d0_reserved15 = default_handler);
+PROVIDE(mipi_dsi = default_handler);
+PROVIDE(d0_reserved16 = default_handler);
+PROVIDE(timer0 = default_handler);
+PROVIDE(timer1 = default_handler);
+PROVIDE(wdt = default_handler);
+PROVIDE(audio = default_handler);
+PROVIDE(wl_all = default_handler);
+PROVIDE(pds = default_handler);
+";
 
 #[cfg(feature = "bl702")]
 const LINKER_SCRIPT_BL702: &[u8] = b"

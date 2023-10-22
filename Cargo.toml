@@ -12,6 +12,7 @@ cfg-if = "1.0.0"
 bl-soc = { git = "https://gitee.com/rustsbi/bl-soc", branch = "main", optional = true }
 base-address = { version = "0.0.0", optional = true }
 embedded-time = { version = "0.12.1", optional = true }
+plic = "0.0.2"
 
 [dev-dependencies]
 memoffset = "0.8.0"

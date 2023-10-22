@@ -25,6 +25,6 @@ fn main(p: Peripherals, _c: Clocks) -> ! {
 }
 
 #[interrupt]
-fn uart0() {
+fn uart3() {
     // TODO: interrupt handler content
 }
