@@ -373,6 +373,8 @@ pub struct Peripherals {
     pub i2c1: bl_soc::I2C<Static<0x2000A900>>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 2.
     pub uart2: bl_soc::UART<Static<0x2000AA00>>,
+    /// Hardware LZ4 Decompressor.
+    pub lz4d: bl_soc::LZ4D<Static<0x2000AD00>>,
     /// Hibernation control peripheral.
     pub hbn: bl_soc::HBN<Static<0x2000F000>>,
     /// Ethernet Media Access Control peripheral.
