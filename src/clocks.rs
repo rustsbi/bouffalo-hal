@@ -19,6 +19,10 @@ impl Clocks {
     #[inline]
     pub const fn uart_clock<const I: usize>(&self) -> Option<Hertz> {
         // todo: calculate from Clocks structure fields
-        Some(Hertz(80_000_000))
+        match I {
+            0..=2 => Some(Hertz(80_000_000)),
+            3..=4 => Some(Hertz(160_000_000)),
+            _ => unreachable!(),
+        }
     }
 }

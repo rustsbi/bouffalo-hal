@@ -59,13 +59,13 @@ pub use glb::GLBv1 as GLB;
 pub use glb::GLBv2 as GLB;
 
 /// Universal Asynchronous Receiver/Transmitter.
-pub struct UART<A: BaseAddress> {
+pub struct UART<A: BaseAddress, const I: usize> {
     base: A,
 }
 
-unsafe impl<A: BaseAddress> Send for UART<A> {}
+unsafe impl<A: BaseAddress, const I: usize> Send for UART<A, I> {}
 
-impl<A: BaseAddress> ops::Deref for UART<A> {
+impl<A: BaseAddress, const I: usize> ops::Deref for UART<A, I> {
     type Target = uart::RegisterBlock;
 
     #[inline(always)]

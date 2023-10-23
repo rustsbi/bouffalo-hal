@@ -76,7 +76,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// # use embedded_io::Write;
 /// # pub struct Serial<PINS> { pins: PINS }
 /// # impl<PINS> Serial<PINS> {
-/// #     pub fn new(_: UART<impl BaseAddress>, _: Config, _: Baud,
+/// #     pub fn new(_: UART<impl BaseAddress, 0>, _: Config, _: Baud,
 /// # #[cfg(feature = "glb-v2")] _: PINS, _: &Clocks, _: &GLB<impl BaseAddress>)
 /// #     -> Self { unimplemented!() }
 /// #     pub fn write_fmt(&mut self, fmt: core::fmt::Arguments<'_>) -> Result<(), ()> { unimplemented!() }
@@ -88,7 +88,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// # pub struct Peripherals {
 /// #     gpio: Pins<Static<0x20000000>>,
 /// #     glb: GLB<Static<0x20000000>>,
-/// #     uart0: UART<Static<0x2000A000>>,
+/// #     uart0: UART<Static<0x2000A000>, 0>,
 /// # }
 /// # fn main() {
 /// # let p: Peripherals = unsafe { core::mem::transmute(()) };

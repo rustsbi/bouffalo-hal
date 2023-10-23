@@ -942,34 +942,10 @@ impl<A: BaseAddress> HasUartSignal<7> for Pin<A, 43, Uart> {}
 impl<A: BaseAddress> HasUartSignal<8> for Pin<A, 44, Uart> {}
 impl<A: BaseAddress> HasUartSignal<9> for Pin<A, 45, Uart> {}
 
-/// Check if target gpio `Pin` is internally connected to multi-media UART transmit signal.
-pub trait HasMmUartTxd {}
+/// Check if an internal multi-media UART signal is connected to target gpio `Pin`.
+pub trait HasMmUartSignal {}
 
-/// Check if target gpio `Pin` is internally connected to multi-media UART receive signal.
-pub trait HasMmUartRxd {}
-
-/// Check if target gpio `Pin` is internally connected to multi-media UART request-to-send signal.
-pub trait HasMmUartRts {}
-
-/// Check if target gpio `Pin` is internally connected to multi-media UART clear-to-send signal.
-pub trait HasMmUartCts {}
-
-impl<A: BaseAddress> HasMmUartTxd for Pin<A, 0, MmUart> {}
-impl<A: BaseAddress> HasMmUartRxd for Pin<A, 1, MmUart> {}
-impl<A: BaseAddress> HasMmUartRts for Pin<A, 2, MmUart> {}
-impl<A: BaseAddress> HasMmUartCts for Pin<A, 3, MmUart> {}
-impl<A: BaseAddress> HasMmUartTxd for Pin<A, 4, MmUart> {}
-impl<A: BaseAddress> HasMmUartRxd for Pin<A, 5, MmUart> {}
-impl<A: BaseAddress> HasMmUartRts for Pin<A, 6, MmUart> {}
-impl<A: BaseAddress> HasMmUartCts for Pin<A, 7, MmUart> {}
-impl<A: BaseAddress> HasMmUartTxd for Pin<A, 8, MmUart> {}
-impl<A: BaseAddress> HasMmUartRxd for Pin<A, 9, MmUart> {}
-impl<A: BaseAddress> HasMmUartRts for Pin<A, 10, MmUart> {}
-impl<A: BaseAddress> HasMmUartCts for Pin<A, 11, MmUart> {}
-impl<A: BaseAddress> HasMmUartTxd for Pin<A, 12, MmUart> {}
-impl<A: BaseAddress> HasMmUartRxd for Pin<A, 13, MmUart> {}
-impl<A: BaseAddress> HasMmUartRts for Pin<A, 14, MmUart> {}
-impl<A: BaseAddress> HasMmUartCts for Pin<A, 15, MmUart> {}
+impl<A: BaseAddress, const N: usize> HasMmUartSignal for Pin<A, N, MmUart> {}
 
 /// Valid UART pins.
 pub trait Pins<const U: usize> {
@@ -1102,30 +1078,84 @@ where
 impl<A1, const U: usize, const N: usize> Pins<U> for Pin<A1, N, MmUart>
 where
     A1: BaseAddress,
-    Pin<A1, N, MmUart>: HasMmUartTxd,
+    Pin<A1, N, MmUart>: HasMmUartSignal,
 {
-    const RTS: bool = false;
-    const CTS: bool = false;
-    const TXD: bool = true;
-    const RXD: bool = false;
+    const RTS: bool = { N % 4 == 2 };
+    const CTS: bool = { N % 4 == 3 };
+    const TXD: bool = { N % 4 == 0 };
+    const RXD: bool = { N % 4 == 1 };
 }
 
-impl<A1, A2, const U: usize, const N: usize> Pins<U> for (Pin<A1, N, MmUart>, Pin<A2, N, MmUart>)
+impl<A1, A2, const U: usize, const N1: usize, const N2: usize> Pins<U>
+    for (Pin<A1, N1, MmUart>, Pin<A2, N2, MmUart>)
 where
     A1: BaseAddress,
     A2: BaseAddress,
-    Pin<A1, N, MmUart>: HasMmUartTxd,
-    Pin<A2, N, MmUart>: HasMmUartRxd,
+    Pin<A1, N1, MmUart>: HasMmUartSignal,
+    Pin<A2, N2, MmUart>: HasMmUartSignal,
 {
-    const RTS: bool = false;
-    const CTS: bool = false;
-    const TXD: bool = true;
-    const RXD: bool = true;
+    const RTS: bool = { N1 % 4 == 2 || N2 % 4 == 2 };
+    const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 };
+    const TXD: bool = { N1 % 4 == 0 || N2 % 4 == 0 };
+    const RXD: bool = { N1 % 4 == 1 || N2 % 4 == 1 };
+}
+
+impl<A1, A2, A3, const U: usize, const N1: usize, const N2: usize, const N3: usize> Pins<U>
+    for (
+        Pin<A1, N1, MmUart>,
+        Pin<A2, N2, MmUart>,
+        Pin<A3, N3, MmUart>,
+    )
+where
+    A1: BaseAddress,
+    A2: BaseAddress,
+    A3: BaseAddress,
+    Pin<A1, N1, MmUart>: HasMmUartSignal,
+    Pin<A2, N2, MmUart>: HasMmUartSignal,
+    Pin<A3, N3, MmUart>: HasMmUartSignal,
+{
+    const RTS: bool = { N1 % 4 == 2 || N2 % 4 == 2 || N3 % 4 == 2 };
+    const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 || N3 % 4 == 3 };
+    const TXD: bool = { N1 % 4 == 0 || N2 % 4 == 0 || N3 % 4 == 0 };
+    const RXD: bool = { N1 % 4 == 1 || N2 % 4 == 1 || N3 % 4 == 1 };
+}
+
+impl<
+        A1,
+        A2,
+        A3,
+        A4,
+        const U: usize,
+        const N1: usize,
+        const N2: usize,
+        const N3: usize,
+        const N4: usize,
+    > Pins<U>
+    for (
+        Pin<A1, N1, MmUart>,
+        Pin<A2, N2, MmUart>,
+        Pin<A3, N3, MmUart>,
+        Pin<A4, N4, MmUart>,
+    )
+where
+    A1: BaseAddress,
+    A2: BaseAddress,
+    A3: BaseAddress,
+    A4: BaseAddress,
+    Pin<A1, N1, MmUart>: HasMmUartSignal,
+    Pin<A2, N2, MmUart>: HasMmUartSignal,
+    Pin<A3, N3, MmUart>: HasMmUartSignal,
+    Pin<A4, N4, MmUart>: HasMmUartSignal,
+{
+    const RTS: bool = { N1 % 4 == 2 || N2 % 4 == 2 || N3 % 4 == 2 || N4 % 4 == 2 };
+    const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 || N3 % 4 == 3 || N4 % 4 == 3 };
+    const TXD: bool = { N1 % 4 == 0 || N2 % 4 == 0 || N3 % 4 == 0 || N4 % 4 == 0 };
+    const RXD: bool = { N1 % 4 == 1 || N2 % 4 == 1 || N3 % 4 == 1 || N4 % 4 == 1 };
 }
 
 /// Managed serial peripheral.
 pub struct Serial<const I: usize, A: BaseAddress, PINS> {
-    uart: UART<A>,
+    uart: UART<A, I>,
     pins: PINS,
 }
 
@@ -1135,7 +1165,7 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
     /// This structure sets the same baudrate for transmit and receive halves.
     #[inline]
     pub fn freerun(
-        uart: UART<A>,
+        uart: UART<A, I>,
         config: Config,
         baudrate: Baud,
         pins: PINS,
@@ -1187,7 +1217,7 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
 
     /// Release serial instance and return its peripheral and pins.
     #[inline]
-    pub fn free(self) -> (UART<A>, PINS) {
+    pub fn free(self) -> (UART<A, I>, PINS) {
         (self.uart, self.pins)
     }
 }
@@ -1206,7 +1236,7 @@ pub trait UartExt<const I: usize, A: BaseAddress, PINS> {
         PINS: Pins<I>;
 }
 
-impl<const I: usize, A: BaseAddress, PINS> UartExt<I, A, PINS> for UART<A> {
+impl<const I: usize, A: BaseAddress, PINS> UartExt<I, A, PINS> for UART<A, I> {
     #[inline]
     fn freerun(
         self,

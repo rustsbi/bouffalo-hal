@@ -15,7 +15,7 @@ use panic_halt as _;
 fn main() -> ! {
     // values initialized by ROM runtime
     let gpio: Pins<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
-    let uart0: UART<Static<0x2000A000>> = unsafe { core::mem::transmute(()) };
+    let uart0: UART<Static<0x2000A000>, 0> = unsafe { core::mem::transmute(()) };
     let uart_muxes: UartMuxes<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let clocks = Clocks {
         xtal: Hertz(40_000_000),
