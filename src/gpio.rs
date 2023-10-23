@@ -1,8 +1,8 @@
 //! General Purpose Input/Output.
 #[cfg(feature = "glb-v1")]
-use crate::glb::v1::{Drive, Function, InterruptMode, Pull};
-#[cfg(feature = "glb-v2")]
-use crate::glb::v2::{Drive, Function, GpioConfig, InterruptMode, Mode, Pull};
+use crate::glb::v1;
+#[cfg(any(doc, feature = "glb-v2"))]
+use crate::glb::v2;
 #[cfg(any(feature = "glb-v1", feature = "glb-v2"))]
 use crate::GLB;
 use base_address::BaseAddress;
@@ -137,7 +137,7 @@ pub struct Pin<A: BaseAddress, const N: usize, M: Alternate> {
 pub trait Alternate {
     /// Function number for this alternate type state.
     #[cfg(feature = "glb-v2")]
-    const F: Function;
+    const F: v2::Function;
 }
 
 /// Input mode (type state).
@@ -164,17 +164,17 @@ pub struct Floating;
 
 impl<MODE> Alternate for Input<MODE> {
     #[cfg(feature = "glb-v2")]
-    const F: Function = Function::Gpio;
+    const F: v2::Function = v2::Function::Gpio;
 }
 
 impl<MODE> Alternate for Output<MODE> {
     #[cfg(feature = "glb-v2")]
-    const F: Function = Function::Gpio;
+    const F: v2::Function = v2::Function::Gpio;
 }
 
 impl Alternate for Disabled {
     #[cfg(feature = "glb-v2")]
-    const F: Function = Function::Gpio;
+    const F: v2::Function = v2::Function::Gpio;
 }
 
 impl<A: BaseAddress, const N: usize, M> ErrorType for Pin<A, N, Input<M>> {
@@ -361,14 +361,14 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
 impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
     /// Get interrupt mode.
     #[inline]
-    pub fn interrupt_mode(&self) -> InterruptMode {
+    pub fn interrupt_mode(&self) -> v1::InterruptMode {
         self.base.gpio_interrupt_mode[N >> 1]
             .read()
             .interrupt_mode(N & 0x1)
     }
     /// Set interrupt mode.
     #[inline]
-    pub fn set_interrupt_mode(&mut self, val: InterruptMode) {
+    pub fn set_interrupt_mode(&mut self, val: v1::InterruptMode) {
         let config = self.base.gpio_interrupt_mode[N >> 1]
             .read()
             .set_interrupt_mode(N & 0x1, val);
@@ -380,12 +380,12 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
 impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
     /// Get interrupt mode.
     #[inline]
-    pub fn interrupt_mode(&self) -> InterruptMode {
+    pub fn interrupt_mode(&self) -> v2::InterruptMode {
         self.base.gpio_config[N].read().interrupt_mode()
     }
     /// Set interrupt mode.
     #[inline]
-    pub fn set_interrupt_mode(&mut self, val: InterruptMode) {
+    pub fn set_interrupt_mode(&mut self, val: v2::InterruptMode) {
         let config = self.base.gpio_config[N].read().set_interrupt_mode(val);
         unsafe { self.base.gpio_config[N].write(config) };
     }
@@ -395,12 +395,12 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
 impl<A: BaseAddress, const N: usize, M> Pin<A, N, Output<M>> {
     /// Get drive strength of this pin.
     #[inline]
-    pub fn drive(&self) -> Drive {
+    pub fn drive(&self) -> v1::Drive {
         self.base.gpio_config[N >> 1].read().drive(N & 0x1)
     }
     /// Set drive strength of this pin.
     #[inline]
-    pub fn set_drive(&mut self, val: Drive) {
+    pub fn set_drive(&mut self, val: v1::Drive) {
         let config = self.base.gpio_config[N >> 1].read().set_drive(N & 0x1, val);
         unsafe { self.base.gpio_config[N >> 1].write(config) };
     }
@@ -410,12 +410,12 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Output<M>> {
 impl<A: BaseAddress, const N: usize, M> Pin<A, N, Output<M>> {
     /// Get drive strength of this pin.
     #[inline]
-    pub fn drive(&self) -> Drive {
+    pub fn drive(&self) -> v2::Drive {
         self.base.gpio_config[N].read().drive()
     }
     /// Set drive strength of this pin.
     #[inline]
-    pub fn set_drive(&mut self, val: Drive) {
+    pub fn set_drive(&mut self, val: v2::Drive) {
         let config = self.base.gpio_config[N].read().set_drive(val);
         unsafe { self.base.gpio_config[N].write(config) };
     }
@@ -429,12 +429,12 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     where
         Spi<I>: Alternate,
     {
-        let config = GpioConfig::RESET_VALUE
+        let config = v2::GpioConfig::RESET_VALUE
             .enable_input()
             .disable_output()
             .enable_schmitt()
-            .set_pull(Pull::Up)
-            .set_drive(Drive::Drive0)
+            .set_pull(v2::Pull::Up)
+            .set_drive(v2::Drive::Drive0)
             .set_function(Spi::<I>::F);
         unsafe {
             self.base.gpio_config[N].write(config);
@@ -452,12 +452,12 @@ pub struct Spi<const F: usize>;
 
 impl Alternate for Spi<0> {
     #[cfg(feature = "glb-v2")]
-    const F: Function = Function::Spi0;
+    const F: v2::Function = v2::Function::Spi0;
 }
 
 impl Alternate for Spi<1> {
     #[cfg(feature = "glb-v2")]
-    const F: Function = Function::Spi1;
+    const F: v2::Function = v2::Function::Spi1;
 }
 
 impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
@@ -468,9 +468,9 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
                     .read()
-                    .set_function(N & 0x1, Function::Gpio)
+                    .set_function(N & 0x1, v1::Function::Gpio)
                     .disable_input(N & 0x1)
-                    .set_pull(N & 0x1, Pull::Up);
+                    .set_pull(N & 0x1, v1::Pull::Up);
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
@@ -481,11 +481,11 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             } else if #[cfg(feature = "glb-v2")] {
                 let config = self.base.gpio_config[N]
                     .read()
-                    .set_function(Function::Gpio)
-                    .set_mode(Mode::SetClear)
+                    .set_function(v2::Function::Gpio)
+                    .set_mode(v2::Mode::SetClear)
                     .disable_input()
                     .enable_output()
-                    .set_pull(Pull::Up);
+                    .set_pull(v2::Pull::Up);
                 unsafe { self.base.gpio_config[N].write(config) };
                 Pin {
                     base: self.base,
@@ -503,9 +503,9 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
                     .read()
-                    .set_function(N & 0x1, Function::Gpio)
+                    .set_function(N & 0x1, v1::Function::Gpio)
                     .disable_input(N & 0x1)
-                    .set_pull(N & 0x1, Pull::Down);
+                    .set_pull(N & 0x1, v1::Pull::Down);
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
@@ -516,11 +516,11 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             } else if #[cfg(feature = "glb-v2")] {
                 let config = self.base.gpio_config[N]
                     .read()
-                    .set_function(Function::Gpio)
-                    .set_mode(Mode::SetClear)
+                    .set_function(v2::Function::Gpio)
+                    .set_mode(v2::Mode::SetClear)
                     .disable_input()
                     .enable_output()
-                    .set_pull(Pull::Down);
+                    .set_pull(v2::Pull::Down);
                 unsafe { self.base.gpio_config[N].write(config) };
                 Pin {
                     base: self.base,
@@ -538,9 +538,9 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
                     .read()
-                    .set_function(N & 0x1, Function::Gpio)
+                    .set_function(N & 0x1, v1::Function::Gpio)
                     .disable_input(N & 0x1)
-                    .set_pull(N & 0x1, Pull::None);
+                    .set_pull(N & 0x1, v1::Pull::None);
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
@@ -551,11 +551,11 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             } else if #[cfg(feature = "glb-v2")] {
                 let config = self.base.gpio_config[N]
                     .read()
-                    .set_function(Function::Gpio)
-                    .set_mode(Mode::SetClear)
+                    .set_function(v2::Function::Gpio)
+                    .set_mode(v2::Mode::SetClear)
                     .disable_input()
                     .enable_output()
-                    .set_pull(Pull::None);
+                    .set_pull(v2::Pull::None);
                 unsafe { self.base.gpio_config[N].write(config) };
                 Pin {
                     base: self.base,
@@ -573,9 +573,9 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
                     .read()
-                    .set_function(N & 0x1, Function::Gpio)
+                    .set_function(N & 0x1, v1::Function::Gpio)
                     .enable_input(N & 0x1)
-                    .set_pull(N & 0x1, Pull::Up);
+                    .set_pull(N & 0x1, v1::Pull::Up);
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
@@ -586,11 +586,11 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             } else if #[cfg(feature = "glb-v2")] {
                 let config = self.base.gpio_config[N]
                     .read()
-                    .set_function(Function::Gpio)
-                    .set_mode(Mode::SetClear)
+                    .set_function(v2::Function::Gpio)
+                    .set_mode(v2::Mode::SetClear)
                     .enable_input()
                     .disable_output()
-                    .set_pull(Pull::Up);
+                    .set_pull(v2::Pull::Up);
                 unsafe { self.base.gpio_config[N].write(config) };
                 Pin {
                     base: self.base,
@@ -608,9 +608,9 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
                     .read()
-                    .set_function(N & 0x1, Function::Gpio)
+                    .set_function(N & 0x1, v1::Function::Gpio)
                     .enable_input(N & 0x1)
-                    .set_pull(N & 0x1, Pull::Down);
+                    .set_pull(N & 0x1, v1::Pull::Down);
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
@@ -621,11 +621,11 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             } else if #[cfg(feature = "glb-v2")] {
                 let config = self.base.gpio_config[N]
                     .read()
-                    .set_function(Function::Gpio)
-                    .set_mode(Mode::SetClear)
+                    .set_function(v2::Function::Gpio)
+                    .set_mode(v2::Mode::SetClear)
                     .enable_input()
                     .disable_output()
-                    .set_pull(Pull::Down);
+                    .set_pull(v2::Pull::Down);
                 unsafe { self.base.gpio_config[N].write(config) };
                 Pin {
                     base: self.base,
@@ -643,9 +643,9 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
                     .read()
-                    .set_function(N & 0x1, Function::Gpio)
+                    .set_function(N & 0x1, v1::Function::Gpio)
                     .enable_input(N & 0x1)
-                    .set_pull(N & 0x1, Pull::None);
+                    .set_pull(N & 0x1, v1::Pull::None);
                     unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
@@ -656,11 +656,11 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             } else if #[cfg(feature = "glb-v2")] {
                 let config = self.base.gpio_config[N]
                     .read()
-                    .set_function(Function::Gpio)
-                    .set_mode(Mode::SetClear)
+                    .set_function(v2::Function::Gpio)
+                    .set_mode(v2::Mode::SetClear)
                     .enable_input()
                     .disable_output()
-                    .set_pull(Pull::None);
+                    .set_pull(v2::Pull::None);
                 unsafe { self.base.gpio_config[N].write(config) };
                 Pin {
                     base: self.base,
@@ -678,21 +678,21 @@ pub struct Uart;
 
 impl Alternate for Uart {
     #[cfg(feature = "glb-v2")]
-    const F: Function = Function::Uart;
+    const F: v2::Function = v2::Function::Uart;
 }
 
-#[cfg(feature = "glb-v2")]
-const UART_GPIO_CONFIG: GpioConfig = GpioConfig::RESET_VALUE
+#[cfg(any(doc, feature = "glb-v2"))]
+const UART_GPIO_CONFIG: v2::GpioConfig = v2::GpioConfig::RESET_VALUE
     .enable_input()
     .enable_output()
     .enable_schmitt()
-    .set_drive(Drive::Drive0)
-    .set_pull(Pull::Up)
-    .set_function(Function::Uart);
+    .set_drive(v2::Drive::Drive0)
+    .set_pull(v2::Pull::Up)
+    .set_function(v2::Function::Uart);
 
-#[cfg(feature = "glb-v2")]
 impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     /// Configures the pin to operate as UART signal.
+    #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
     pub fn into_uart(self) -> Pin<A, N, Uart> {
         unsafe { self.base.gpio_config[N].write(UART_GPIO_CONFIG) };
@@ -708,15 +708,17 @@ pub struct MmUart;
 
 impl Alternate for MmUart {
     #[cfg(feature = "glb-v2")]
-    const F: Function = Function::MmUart;
+    const F: v2::Function = v2::Function::MmUart;
 }
 
-#[cfg(feature = "glb-v2")]
 impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     /// Configures the pin to operate as multi-media cluster UART signal.
+    #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
     pub fn into_mm_uart(self) -> Pin<A, N, MmUart> {
-        unsafe { self.base.gpio_config[N].write(UART_GPIO_CONFIG.set_function(Function::MmUart)) };
+        unsafe {
+            self.base.gpio_config[N].write(UART_GPIO_CONFIG.set_function(v2::Function::MmUart))
+        };
         Pin {
             base: self.base,
             _mode: PhantomData,
@@ -729,12 +731,12 @@ pub struct Pwm<const F: usize>;
 
 impl Alternate for Pwm<0> {
     #[cfg(feature = "glb-v2")]
-    const F: Function = Function::Pwm0;
+    const F: v2::Function = v2::Function::Pwm0;
 }
 
 impl Alternate for Pwm<1> {
     #[cfg(feature = "glb-v2")]
-    const F: Function = Function::Pwm1;
+    const F: v2::Function = v2::Function::Pwm1;
 }
 
 impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
@@ -745,12 +747,12 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     where
         Pwm<I>: Alternate,
     {
-        let config = GpioConfig::RESET_VALUE
+        let config = v2::GpioConfig::RESET_VALUE
             .disable_input()
             .enable_output()
             .enable_schmitt()
-            .set_drive(Drive::Drive0)
-            .set_pull(Pull::Up)
+            .set_drive(v2::Drive::Drive0)
+            .set_pull(v2::Pull::Up)
             .set_function(Pwm::<I>::F);
         unsafe { self.base.gpio_config[N].write(config) };
         Pin {
@@ -765,12 +767,12 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     where
         Pwm<I>: Alternate,
     {
-        let config = GpioConfig::RESET_VALUE
+        let config = v2::GpioConfig::RESET_VALUE
             .disable_input()
             .enable_output()
             .enable_schmitt()
-            .set_drive(Drive::Drive0)
-            .set_pull(Pull::Down)
+            .set_drive(v2::Drive::Drive0)
+            .set_pull(v2::Pull::Down)
             .set_function(Pwm::<I>::F);
         unsafe { self.base.gpio_config[N].write(config) };
         Pin {
@@ -785,12 +787,12 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     where
         Pwm<I>: Alternate,
     {
-        let config = GpioConfig::RESET_VALUE
+        let config = v2::GpioConfig::RESET_VALUE
             .disable_input()
             .enable_output()
             .enable_schmitt()
-            .set_drive(Drive::Drive0)
-            .set_pull(Pull::None)
+            .set_drive(v2::Drive::Drive0)
+            .set_pull(v2::Pull::None)
             .set_function(Pwm::<I>::F);
         unsafe { self.base.gpio_config[N].write(config) };
         Pin {
@@ -805,22 +807,22 @@ pub struct I2c<const F: usize>;
 
 impl Alternate for I2c<0> {
     #[cfg(feature = "glb-v2")]
-    const F: Function = Function::I2c0;
+    const F: v2::Function = v2::Function::I2c0;
 }
 
 impl Alternate for I2c<1> {
     #[cfg(feature = "glb-v2")]
-    const F: Function = Function::I2c1;
+    const F: v2::Function = v2::Function::I2c1;
 }
 
 impl Alternate for I2c<2> {
     #[cfg(feature = "glb-v2")]
-    const F: Function = Function::I2c2;
+    const F: v2::Function = v2::Function::I2c2;
 }
 
 impl Alternate for I2c<3> {
     #[cfg(feature = "glb-v2")]
-    const F: Function = Function::I2c3;
+    const F: v2::Function = v2::Function::I2c3;
 }
 
 impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
@@ -831,12 +833,12 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     where
         I2c<I>: Alternate,
     {
-        let config = GpioConfig::RESET_VALUE
+        let config = v2::GpioConfig::RESET_VALUE
             .enable_input()
             .enable_output()
             .enable_schmitt()
-            .set_drive(Drive::Drive0)
-            .set_pull(Pull::Up)
+            .set_drive(v2::Drive::Drive0)
+            .set_pull(v2::Pull::Up)
             .set_function(I2c::<I>::F);
         unsafe {
             self.base.gpio_config[N].write(config);
