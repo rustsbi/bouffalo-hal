@@ -651,6 +651,8 @@ pub struct Peripherals {
     pub i2c3: bl_soc::I2C<Static<0x30004000>>,
     /// Seriel Peripheral Interface peripheral 1.
     pub spi1: bl_soc::SPI<Static<0x30008000>>,
+    /// Platform-local Interrupt Controller.
+    pub plic: PLIC<Static<0xE0000000>>,
 }
 
 /// Platform-local Interrupt Controller.
