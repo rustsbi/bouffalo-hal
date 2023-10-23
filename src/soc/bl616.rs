@@ -229,9 +229,9 @@ pub struct Peripherals {
     /// UART signal multiplexers.
     pub uart_muxes: bl_soc::uart::UartMuxes<Static<0x20000000>>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
-    pub uart0: bl_soc::UART<Static<0x2000A000>>,
+    pub uart0: bl_soc::UART<Static<0x2000A000>, 0>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
-    pub uart1: bl_soc::UART<Static<0x2000A100>>,
+    pub uart1: bl_soc::UART<Static<0x2000A100>, 1>,
     /// Seriel Peripheral Interface peripheral.
     pub spi: bl_soc::SPI<Static<0x2000A200>>,
     /// Inter-Integrated Circuit bus peripheral 0.

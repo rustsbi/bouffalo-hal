@@ -177,9 +177,9 @@ pub struct Peripherals {
     /// Global configuration peripheral.
     pub glb: bl_soc::glb::GLBv1<Static<0x40000000>>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
-    pub uart0: bl_soc::UART<Static<0x4000A000>>,
+    pub uart0: bl_soc::UART<Static<0x4000A000>, 0>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
-    pub uart1: bl_soc::UART<Static<0x4000A100>>,
+    pub uart1: bl_soc::UART<Static<0x4000A100>, 1>,
     /// Seriel Peripheral Interface peripheral.
     pub spi: bl_soc::SPI<Static<0x4000A200>>,
     /// Inter-Integrated Circuit bus peripheral.

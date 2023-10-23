@@ -12,7 +12,7 @@ use base_address::Static;
 const LEN_STACK_MCU: usize = 1 * 1024;
 
 #[cfg(feature = "bl808-dsp")]
-const LEN_STACK_DSP: usize = 1 * 1024;
+const LEN_STACK_DSP: usize = 4 * 1024;
 
 #[cfg(feature = "bl808-mcu")]
 #[naked]
@@ -79,11 +79,19 @@ unsafe extern "C" fn start() -> ! {
             j       1b
         1:",
         "   la      t0, {trap_entry}
+            ori     t0, t0, {trap_mode}
             csrw    mtvec, t0",
+        "   li      t1, {stack_protect_pmp_address}
+            csrw    pmpaddr0, t1
+            li      t2, {stack_protect_pmp_flags}
+            csrw    pmpcfg0, t2",
         "   call    {main}",
         stack = sym STACK,
         hart_stack_size = const LEN_STACK_DSP,
-        trap_entry = sym trap_direct,
+        trap_entry = sym trap_vectored,
+        trap_mode = const 1, // RISC-V standard vectored trap
+        stack_protect_pmp_address = const {(0x3E000000 >> 2) + (16 * 1024 * 1024 >> 3) - 1},
+        stack_protect_pmp_flags = const 0b00011000, // -r, -w, -x, napot, not locked
         main = sym main,
         options(noreturn)
     )
@@ -99,9 +107,50 @@ extern "Rust" {
 #[cfg(feature = "bl808-dsp")]
 #[link_section = ".trap.trap-entry"]
 #[naked]
-unsafe extern "C" fn trap_direct() -> ! {
+unsafe extern "C" fn trap_vectored() -> ! {
     asm!(
         ".p2align 2",
+        "j {exceptions}",
+        "j {supervisor_software}",
+        "j {reserved}",
+        "j {machine_software}",
+        "j {reserved}",
+        "j {supervisor_timer}",
+        "j {reserved}",
+        "j {machine_timer}",
+        "j {reserved}",
+        "j {supervisor_external}",
+        "j {reserved}",
+        "j {machine_external}",
+        "j {reserved}",
+        "j {reserved}",
+        "j {reserved}",
+        "j {reserved}",
+        "j {reserved}",
+        "j {thead_hpm_overflow}",
+        exceptions = sym reserved,
+        supervisor_software = sym reserved,
+        machine_software = sym reserved,
+        supervisor_timer = sym reserved,
+        machine_timer = sym reserved,
+        machine_external = sym machine_external,
+        supervisor_external = sym reserved,
+        thead_hpm_overflow = sym reserved,
+        reserved = sym reserved,
+        options(noreturn)
+    )
+}
+
+#[cfg(feature = "bl808-dsp")]
+#[naked]
+unsafe extern "C" fn reserved() -> ! {
+    asm!("1: j   1b", options(noreturn))
+}
+
+#[cfg(feature = "bl808-dsp")]
+#[naked]
+unsafe extern "C" fn machine_external() -> ! {
+    asm!(
         "addi   sp, sp, -19*8",
         "sd     ra, 0*8(sp)",
         "sd     t0, 1*8(sp)",
@@ -126,6 +175,7 @@ unsafe extern "C" fn trap_direct() -> ! {
         "csrr   t2, mstatus",
         "sd     t2, 18*8(sp)",
         "csrs   mstatus, 8",
+        "mv     a0, sp",
         "call   {rust_all_traps}",
         "ld     t0, 16*8(sp)",
         "csrw   mcause, t0",
@@ -151,23 +201,20 @@ unsafe extern "C" fn trap_direct() -> ! {
         "ld     t6, 15*8(sp)",
         "addi   sp, sp, 19*8",
         "mret",
-        rust_all_traps = sym rust_bl808_d0_all_traps,
+        rust_all_traps = sym rust_bl808_dsp_machine_external,
         options(noreturn)
     )
 }
 
 #[cfg(feature = "bl808-dsp")]
-fn rust_bl808_d0_all_traps(tf: &mut TrapFrame) {
-    // machine external
-    if tf.mcause == (1 << 63) | 11 {
-        let plic: PLIC<Static<0xE0000000>> = unsafe { core::mem::transmute(()) };
-        if let Some(source) = plic.claim(D0Machine) {
-            let idx = source.get() as usize;
-            if idx >= 16 && idx < 16 + 67 {
-                unsafe { (D0_INTERRUPT_HANDLERS[idx - 16])() };
-            }
-            plic.complete(D0Machine, PlicSource(source));
+fn rust_bl808_dsp_machine_external(_tf: &mut TrapFrame) {
+    let plic: PLIC<Static<0xE0000000>> = unsafe { core::mem::transmute(()) };
+    if let Some(source) = plic.claim(D0Machine) {
+        let idx = source.get() as usize;
+        if idx >= 16 && idx < 16 + 67 {
+            unsafe { (D0_INTERRUPT_HANDLERS[idx - 16])() };
         }
+        plic.complete(D0Machine, PlicSource(source));
     }
 }
 
@@ -624,9 +671,9 @@ pub struct Peripherals {
     /// UART signal multiplexers.
     pub uart_muxes: bl_soc::uart::UartMuxes<Static<0x20000000>>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
-    pub uart0: bl_soc::UART<Static<0x2000A000>>,
+    pub uart0: bl_soc::UART<Static<0x2000A000>, 0>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
-    pub uart1: bl_soc::UART<Static<0x2000A100>>,
+    pub uart1: bl_soc::UART<Static<0x2000A100>, 1>,
     /// Seriel Peripheral Interface peripheral 0.
     pub spi: bl_soc::SPI<Static<0x2000A200>>,
     /// Inter-Integrated Circuit bus peripheral 0.
@@ -636,7 +683,7 @@ pub struct Peripherals {
     /// Inter-Integrated Circuit bus peripheral 1.
     pub i2c1: bl_soc::I2C<Static<0x2000A900>>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 2.
-    pub uart2: bl_soc::UART<Static<0x2000AA00>>,
+    pub uart2: bl_soc::UART<Static<0x2000AA00>, 2>,
     /// Hardware LZ4 Decompressor.
     pub lz4d: bl_soc::LZ4D<Static<0x2000AD00>>,
     /// Hibernation control peripheral.
@@ -644,7 +691,7 @@ pub struct Peripherals {
     /// Ethernet Media Access Control peripheral.
     pub emac: bl_soc::EMAC<Static<0x20070000>>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 3.
-    pub uart3: bl_soc::UART<Static<0x30002000>>,
+    pub uart3: bl_soc::UART<Static<0x30002000>, 3>,
     /// Inter-Integrated Circuit bus peripheral 2.
     pub i2c2: bl_soc::I2C<Static<0x30003000>>,
     /// Inter-Integrated Circuit bus peripheral 3.
