@@ -174,7 +174,7 @@ unsafe extern "C" fn machine_external() -> ! {
         "sd     t1, 17*8(sp)",
         "csrr   t2, mstatus",
         "sd     t2, 18*8(sp)",
-        "csrs   mstatus, 8",
+        // "csrs   mstatus, 8", // TODO: disallow nested interrupt by now
         "mv     a0, sp",
         "call   {rust_all_traps}",
         "ld     t0, 16*8(sp)",
