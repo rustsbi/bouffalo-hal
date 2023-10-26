@@ -7,7 +7,7 @@
 
 use base_address::Static;
 use bl_rom_rt::entry;
-use bl_soc::{gpio::Pins, prelude::*, spi::Spi, GLB, SPI};
+use bl_soc::{gpio::Pads, prelude::*, spi::Spi, GLB, SPI};
 use embedded_graphics::{
     draw_target::DrawTarget,
     image::*,
@@ -24,7 +24,7 @@ use panic_halt as _;
 #[entry]
 fn main() -> ! {
     // values initialized by ROM runtime
-    let gpio: Pins<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
+    let gpio: Pads<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let glb: GLB<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let spi: SPI<Static<0x30008000>> = unsafe { core::mem::transmute(()) };
 

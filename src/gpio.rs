@@ -1,3 +1,11 @@
+/*
+ * @Descripttion:
+ * @version:
+ * @Author: zyx
+ * @Date: 2023-10-26 16:20:46
+ * @LastEditors: zyx
+ * @LastEditTime: 2023-10-26 16:50:05
+ */
 //! General Purpose Input/Output.
 #[cfg(feature = "glb-v1")]
 use crate::glb::v1;
@@ -74,10 +82,10 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// #     UART,
 /// # };
 /// # use embedded_io::Write;
-/// # pub struct Serial<PINS> { pins: PINS }
-/// # impl<PINS> Serial<PINS> {
+/// # pub struct Serial<PADS> { pins: PADS }
+/// # impl<PADS> Serial<PADS> {
 /// #     pub fn new(_: UART<impl BaseAddress, 0>, _: Config, _: Baud,
-/// # #[cfg(feature = "glb-v2")] _: PINS, _: &Clocks, _: &GLB<impl BaseAddress>)
+/// # #[cfg(feature = "glb-v2")] _: PADS, _: &Clocks, _: &GLB<impl BaseAddress>)
 /// #     -> Self { unimplemented!() }
 /// #     pub fn write_fmt(&mut self, fmt: core::fmt::Arguments<'_>) -> Result<(), ()> { unimplemented!() }
 /// #     pub fn flush(&mut self) -> Result<(), ()> { unimplemented!() }

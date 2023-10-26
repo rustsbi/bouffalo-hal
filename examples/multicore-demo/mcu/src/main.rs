@@ -7,7 +7,7 @@ use panic_halt as _;
 
 #[bl_rom_rt::entry]
 fn main() -> ! {
-    let gpio: Pads<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
+    let gpio: PADS<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let mut led = gpio.io8.into_floating_output();
     let mut led_state = PinState::High;
     loop {

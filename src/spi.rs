@@ -620,17 +620,17 @@ impl FifoConfig1 {
 }
 
 /// Managed Serial Peripheral Interface peripheral.
-pub struct Spi<A: BaseAddress, PINS, const I: usize> {
+pub struct Spi<A: BaseAddress, PADS, const I: usize> {
     spi: SPI<A>,
-    pins: PINS,
+    pins: PADS,
 }
 
-impl<A: BaseAddress, PINS, const I: usize> Spi<A, PINS, I> {
+impl<A: BaseAddress, PADS, const I: usize> Spi<A, PADS, I> {
     /// Create a new Serial Peripheral Interface instance.
     #[inline]
-    pub fn new(spi: SPI<A>, pins: PINS, mode: Mode, glb: &GLBv2<impl BaseAddress>) -> Self
+    pub fn new(spi: SPI<A>, pins: PADS, mode: Mode, glb: &GLBv2<impl BaseAddress>) -> Self
     where
-        PINS: Pads<I>,
+        PADS: Pads<I>,
     {
         let mut config = Config(0)
             .disable_deglitch()
@@ -683,7 +683,7 @@ impl<A: BaseAddress, PINS, const I: usize> Spi<A, PINS, I> {
 
     /// Release the SPI instance and return the pins.
     #[inline]
-    pub fn free(self) -> (SPI<A>, PINS) {
+    pub fn free(self) -> (SPI<A>, PADS) {
         (self.spi, self.pins)
     }
 }
@@ -705,11 +705,11 @@ impl embedded_hal::spi::Error for Error {
     }
 }
 
-impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::ErrorType for Spi<A, PINS, I> {
+impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::ErrorType for Spi<A, PADS, I> {
     type Error = Error;
 }
 
-impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiBus for Spi<A, PINS, I> {
+impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::SpiBus for Spi<A, PADS, I> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<(), Self::Error> {
         unsafe { self.spi.config.modify(|config| config.enable_master()) };
@@ -758,7 +758,7 @@ impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiBus for Spi<A, 
     }
 }
 
-impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiDevice for Spi<A, PINS, I> {
+impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::SpiDevice for Spi<A, PADS, I> {
     fn transaction(
         &mut self,
         operations: &mut [embedded_hal::spi::Operation<'_, u8>],
@@ -808,8 +808,8 @@ impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiDevice for Spi<
 // ecosystem crates, as some of them depends on embedded-hal v0.2.7 traits.
 // We encourage ecosystem developers to use embedded-hal v1.0.0 traits; after that, this part of code
 // would be removed in the future.
-impl<A: BaseAddress, PINS, const I: usize> embedded_hal_027::blocking::spi::Write<u8>
-    for Spi<A, PINS, I>
+impl<A: BaseAddress, PADS, const I: usize> embedded_hal_027::blocking::spi::Write<u8>
+    for Spi<A, PADS, I>
 {
     type Error = Error;
     #[inline]

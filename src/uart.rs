@@ -1154,12 +1154,12 @@ where
 }
 
 /// Managed serial peripheral.
-pub struct Serial<const I: usize, A: BaseAddress, PINS> {
+pub struct Serial<const I: usize, A: BaseAddress, PADS> {
     uart: UART<A, I>,
-    pins: PINS,
+    pins: PADS,
 }
 
-impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
+impl<const I: usize, A: BaseAddress, PADS> Serial<I, A, PADS> {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
     ///
     /// This structure sets the same baudrate for transmit and receive halves.
@@ -1168,11 +1168,11 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
         uart: UART<A, I>,
         config: Config,
         baudrate: Baud,
-        pins: PINS,
+        pins: PADS,
         clocks: &Clocks,
     ) -> Self
     where
-        PINS: Pads<I>,
+        PADS: Pads<I>,
     {
         // Calculate transmit interval.
         let uart_clock = clocks.uart_clock::<I>().expect("a valid UART clock source");
@@ -1195,10 +1195,10 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
             .set_parity(config.parity)
             .set_stop_bits(config.stop_bits)
             .set_word_length(config.word_length);
-        if PINS::TXD {
+        if PADS::TXD {
             val = val.enable_txd();
         }
-        if PINS::CTS {
+        if PADS::CTS {
             val = val.enable_cts();
         }
         unsafe { uart.transmit_config.write(val) };
@@ -1207,7 +1207,7 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
         let mut val = ReceiveConfig(0)
             .set_parity(config.parity)
             .set_word_length(config.word_length);
-        if PINS::RXD {
+        if PADS::RXD {
             val = val.enable_rxd();
         }
         unsafe { uart.receive_config.write(val) };
@@ -1217,36 +1217,36 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
 
     /// Release serial instance and return its peripheral and pins.
     #[inline]
-    pub fn free(self) -> (UART<A, I>, PINS) {
+    pub fn free(self) -> (UART<A, I>, PADS) {
         (self.uart, self.pins)
     }
 }
 
 /// Extend constructor to owned UART register blocks.
-pub trait UartExt<const I: usize, A: BaseAddress, PINS> {
+pub trait UartExt<const I: usize, A: BaseAddress, PADS> {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
     fn freerun(
         self,
         config: Config,
         baudrate: Baud,
-        pins: PINS,
+        pins: PADS,
         clocks: &Clocks,
-    ) -> Serial<I, A, PINS>
+    ) -> Serial<I, A, PADS>
     where
-        PINS: Pads<I>;
+        PADS: Pads<I>;
 }
 
-impl<const I: usize, A: BaseAddress, PINS> UartExt<I, A, PINS> for UART<A, I> {
+impl<const I: usize, A: BaseAddress, PADS> UartExt<I, A, PADS> for UART<A, I> {
     #[inline]
     fn freerun(
         self,
         config: Config,
         baudrate: Baud,
-        pins: PINS,
+        pins: PADS,
         clocks: &Clocks,
-    ) -> Serial<I, A, PINS>
+    ) -> Serial<I, A, PADS>
     where
-        PINS: Pads<I>,
+        PADS: Pads<I>,
     {
         Serial::freerun(self, config, baudrate, pins, clocks)
     }
@@ -1259,11 +1259,11 @@ impl embedded_io::Error for Error {
     }
 }
 
-impl<const I: usize, A: BaseAddress, PINS> embedded_io::ErrorType for Serial<I, A, PINS> {
+impl<const I: usize, A: BaseAddress, PADS> embedded_io::ErrorType for Serial<I, A, PADS> {
     type Error = Error;
 }
 
-impl<const I: usize, A: BaseAddress, PINS> embedded_io::Write for Serial<I, A, PINS> {
+impl<const I: usize, A: BaseAddress, PADS> embedded_io::Write for Serial<I, A, PADS> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         while self.uart.fifo_config_1.read().transmit_available_bytes() == 0 {
@@ -1289,7 +1289,7 @@ impl<const I: usize, A: BaseAddress, PINS> embedded_io::Write for Serial<I, A, P
     }
 }
 
-impl<const I: usize, A: BaseAddress, PINS> embedded_io::Read for Serial<I, A, PINS> {
+impl<const I: usize, A: BaseAddress, PADS> embedded_io::Read for Serial<I, A, PADS> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         while self.uart.fifo_config_1.read().receive_available_bytes() == 0 {

@@ -17,7 +17,7 @@ const SCREEN_ADDRESS: u8 = 0x15;
 #[entry]
 fn main() -> ! {
     // values initialized by ROM runtime
-    let gpio: Pads<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
+    let gpio: PADS<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let glb: GLB<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let uart0: UART<Static<0x2000A000>> = unsafe { core::mem::transmute(()) };
     let uart_muxes: UartMuxes<Static<0x20000000>> = unsafe { core::mem::transmute(()) };

@@ -495,9 +495,9 @@ impl FifoConfig1 {
 }
 
 /// Managed Inter-Integrated Circuit peripheral.
-pub struct I2c<A: BaseAddress, PINS> {
+pub struct I2c<A: BaseAddress, PADS> {
     i2c: I2C<A>,
-    pins: PINS,
+    pins: PADS,
 }
 
 impl<A: BaseAddress, SCL, SDA> I2c<A, (SCL, SDA)> {
@@ -602,11 +602,11 @@ impl embedded_hal::i2c::Error for Error {
     }
 }
 
-impl<A: BaseAddress, PINS> embedded_hal::i2c::ErrorType for I2c<A, PINS> {
+impl<A: BaseAddress, PADS> embedded_hal::i2c::ErrorType for I2c<A, PADS> {
     type Error = Error;
 }
 
-impl<A: BaseAddress, PINS> embedded_hal::i2c::I2c for I2c<A, PINS> {
+impl<A: BaseAddress, PADS> embedded_hal::i2c::I2c for I2c<A, PADS> {
     #[inline]
     fn transaction(
         &mut self,
