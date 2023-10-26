@@ -678,6 +678,20 @@ mod i2c_impls {
     impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 13, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
     impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 14, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
     impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 15, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 16, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 17, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 18, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 19, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 20, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 21, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 22, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 23, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 24, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 25, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 26, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 27, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 28, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 29, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
 }
 
 #[cfg(test)]
