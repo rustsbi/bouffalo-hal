@@ -190,6 +190,8 @@ pub struct Peripherals {
     pub emac: bl_soc::EMAC<Static<0x4000D000>>,
     /// Hibernation control peripheral.
     pub hbn: bl_soc::HBN<Static<0x4000F000>>,
+    /// Universal Serial Bus peripheral.
+    pub usb: bl_soc::usb::USBv1<Static<0x4000D800>>,
 }
 
 #[cfg(feature = "rom-peripherals")]
