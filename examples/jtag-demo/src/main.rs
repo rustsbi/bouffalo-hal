@@ -7,12 +7,12 @@
 
 use base_address::Static;
 use bl_rom_rt::entry;
-use bl_soc::{gpio::Pins, prelude::*};
+use bl_soc::{gpio::Pads, prelude::*};
 use panic_halt as _;
 
 #[entry]
 fn main() -> ! {
-    let gpio: Pins<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
+    let gpio: Pads<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     // enable jtag
     gpio.io0.into_jtag_d0();
     gpio.io1.into_jtag_d0();

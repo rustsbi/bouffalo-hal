@@ -3,7 +3,7 @@
 #[cfg(any(doc, feature = "glb-v2"))]
 use crate::glb::v2::{Drive, Function, GpioConfig, Pull};
 use crate::gpio::Alternate;
-use crate::gpio::Pin;
+use crate::gpio::Pad;
 use base_address::BaseAddress;
 #[cfg(feature = "glb-v2")]
 use core::marker::PhantomData;
@@ -41,14 +41,14 @@ const JTAG_GPIO_CONFIG: GpioConfig = GpioConfig::RESET_VALUE
     .set_drive(Drive::Drive0)
     .set_pull(Pull::None);
 
-impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     /// Configures the pin to operate as D0 core JTAG.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_jtag_d0(self) -> Pin<A, N, JtagD0> {
+    pub fn into_jtag_d0(self) -> Pad<A, N, JtagD0> {
         let config = JTAG_GPIO_CONFIG.set_function(Function::JtagD0);
         unsafe { self.base.gpio_config[N].write(config) };
-        Pin {
+        Pad {
             base: self.base,
             _mode: PhantomData,
         }
@@ -56,10 +56,10 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     /// Configures the pin to operate as M0 core JTAG.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_jtag_m0(self) -> Pin<A, N, JtagM0> {
+    pub fn into_jtag_m0(self) -> Pad<A, N, JtagM0> {
         let config = JTAG_GPIO_CONFIG.set_function(Function::JtagM0);
         unsafe { self.base.gpio_config[N].write(config) };
-        Pin {
+        Pad {
             base: self.base,
             _mode: PhantomData,
         }
@@ -67,10 +67,10 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     /// Configures the pin to operate as LP core JTAG.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_jtag_lp(self) -> Pin<A, N, JtagLp> {
+    pub fn into_jtag_lp(self) -> Pad<A, N, JtagLp> {
         let config = JTAG_GPIO_CONFIG.set_function(Function::JtagLp);
         unsafe { self.base.gpio_config[N].write(config) };
-        Pin {
+        Pad {
             base: self.base,
             _mode: PhantomData,
         }

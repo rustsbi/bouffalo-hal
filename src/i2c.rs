@@ -1,7 +1,7 @@
 //! Inter-Integrated Circuit bus.
 use crate::{
     glb::{v2::I2cClockSource, GLBv2},
-    gpio::{self, Pin},
+    gpio::{self, Pad},
     I2C,
 };
 use base_address::BaseAddress;
@@ -662,22 +662,22 @@ mod i2c_impls {
     // 0, 2, 4, ..., 2n: SCL
     // 1, 3, 5, ..., 2n+1: SDA
     // TODO: support other pins if needed
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 0, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 1, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 2, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 3, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 4, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 5, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 6, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 7, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 8, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 9, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 10, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 11, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 12, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 13, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pin<A, 14, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pin<A, 15, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 0, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 1, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 2, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 3, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 4, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 5, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 6, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 7, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 8, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 9, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 10, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 11, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 12, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 13, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 14, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 15, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
 }
 
 #[cfg(test)]

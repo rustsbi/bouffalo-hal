@@ -7,7 +7,7 @@
 
 use base_address::Static;
 use bl_rom_rt::entry;
-use bl_soc::{clocks::Clocks, gpio::Pins, prelude::*, uart::UartMuxes, GLB, LZ4D, UART};
+use bl_soc::{clocks::Clocks, gpio::Pads, prelude::*, uart::UartMuxes, GLB, LZ4D, UART};
 use core::pin::Pin;
 use embedded_time::rate::*;
 use panic_halt as _;
@@ -18,7 +18,7 @@ static mut LZ4_OUTPUT: [u8; 2048] = [0u8; 2048];
 #[entry]
 fn main() -> ! {
     // values initialized by ROM runtime
-    let gpio: Pins<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
+    let gpio: Pads<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let uart0: UART<Static<0x2000A000>> = unsafe { core::mem::transmute(()) };
     let uart_muxes: UartMuxes<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let clocks = Clocks {

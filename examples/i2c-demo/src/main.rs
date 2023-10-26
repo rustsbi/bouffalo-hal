@@ -7,7 +7,7 @@
 
 use base_address::Static;
 use bl_rom_rt::entry;
-use bl_soc::{clocks::Clocks, gpio::Pins, i2c::I2c, prelude::*, uart::UartMuxes, GLB, I2C, UART};
+use bl_soc::{clocks::Clocks, gpio::Pads, i2c::I2c, prelude::*, uart::UartMuxes, GLB, I2C, UART};
 use embedded_time::rate::*;
 use panic_halt as _;
 
@@ -17,7 +17,7 @@ const SCREEN_ADDRESS: u8 = 0x15;
 #[entry]
 fn main() -> ! {
     // values initialized by ROM runtime
-    let gpio: Pins<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
+    let gpio: Pads<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let glb: GLB<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let uart0: UART<Static<0x2000A000>> = unsafe { core::mem::transmute(()) };
     let uart_muxes: UartMuxes<Static<0x20000000>> = unsafe { core::mem::transmute(()) };

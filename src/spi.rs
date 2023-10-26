@@ -1,7 +1,7 @@
 //! Serial Peripheral Interface peripheral.
 
 use crate::glb::{v2::SpiMode, GLBv2};
-use crate::gpio::{self, Pin};
+use crate::gpio::{self, Pad};
 use crate::SPI;
 use base_address::BaseAddress;
 use embedded_hal::spi::Mode;
@@ -630,7 +630,7 @@ impl<A: BaseAddress, PINS, const I: usize> Spi<A, PINS, I> {
     #[inline]
     pub fn new(spi: SPI<A>, pins: PINS, mode: Mode, glb: &GLBv2<impl BaseAddress>) -> Self
     where
-        PINS: Pins<I>,
+        PINS: Pads<I>,
     {
         let mut config = Config(0)
             .disable_deglitch()
@@ -819,43 +819,43 @@ impl<A: BaseAddress, PINS, const I: usize> embedded_hal_027::blocking::spi::Writ
 }
 
 /// Valid SPI pins.
-pub trait Pins<const I: usize> {}
+pub trait Pads<const I: usize> {}
 
-impl<A1, A2, A3, const N1: usize, const N2: usize, const N3: usize> Pins<1>
+impl<A1, A2, A3, const N1: usize, const N2: usize, const N3: usize> Pads<1>
     for (
-        Pin<A1, N1, gpio::Spi<1>>,
-        Pin<A2, N2, gpio::Spi<1>>,
-        Pin<A3, N3, gpio::Spi<1>>,
+        Pad<A1, N1, gpio::Spi<1>>,
+        Pad<A2, N2, gpio::Spi<1>>,
+        Pad<A3, N3, gpio::Spi<1>>,
     )
 where
     A1: BaseAddress,
     A2: BaseAddress,
     A3: BaseAddress,
-    Pin<A1, N1, gpio::Spi<1>>: HasClkSignal,
-    Pin<A2, N2, gpio::Spi<1>>: HasMosiSignal,
-    Pin<A3, N3, gpio::Spi<1>>: HasCsSignal,
+    Pad<A1, N1, gpio::Spi<1>>: HasClkSignal,
+    Pad<A2, N2, gpio::Spi<1>>: HasMosiSignal,
+    Pad<A3, N3, gpio::Spi<1>>: HasCsSignal,
 {
 }
 
 /// Check if target gpio `Pin` is internally connected to SPI clock signal.
 pub trait HasClkSignal {}
 
-impl<A: BaseAddress> HasClkSignal for Pin<A, 19, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pad<A, 19, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI MISO signal.
 pub trait HasMisoSignal {}
 
-impl<A: BaseAddress> HasMisoSignal for Pin<A, 26, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pad<A, 26, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI MOSI signal.
 pub trait HasMosiSignal {}
 
-impl<A: BaseAddress> HasMosiSignal for Pin<A, 25, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pad<A, 25, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI CS signal.
 pub trait HasCsSignal {}
 
-impl<A: BaseAddress> HasCsSignal for Pin<A, 12, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pad<A, 12, gpio::Spi<1>> {}
 
 #[cfg(test)]
 mod tests {

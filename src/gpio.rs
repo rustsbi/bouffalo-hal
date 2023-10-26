@@ -35,8 +35,8 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 ///
 /// ```no_run
 /// # use base_address::Static;
-/// # use bl_soc::gpio::Pins;
-/// # pub struct Peripherals { gpio: Pins<Static<0x20000000>> }
+/// # use bl_soc::gpio::Pads;
+/// # pub struct Peripherals { gpio: Pads<Static<0x20000000>> }
 /// # fn main() -> ! {
 /// #   let p: Peripherals = unsafe { core::mem::transmute(()) };
 /// use embedded_hal::digital::{OutputPin, PinState};
@@ -69,7 +69,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// # use embedded_time::rate::*;
 /// # use bl_soc::{
 /// #     clocks::Clocks,
-/// #     gpio::{Pins, Pin, Alternate},
+/// #     gpio::{Pads, Pad, Alternate},
 /// #     uart::{BitOrder, Config, Parity, StopBits, WordLength},
 /// #     UART,
 /// # };
@@ -86,7 +86,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// #     base: A,
 /// # }
 /// # pub struct Peripherals {
-/// #     gpio: Pins<Static<0x20000000>>,
+/// #     gpio: Pads<Static<0x20000000>>,
 /// #     glb: GLB<Static<0x20000000>>,
 /// #     uart0: UART<Static<0x2000A000>, 0>,
 /// # }
@@ -125,7 +125,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// serial.flush().ok();
 /// # }
 /// ```
-pub struct Pin<A: BaseAddress, const N: usize, M: Alternate> {
+pub struct Pad<A: BaseAddress, const N: usize, M: Alternate> {
     #[cfg(any(feature = "glb-v1", feature = "glb-v2"))]
     pub(crate) base: GLB<A>,
     #[cfg(not(any(feature = "glb-v1", feature = "glb-v2")))]
@@ -177,15 +177,15 @@ impl Alternate for Disabled {
     const F: v2::Function = v2::Function::Gpio;
 }
 
-impl<A: BaseAddress, const N: usize, M> ErrorType for Pin<A, N, Input<M>> {
+impl<A: BaseAddress, const N: usize, M> ErrorType for Pad<A, N, Input<M>> {
     type Error = core::convert::Infallible;
 }
 
-impl<A: BaseAddress, const N: usize, M> ErrorType for Pin<A, N, Output<M>> {
+impl<A: BaseAddress, const N: usize, M> ErrorType for Pad<A, N, Output<M>> {
     type Error = core::convert::Infallible;
 }
 
-impl<A: BaseAddress, const N: usize, M> InputPin for Pin<A, N, Input<M>> {
+impl<A: BaseAddress, const N: usize, M> InputPin for Pad<A, N, Input<M>> {
     #[inline]
     fn is_high(&self) -> Result<bool, Self::Error> {
         cfg_if::cfg_if! {
@@ -212,7 +212,7 @@ impl<A: BaseAddress, const N: usize, M> InputPin for Pin<A, N, Input<M>> {
     }
 }
 
-impl<A: BaseAddress, const N: usize, M> OutputPin for Pin<A, N, Output<M>> {
+impl<A: BaseAddress, const N: usize, M> OutputPin for Pad<A, N, Output<M>> {
     #[inline]
     fn set_low(&mut self) -> Result<(), Self::Error> {
         cfg_if::cfg_if! {
@@ -250,7 +250,7 @@ impl<A: BaseAddress, const N: usize, M> OutputPin for Pin<A, N, Output<M>> {
 // We encourage ecosystem developers to use embedded-hal v1.0.0 traits; after that, this part of code
 // would be removed in the future.
 impl<A: BaseAddress, const N: usize, M> embedded_hal_027::digital::v2::OutputPin
-    for Pin<A, N, Output<M>>
+    for Pad<A, N, Output<M>>
 {
     type Error = core::convert::Infallible;
     #[inline]
@@ -267,7 +267,7 @@ impl<A: BaseAddress, const N: usize, M> embedded_hal_027::digital::v2::OutputPin
 // have such functionality to read back the previously set pin state.
 // It is recommended that users add a variable to store the pin state if necessary; see examples/gpio-demo.
 
-impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
+impl<A: BaseAddress, const N: usize, M> Pad<A, N, Input<M>> {
     /// Enable schmitt trigger.
     #[inline]
     pub fn enable_schmitt(&mut self) {
@@ -358,7 +358,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
 }
 
 #[cfg(feature = "glb-v1")]
-impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
+impl<A: BaseAddress, const N: usize, M> Pad<A, N, Input<M>> {
     /// Get interrupt mode.
     #[inline]
     pub fn interrupt_mode(&self) -> v1::InterruptMode {
@@ -377,7 +377,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
 }
 
 #[cfg(feature = "glb-v2")]
-impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
+impl<A: BaseAddress, const N: usize, M> Pad<A, N, Input<M>> {
     /// Get interrupt mode.
     #[inline]
     pub fn interrupt_mode(&self) -> v2::InterruptMode {
@@ -392,7 +392,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Input<M>> {
 }
 
 #[cfg(feature = "glb-v1")]
-impl<A: BaseAddress, const N: usize, M> Pin<A, N, Output<M>> {
+impl<A: BaseAddress, const N: usize, M> Pad<A, N, Output<M>> {
     /// Get drive strength of this pin.
     #[inline]
     pub fn drive(&self) -> v1::Drive {
@@ -407,7 +407,7 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Output<M>> {
 }
 
 #[cfg(feature = "glb-v2")]
-impl<A: BaseAddress, const N: usize, M> Pin<A, N, Output<M>> {
+impl<A: BaseAddress, const N: usize, M> Pad<A, N, Output<M>> {
     /// Get drive strength of this pin.
     #[inline]
     pub fn drive(&self) -> v2::Drive {
@@ -422,10 +422,10 @@ impl<A: BaseAddress, const N: usize, M> Pin<A, N, Output<M>> {
 }
 
 #[cfg(feature = "glb-v2")]
-impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     /// Configures the pin to operate as a SPI pin.
     #[inline]
-    pub fn into_spi<const I: usize>(self) -> Pin<A, N, Spi<I>>
+    pub fn into_spi<const I: usize>(self) -> Pad<A, N, Spi<I>>
     where
         Spi<I>: Alternate,
     {
@@ -440,7 +440,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             self.base.gpio_config[N].write(config);
         }
 
-        Pin {
+        Pad {
             base: self.base,
             _mode: PhantomData,
         }
@@ -460,10 +460,10 @@ impl Alternate for Spi<1> {
     const F: v2::Function = v2::Function::Spi1;
 }
 
-impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     /// Configures the pin to operate as a pull up output pin.
     #[inline]
-    pub fn into_pull_up_output(self) -> Pin<A, N, Output<PullUp>> {
+    pub fn into_pull_up_output(self) -> Pad<A, N, Output<PullUp>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
@@ -474,7 +474,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
-                Pin {
+                Pad {
                     base: self.base,
                     _mode: PhantomData,
                 }
@@ -487,7 +487,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .enable_output()
                     .set_pull(v2::Pull::Up);
                 unsafe { self.base.gpio_config[N].write(config) };
-                Pin {
+                Pad {
                     base: self.base,
                     _mode: PhantomData,
                 }
@@ -498,7 +498,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     }
     /// Configures the pin to operate as a pull down output pin.
     #[inline]
-    pub fn into_pull_down_output(self) -> Pin<A, N, Output<PullDown>> {
+    pub fn into_pull_down_output(self) -> Pad<A, N, Output<PullDown>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
@@ -509,7 +509,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
-                Pin {
+                Pad {
                     base: self.base,
                     _mode: PhantomData,
                 }
@@ -522,7 +522,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .enable_output()
                     .set_pull(v2::Pull::Down);
                 unsafe { self.base.gpio_config[N].write(config) };
-                Pin {
+                Pad {
                     base: self.base,
                     _mode: PhantomData,
                 }
@@ -533,7 +533,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     }
     /// Configures the pin to operate as a floating output pin.
     #[inline]
-    pub fn into_floating_output(self) -> Pin<A, N, Output<Floating>> {
+    pub fn into_floating_output(self) -> Pad<A, N, Output<Floating>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
@@ -544,7 +544,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
-                Pin {
+                Pad {
                     base: self.base,
                     _mode: PhantomData,
                 }
@@ -557,7 +557,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .enable_output()
                     .set_pull(v2::Pull::None);
                 unsafe { self.base.gpio_config[N].write(config) };
-                Pin {
+                Pad {
                     base: self.base,
                     _mode: PhantomData,
                 }
@@ -568,7 +568,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     }
     /// Configures the pin to operate as a pull up input pin.
     #[inline]
-    pub fn into_pull_up_input(self) -> Pin<A, N, Input<PullUp>> {
+    pub fn into_pull_up_input(self) -> Pad<A, N, Input<PullUp>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
@@ -579,7 +579,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
-                Pin {
+                Pad {
                     base: self.base,
                     _mode: PhantomData,
                 }
@@ -592,7 +592,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .disable_output()
                     .set_pull(v2::Pull::Up);
                 unsafe { self.base.gpio_config[N].write(config) };
-                Pin {
+                Pad {
                     base: self.base,
                     _mode: PhantomData,
                 }
@@ -603,7 +603,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     }
     /// Configures the pin to operate as a pull down input pin.
     #[inline]
-    pub fn into_pull_down_input(self) -> Pin<A, N, Input<PullDown>> {
+    pub fn into_pull_down_input(self) -> Pad<A, N, Input<PullDown>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
@@ -614,7 +614,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
-                Pin {
+                Pad {
                     base: self.base,
                     _mode: PhantomData,
                 }
@@ -627,7 +627,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .disable_output()
                     .set_pull(v2::Pull::Down);
                 unsafe { self.base.gpio_config[N].write(config) };
-                Pin {
+                Pad {
                     base: self.base,
                     _mode: PhantomData,
                 }
@@ -638,7 +638,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     }
     /// Configures the pin to operate as a floating input pin.
     #[inline]
-    pub fn into_floating_input(self) -> Pin<A, N, Input<Floating>> {
+    pub fn into_floating_input(self) -> Pad<A, N, Input<Floating>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
@@ -649,7 +649,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
-                Pin {
+                Pad {
                     base: self.base,
                     _mode: PhantomData,
                 }
@@ -662,7 +662,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
                     .disable_output()
                     .set_pull(v2::Pull::None);
                 unsafe { self.base.gpio_config[N].write(config) };
-                Pin {
+                Pad {
                     base: self.base,
                     _mode: PhantomData,
                 }
@@ -690,13 +690,13 @@ const UART_GPIO_CONFIG: v2::GpioConfig = v2::GpioConfig::RESET_VALUE
     .set_pull(v2::Pull::Up)
     .set_function(v2::Function::Uart);
 
-impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     /// Configures the pin to operate as UART signal.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_uart(self) -> Pin<A, N, Uart> {
+    pub fn into_uart(self) -> Pad<A, N, Uart> {
         unsafe { self.base.gpio_config[N].write(UART_GPIO_CONFIG) };
-        Pin {
+        Pad {
             base: self.base,
             _mode: PhantomData,
         }
@@ -711,15 +711,15 @@ impl Alternate for MmUart {
     const F: v2::Function = v2::Function::MmUart;
 }
 
-impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     /// Configures the pin to operate as multi-media cluster UART signal.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_mm_uart(self) -> Pin<A, N, MmUart> {
+    pub fn into_mm_uart(self) -> Pad<A, N, MmUart> {
         unsafe {
             self.base.gpio_config[N].write(UART_GPIO_CONFIG.set_function(v2::Function::MmUart))
         };
-        Pin {
+        Pad {
             base: self.base,
             _mode: PhantomData,
         }
@@ -739,11 +739,11 @@ impl Alternate for Pwm<1> {
     const F: v2::Function = v2::Function::Pwm1;
 }
 
-impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     /// Configures the pin to operate as a pull up Pulse Width Modulation signal pin.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_pull_up_pwm<const I: usize>(self) -> Pin<A, N, Pwm<I>>
+    pub fn into_pull_up_pwm<const I: usize>(self) -> Pad<A, N, Pwm<I>>
     where
         Pwm<I>: Alternate,
     {
@@ -755,7 +755,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             .set_pull(v2::Pull::Up)
             .set_function(Pwm::<I>::F);
         unsafe { self.base.gpio_config[N].write(config) };
-        Pin {
+        Pad {
             base: self.base,
             _mode: PhantomData,
         }
@@ -763,7 +763,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     /// Configures the pin to operate as a pull down Pulse Width Modulation signal pin.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_pull_down_pwm<const I: usize>(self) -> Pin<A, N, Pwm<I>>
+    pub fn into_pull_down_pwm<const I: usize>(self) -> Pad<A, N, Pwm<I>>
     where
         Pwm<I>: Alternate,
     {
@@ -775,7 +775,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             .set_pull(v2::Pull::Down)
             .set_function(Pwm::<I>::F);
         unsafe { self.base.gpio_config[N].write(config) };
-        Pin {
+        Pad {
             base: self.base,
             _mode: PhantomData,
         }
@@ -783,7 +783,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
     /// Configures the pin to operate as floating Pulse Width Modulation signal pin.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_floating_pwm<const I: usize>(self) -> Pin<A, N, Pwm<I>>
+    pub fn into_floating_pwm<const I: usize>(self) -> Pad<A, N, Pwm<I>>
     where
         Pwm<I>: Alternate,
     {
@@ -795,7 +795,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
             .set_pull(v2::Pull::None)
             .set_function(Pwm::<I>::F);
         unsafe { self.base.gpio_config[N].write(config) };
-        Pin {
+        Pad {
             base: self.base,
             _mode: PhantomData,
         }
@@ -825,11 +825,11 @@ impl Alternate for I2c<3> {
     const F: v2::Function = v2::Function::I2c3;
 }
 
-impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
+impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     /// Configures the pin to operate as an Inter-Integrated Circuit signal pin.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_i2c<const I: usize>(self) -> Pin<A, N, I2c<I>>
+    pub fn into_i2c<const I: usize>(self) -> Pad<A, N, I2c<I>>
     where
         I2c<I>: Alternate,
     {
@@ -843,7 +843,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
         unsafe {
             self.base.gpio_config[N].write(config);
         }
-        Pin {
+        Pad {
             base: self.base,
             _mode: PhantomData,
         }
@@ -851,63 +851,63 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pin<A, N, M> {
 }
 
 /// Available GPIO pins.
-pub struct Pins<A: BaseAddress> {
+pub struct Pads<A: BaseAddress> {
     // GPIO I/O 0.
-    pub io0: Pin<A, 0, Disabled>,
+    pub io0: Pad<A, 0, Disabled>,
     // GPIO I/O 1.
-    pub io1: Pin<A, 1, Disabled>,
+    pub io1: Pad<A, 1, Disabled>,
     // GPIO I/O 2.
-    pub io2: Pin<A, 2, Disabled>,
+    pub io2: Pad<A, 2, Disabled>,
     // GPIO I/O 3.
-    pub io3: Pin<A, 3, Disabled>,
+    pub io3: Pad<A, 3, Disabled>,
     // GPIO I/O 4.
-    pub io4: Pin<A, 4, Disabled>,
+    pub io4: Pad<A, 4, Disabled>,
     // GPIO I/O 5.
-    pub io5: Pin<A, 5, Disabled>,
+    pub io5: Pad<A, 5, Disabled>,
     // GPIO I/O 6.
-    pub io6: Pin<A, 6, Disabled>,
+    pub io6: Pad<A, 6, Disabled>,
     // GPIO I/O 7.
-    pub io7: Pin<A, 7, Disabled>,
+    pub io7: Pad<A, 7, Disabled>,
     // GPIO I/O 8.
-    pub io8: Pin<A, 8, Disabled>,
+    pub io8: Pad<A, 8, Disabled>,
     // GPIO I/O 9.
-    pub io9: Pin<A, 9, Disabled>,
+    pub io9: Pad<A, 9, Disabled>,
     // GPIO I/O 10.
-    pub io10: Pin<A, 10, Disabled>,
+    pub io10: Pad<A, 10, Disabled>,
     // GPIO I/O 11.
-    pub io11: Pin<A, 11, Disabled>,
+    pub io11: Pad<A, 11, Disabled>,
     // GPIO I/O 12.
-    pub io12: Pin<A, 12, Disabled>,
+    pub io12: Pad<A, 12, Disabled>,
     // GPIO I/O 13.
-    pub io13: Pin<A, 13, Disabled>,
+    pub io13: Pad<A, 13, Disabled>,
     // GPIO I/O 14.
-    pub io14: Pin<A, 14, Disabled>,
+    pub io14: Pad<A, 14, Disabled>,
     // GPIO I/O 15.
-    pub io15: Pin<A, 15, Disabled>,
+    pub io15: Pad<A, 15, Disabled>,
     // GPIO I/O 16.
-    pub io16: Pin<A, 16, Disabled>,
+    pub io16: Pad<A, 16, Disabled>,
     // GPIO I/O 17.
-    pub io17: Pin<A, 17, Disabled>,
+    pub io17: Pad<A, 17, Disabled>,
     // GPIO I/O 18.
-    pub io18: Pin<A, 18, Disabled>,
+    pub io18: Pad<A, 18, Disabled>,
     // GPIO I/O 19.
-    pub io19: Pin<A, 19, Disabled>,
+    pub io19: Pad<A, 19, Disabled>,
     // GPIO I/O 20.
-    pub io20: Pin<A, 20, Disabled>,
+    pub io20: Pad<A, 20, Disabled>,
     // GPIO I/O 21.
-    pub io21: Pin<A, 21, Disabled>,
+    pub io21: Pad<A, 21, Disabled>,
     // GPIO I/O 22.
-    pub io22: Pin<A, 22, Disabled>,
+    pub io22: Pad<A, 22, Disabled>,
     // GPIO I/O 23.
-    pub io23: Pin<A, 23, Disabled>,
+    pub io23: Pad<A, 23, Disabled>,
     // GPIO I/O 24.
-    pub io24: Pin<A, 24, Disabled>,
+    pub io24: Pad<A, 24, Disabled>,
     // GPIO I/O 25.
-    pub io25: Pin<A, 25, Disabled>,
+    pub io25: Pad<A, 25, Disabled>,
     // GPIO I/O 26.
-    pub io26: Pin<A, 26, Disabled>,
+    pub io26: Pad<A, 26, Disabled>,
     // GPIO I/O 27.
-    pub io27: Pin<A, 27, Disabled>,
+    pub io27: Pad<A, 27, Disabled>,
     // GPIO I/O 28.
-    pub io28: Pin<A, 28, Disabled>,
+    pub io28: Pad<A, 28, Disabled>,
 }
