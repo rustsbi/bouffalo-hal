@@ -700,6 +700,8 @@ pub struct Peripherals {
     pub spi1: bl_soc::SPI<Static<0x30008000>>,
     /// Platform-local Interrupt Controller.
     pub plic: PLIC<Static<0xE0000000>>,
+    /// Multi-media subsystem global peripheral.
+    pub mmglb: bl_soc::glb::MMGLB<Static<0x30007000>>, 
 }
 
 /// Platform-local Interrupt Controller.
