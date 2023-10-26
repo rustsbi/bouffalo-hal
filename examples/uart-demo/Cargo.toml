@@ -16,5 +16,5 @@ embedded-time = "0.12.1"
 git = "https://gitee.com/rustsbi/bl-rom-rt"
 branch = "main"
 default-features = false
-features = ["bl808-d0"]
+features = ["bl808-dsp"]
  

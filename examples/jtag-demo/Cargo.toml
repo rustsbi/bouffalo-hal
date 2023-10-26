@@ -16,4 +16,4 @@ riscv = "0.10.1"
 git = "https://gitee.com/rustsbi/bl-rom-rt"
 branch = "main"
 default-features = false
-features = ["bl808-d0"]
+features = ["bl808-dsp"]
