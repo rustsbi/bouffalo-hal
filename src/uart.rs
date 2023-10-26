@@ -896,6 +896,7 @@ pub struct UartMuxes<A: BaseAddress> {
 /// Check if target gpio `Pin` is internally connected to UART signal index `I`.
 pub trait HasUartSignal<const I: usize> {}
 
+impl<A: BaseAddress> HasUartSignal<0> for Pin<A, 0, Uart> {}
 impl<A: BaseAddress> HasUartSignal<1> for Pin<A, 1, Uart> {}
 impl<A: BaseAddress> HasUartSignal<2> for Pin<A, 2, Uart> {}
 impl<A: BaseAddress> HasUartSignal<3> for Pin<A, 3, Uart> {}
