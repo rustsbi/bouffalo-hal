@@ -840,22 +840,65 @@ where
 /// Check if target gpio `Pin` is internally connected to SPI clock signal.
 pub trait HasClkSignal {}
 
+impl<A: BaseAddress> HasClkSignal for Pin<A, 3, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pin<A, 7, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pin<A, 11, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pin<A, 15, gpio::Spi<1>> {}
 impl<A: BaseAddress> HasClkSignal for Pin<A, 19, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pin<A, 23, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pin<A, 27, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pin<A, 31, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pin<A, 35, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pin<A, 39, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pin<A, 43, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI MISO signal.
 pub trait HasMisoSignal {}
 
+impl<A: BaseAddress> HasMisoSignal for Pin<A, 2, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pin<A, 6, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pin<A, 10, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pin<A, 14, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pin<A, 18, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pin<A, 22, gpio::Spi<1>> {}
 impl<A: BaseAddress> HasMisoSignal for Pin<A, 26, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pin<A, 30, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pin<A, 34, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pin<A, 38, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pin<A, 42, gpio::Spi<1>> {}
+
 
 /// Check if target gpio `Pin` is internally connected to SPI MOSI signal.
 pub trait HasMosiSignal {}
 
+impl<A: BaseAddress> HasMosiSignal for Pin<A, 1, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pin<A, 5, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pin<A, 9, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pin<A, 13, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pin<A, 17, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pin<A, 21, gpio::Spi<1>> {}
 impl<A: BaseAddress> HasMosiSignal for Pin<A, 25, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pin<A, 29, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pin<A, 33, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pin<A, 37, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pin<A, 41, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pin<A, 45, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI CS signal.
 pub trait HasCsSignal {}
 
+impl<A: BaseAddress> HasCsSignal for Pin<A, 0, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pin<A, 4, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pin<A, 8, gpio::Spi<1>> {}
 impl<A: BaseAddress> HasCsSignal for Pin<A, 12, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pin<A, 16, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pin<A, 20, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pin<A, 24, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pin<A, 28, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pin<A, 32, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pin<A, 36, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pin<A, 40, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pin<A, 44, gpio::Spi<1>> {}
 
 #[cfg(test)]
 mod tests {
