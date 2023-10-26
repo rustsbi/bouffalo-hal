@@ -20,13 +20,13 @@ memoffset = "0.8.0"
 [features]
 default = ["rom-peripherals"]
 # BL616 and BL618 chip series.
-bl616 = ["bl-soc/bl616", "bl-rom-rt-macros/bl616"]
+bl616 = ["bl-soc/bl616", "bl-rom-rt-macros/bl616", "dep:bl-soc"]
 # BL808 chip.
-bl808-mcu = ["bl-soc/bl808", "bl-rom-rt-macros/bl808-mcu"]
-bl808-dsp = ["bl-soc/bl808", "bl-rom-rt-macros/bl808-dsp"]
-bl808-lp = ["bl-soc/bl808", "bl-rom-rt-macros/bl808-lp"]
+bl808-mcu = ["bl-soc/bl808", "bl-rom-rt-macros/bl808-mcu", "dep:bl-soc"]
+bl808-dsp = ["bl-soc/bl808", "bl-rom-rt-macros/bl808-dsp", "dep:bl-soc"]
+bl808-lp = ["bl-soc/bl808", "bl-rom-rt-macros/bl808-lp", "dep:bl-soc"]
 # BL702, BL704 and BL706 chip series.
-bl702 = ["bl-soc/bl702", "bl-rom-rt-macros/bl702"]
+bl702 = ["bl-soc/bl702", "bl-rom-rt-macros/bl702", "dep:bl-soc"]
 # Provide ROM peripherals on #[entry] function.
 rom-peripherals = ["bl-rom-rt-macros/rom-peripherals", "dep:bl-soc", "dep:base-address", "dep:embedded-time"]
 
