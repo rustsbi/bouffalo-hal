@@ -31,11 +31,7 @@ pub mod sdio;
 pub mod spi;
 pub mod timer;
 pub mod uart;
-
-/// Universal Serial Bus peripheral.
-pub mod usb {
-    pub mod v1;
-}
+pub mod usb;
 
 #[doc(hidden)]
 pub mod prelude {

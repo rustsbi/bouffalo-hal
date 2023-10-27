@@ -20,7 +20,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// Individual GPIO pin.
 ///
 /// Generic Purpose Input/Output, or GPIO, is a standard interface used to connect the
-/// microcontroller to external hardware. There are multiple GPIO pins on one chip,
+/// microcontroller to external hardware. There are multiple GPIO pads on one chip,
 /// which are different due to the signal of the internal connections. This structure
 /// distinguishes them using constant generic number `N`.
 ///
@@ -82,7 +82,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// #     UART,
 /// # };
 /// # use embedded_io::Write;
-/// # pub struct Serial<PADS> { pins: PADS }
+/// # pub struct Serial<PADS> { pads: PADS }
 /// # impl<PADS> Serial<PADS> {
 /// #     pub fn new(_: UART<impl BaseAddress, 0>, _: Config, _: Baud,
 /// # #[cfg(feature = "glb-v2")] _: PADS, _: &Clocks, _: &GLB<impl BaseAddress>)
@@ -101,7 +101,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// # fn main() {
 /// # let p: Peripherals = unsafe { core::mem::transmute(()) };
 /// # let clocks = Clocks { xtal: Hertz(40_000_000) };
-/// // Prepare UART transmit and receive pins by converting io14 and io15 into
+/// // Prepare UART transmit and receive pads by converting io14 and io15 into
 /// // UART signal alternate mode.
 /// # #[cfg(feature = "glb-v2")]
 /// let tx = p.gpio.io14.into_uart();
@@ -127,7 +127,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 ///     &p.glb,
 /// );
 /// # #[cfg(not(feature = "glb-v2"))]
-/// # let mut serial = Serial { pins: () };
+/// # let mut serial = Serial { pads: () };
 /// // Now that we have a working serial structure, we write something with it.
 /// writeln!(serial, "Hello world!").ok();
 /// serial.flush().ok();
@@ -858,7 +858,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     }
 }
 
-/// Available GPIO pins.
+/// Available GPIO pads.
 pub struct Pads<A: BaseAddress> {
     // GPIO I/O 0.
     pub io0: Pad<A, 0, Disabled>,
