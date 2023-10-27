@@ -622,13 +622,13 @@ impl FifoConfig1 {
 /// Managed Serial Peripheral Interface peripheral.
 pub struct Spi<A: BaseAddress, PADS, const I: usize> {
     spi: SPI<A>,
-    pins: PADS,
+    pads: PADS,
 }
 
 impl<A: BaseAddress, PADS, const I: usize> Spi<A, PADS, I> {
     /// Create a new Serial Peripheral Interface instance.
     #[inline]
-    pub fn new(spi: SPI<A>, pins: PADS, mode: Mode, glb: &GLBv2<impl BaseAddress>) -> Self
+    pub fn new(spi: SPI<A>, pads: PADS, mode: Mode, glb: &GLBv2<impl BaseAddress>) -> Self
     where
         PADS: Pads<I>,
     {
@@ -678,13 +678,13 @@ impl<A: BaseAddress, PADS, const I: usize> Spi<A, PADS, I> {
             spi.period_interval
                 .write(PeriodInterval(0).set_frame_interval(1));
         }
-        Spi { spi, pins }
+        Spi { spi, pads }
     }
 
-    /// Release the SPI instance and return the pins.
+    /// Release the SPI instance and return the pads.
     #[inline]
     pub fn free(self) -> (SPI<A>, PADS) {
-        (self.spi, self.pins)
+        (self.spi, self.pads)
     }
 }
 
@@ -818,7 +818,7 @@ impl<A: BaseAddress, PADS, const I: usize> embedded_hal_027::blocking::spi::Writ
     }
 }
 
-/// Valid SPI pins.
+/// Valid SPI pads.
 pub trait Pads<const I: usize> {}
 
 impl<A1, A2, A3, const N1: usize, const N2: usize, const N3: usize> Pads<1>

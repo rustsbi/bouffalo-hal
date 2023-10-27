@@ -9,21 +9,21 @@ pub struct RegisterBlock {
     /// Generic Purpose Input/Output configuration register.
     pub gpio_config: [RW<GpioConfig>; 16],
     _reserved1: [u8; 0x40],
-    /// Read value from Generic Purpose Input/Output pins.
+    /// Read value from Generic Purpose Input/Output pads.
     pub gpio_input_value: RO<u32>,
     _reserved2: [u8; 0x4],
-    /// Write value to Generic Purpose Input/Output pins.
+    /// Write value to Generic Purpose Input/Output pads.
     pub gpio_output_value: RW<u32>,
     _reserved3: [u8; 0x4],
-    /// Enable output function of Generic Purpose Input/Output pins.
+    /// Enable output function of Generic Purpose Input/Output pads.
     pub gpio_output_enable: RW<u32>,
-    /// Interrupt mask of Generic Purpose Input/Output pins.
+    /// Interrupt mask of Generic Purpose Input/Output pads.
     pub gpio_interrupt_mask: RW<u32>,
     _reserved4: [u8; 0x10],
-    /// Interrupt state of Generic Purpose Input/Output pins.
+    /// Interrupt state of Generic Purpose Input/Output pads.
     pub gpio_interrupt_state: RO<u32>,
     _reserved5: [u8; 0x4],
-    /// Clear interrupt state of Generic Purpose Input/Output pins.
+    /// Clear interrupt state of Generic Purpose Input/Output pads.
     pub gpio_interrupt_clear: WO<u32>,
     _reserved6: [u8; 0xc],
     /// Generic Purpose Input/Output interrupt mode register.

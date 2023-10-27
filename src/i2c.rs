@@ -497,13 +497,13 @@ impl FifoConfig1 {
 /// Managed Inter-Integrated Circuit peripheral.
 pub struct I2c<A: BaseAddress, PADS> {
     i2c: I2C<A>,
-    pins: PADS,
+    pads: PADS,
 }
 
 impl<A: BaseAddress, SCL, SDA> I2c<A, (SCL, SDA)> {
     /// Create a new Inter-Integrated Circuit instance.
     #[inline]
-    pub fn new<const I: usize>(i2c: I2C<A>, pins: (SCL, SDA), glb: &GLBv2<impl BaseAddress>) -> Self
+    pub fn new<const I: usize>(i2c: I2C<A>, pads: (SCL, SDA), glb: &GLBv2<impl BaseAddress>) -> Self
     where
         SCL: SclPin<I>,
         SDA: SdaPin<I>,
@@ -547,17 +547,17 @@ impl<A: BaseAddress, SCL, SDA> I2c<A, (SCL, SDA)> {
             );
         }
 
-        Self { i2c, pins }
+        Self { i2c, pads }
     }
 
-    /// Release the I2C instance and return the pins.
+    /// Release the I2C instance and return the pads.
     #[inline]
     pub fn free(self, glb: &GLBv2<impl BaseAddress>) -> (I2C<A>, (SCL, SDA)) {
         unsafe {
             glb.i2c_config.modify(|config| config.disable_clock());
             glb.clock_config_1.modify(|config| config.disable_i2c());
         }
-        (self.i2c, self.pins)
+        (self.i2c, self.pads)
     }
 
     /// Enable sub-address.
@@ -661,7 +661,7 @@ mod i2c_impls {
 
     // 0, 2, 4, ..., 2n: SCL
     // 1, 3, 5, ..., 2n+1: SDA
-    // TODO: support other pins if needed
+    // TODO: support other pads if needed
     impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 0, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
     impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 1, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
     impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 2, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}

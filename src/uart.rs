@@ -948,7 +948,7 @@ pub trait HasMmUartSignal {}
 
 impl<A: BaseAddress, const N: usize> HasMmUartSignal for Pad<A, N, MmUart> {}
 
-/// Valid UART pins.
+/// Valid UART pads.
 pub trait Pads<const U: usize> {
     /// Checks if this pin configuration includes Request-to-Send feature.
     const RTS: bool;
@@ -1157,7 +1157,7 @@ where
 /// Managed serial peripheral.
 pub struct Serial<const I: usize, A: BaseAddress, PADS> {
     uart: UART<A, I>,
-    pins: PADS,
+    pads: PADS,
 }
 
 impl<const I: usize, A: BaseAddress, PADS> Serial<I, A, PADS> {
@@ -1169,7 +1169,7 @@ impl<const I: usize, A: BaseAddress, PADS> Serial<I, A, PADS> {
         uart: UART<A, I>,
         config: Config,
         baudrate: Baud,
-        pins: PADS,
+        pads: PADS,
         clocks: &Clocks,
     ) -> Self
     where
@@ -1213,13 +1213,13 @@ impl<const I: usize, A: BaseAddress, PADS> Serial<I, A, PADS> {
         }
         unsafe { uart.receive_config.write(val) };
 
-        Self { uart, pins }
+        Self { uart, pads }
     }
 
-    /// Release serial instance and return its peripheral and pins.
+    /// Release serial instance and return its peripheral and pads.
     #[inline]
     pub fn free(self) -> (UART<A, I>, PADS) {
-        (self.uart, self.pins)
+        (self.uart, self.pads)
     }
 }
 
@@ -1230,7 +1230,7 @@ pub trait UartExt<const I: usize, A: BaseAddress, PADS> {
         self,
         config: Config,
         baudrate: Baud,
-        pins: PADS,
+        pads: PADS,
         clocks: &Clocks,
     ) -> Serial<I, A, PADS>
     where
@@ -1243,13 +1243,13 @@ impl<const I: usize, A: BaseAddress, PADS> UartExt<I, A, PADS> for UART<A, I> {
         self,
         config: Config,
         baudrate: Baud,
-        pins: PADS,
+        pads: PADS,
         clocks: &Clocks,
     ) -> Serial<I, A, PADS>
     where
         PADS: Pads<I>,
     {
-        Serial::freerun(self, config, baudrate, pins, clocks)
+        Serial::freerun(self, config, baudrate, pads, clocks)
     }
 }
 
