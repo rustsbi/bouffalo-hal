@@ -5,7 +5,8 @@ use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
 #[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp"))]
 use {crate::Stack, core::arch::asm};
 
-#[cfg(feature = "rom-peripherals")]
+// TODO: restore #[cfg(feature = "rom-peripherals")] once nested interrupt on BL808 DSP is supported.
+#[allow(unused)]
 use base_address::Static;
 
 #[cfg(feature = "bl808-mcu")]
