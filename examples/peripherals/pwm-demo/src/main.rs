@@ -19,7 +19,7 @@ use panic_halt as _;
 
 #[entry]
 fn main() -> ! {
-    let gpio: PADS<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
+    let gpio: Pads<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let glb: GLB<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
     let pwm: PWM<Static<0x2000A400>> = unsafe { core::mem::transmute(()) };
     let clocks = Clocks {

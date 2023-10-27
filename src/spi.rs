@@ -840,7 +840,6 @@ where
 /// Check if target gpio `Pin` is internally connected to SPI clock signal.
 pub trait HasClkSignal {}
 
-impl<A: BaseAddress> HasClkSignal for Pad<A, 19, gpio::Spi<1>> {}
 impl<A: BaseAddress> HasClkSignal for Pad<A, 3, gpio::Spi<1>> {}
 impl<A: BaseAddress> HasClkSignal for Pad<A, 7, gpio::Spi<1>> {}
 impl<A: BaseAddress> HasClkSignal for Pad<A, 11, gpio::Spi<1>> {}
