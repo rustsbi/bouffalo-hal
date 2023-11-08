@@ -28,10 +28,10 @@ pub struct RegisterBlock {
     /// Generic Purpose Input/Output config.
     pub gpio_config: [RW<GpioConfig>; 46],
     _reserved7: [u8; 0x148],
-    /// Read value from Generic Purpose Input/Output pins.
+    /// Read value from Generic Purpose Input/Output pads.
     pub gpio_input: [RO<u32>; 2],
     _reserved8: [u8; 0x18],
-    /// Write value to Generic Purpose Input/Output pins.
+    /// Write value to Generic Purpose Input/Output pads.
     pub gpio_output: [RW<u32>; 2],
     /// Set pin output value to high.
     pub gpio_set: [WO<u32>; 2],

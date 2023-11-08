@@ -3,7 +3,7 @@ use crate::clocks::Clocks;
 use crate::glb::{v2::UartSignal, GLBv2};
 use crate::gpio::MmUart;
 use crate::{
-    gpio::{Pin, Uart},
+    gpio::{Pad, Uart},
     UART,
 };
 use base_address::BaseAddress;
@@ -896,59 +896,60 @@ pub struct UartMuxes<A: BaseAddress> {
 /// Check if target gpio `Pin` is internally connected to UART signal index `I`.
 pub trait HasUartSignal<const I: usize> {}
 
-impl<A: BaseAddress> HasUartSignal<1> for Pin<A, 1, Uart> {}
-impl<A: BaseAddress> HasUartSignal<2> for Pin<A, 2, Uart> {}
-impl<A: BaseAddress> HasUartSignal<3> for Pin<A, 3, Uart> {}
-impl<A: BaseAddress> HasUartSignal<4> for Pin<A, 4, Uart> {}
-impl<A: BaseAddress> HasUartSignal<5> for Pin<A, 5, Uart> {}
-impl<A: BaseAddress> HasUartSignal<6> for Pin<A, 6, Uart> {}
-impl<A: BaseAddress> HasUartSignal<7> for Pin<A, 7, Uart> {}
-impl<A: BaseAddress> HasUartSignal<8> for Pin<A, 8, Uart> {}
-impl<A: BaseAddress> HasUartSignal<9> for Pin<A, 9, Uart> {}
-impl<A: BaseAddress> HasUartSignal<10> for Pin<A, 10, Uart> {}
-impl<A: BaseAddress> HasUartSignal<11> for Pin<A, 11, Uart> {}
-impl<A: BaseAddress> HasUartSignal<0> for Pin<A, 12, Uart> {}
-impl<A: BaseAddress> HasUartSignal<1> for Pin<A, 13, Uart> {}
-impl<A: BaseAddress> HasUartSignal<2> for Pin<A, 14, Uart> {}
-impl<A: BaseAddress> HasUartSignal<3> for Pin<A, 15, Uart> {}
-impl<A: BaseAddress> HasUartSignal<4> for Pin<A, 16, Uart> {}
-impl<A: BaseAddress> HasUartSignal<5> for Pin<A, 17, Uart> {}
-impl<A: BaseAddress> HasUartSignal<6> for Pin<A, 18, Uart> {}
-impl<A: BaseAddress> HasUartSignal<7> for Pin<A, 19, Uart> {}
-impl<A: BaseAddress> HasUartSignal<8> for Pin<A, 20, Uart> {}
-impl<A: BaseAddress> HasUartSignal<9> for Pin<A, 21, Uart> {}
-impl<A: BaseAddress> HasUartSignal<10> for Pin<A, 22, Uart> {}
-impl<A: BaseAddress> HasUartSignal<11> for Pin<A, 23, Uart> {}
-impl<A: BaseAddress> HasUartSignal<0> for Pin<A, 24, Uart> {}
-impl<A: BaseAddress> HasUartSignal<1> for Pin<A, 25, Uart> {}
-impl<A: BaseAddress> HasUartSignal<2> for Pin<A, 26, Uart> {}
-impl<A: BaseAddress> HasUartSignal<3> for Pin<A, 27, Uart> {}
-impl<A: BaseAddress> HasUartSignal<4> for Pin<A, 28, Uart> {}
-impl<A: BaseAddress> HasUartSignal<5> for Pin<A, 29, Uart> {}
-impl<A: BaseAddress> HasUartSignal<6> for Pin<A, 30, Uart> {}
-impl<A: BaseAddress> HasUartSignal<7> for Pin<A, 31, Uart> {}
-impl<A: BaseAddress> HasUartSignal<8> for Pin<A, 32, Uart> {}
-impl<A: BaseAddress> HasUartSignal<9> for Pin<A, 33, Uart> {}
-impl<A: BaseAddress> HasUartSignal<10> for Pin<A, 34, Uart> {}
-impl<A: BaseAddress> HasUartSignal<11> for Pin<A, 35, Uart> {}
-impl<A: BaseAddress> HasUartSignal<0> for Pin<A, 36, Uart> {}
-impl<A: BaseAddress> HasUartSignal<1> for Pin<A, 37, Uart> {}
-impl<A: BaseAddress> HasUartSignal<2> for Pin<A, 38, Uart> {}
-impl<A: BaseAddress> HasUartSignal<3> for Pin<A, 39, Uart> {}
-impl<A: BaseAddress> HasUartSignal<4> for Pin<A, 40, Uart> {}
-impl<A: BaseAddress> HasUartSignal<5> for Pin<A, 41, Uart> {}
-impl<A: BaseAddress> HasUartSignal<6> for Pin<A, 42, Uart> {}
-impl<A: BaseAddress> HasUartSignal<7> for Pin<A, 43, Uart> {}
-impl<A: BaseAddress> HasUartSignal<8> for Pin<A, 44, Uart> {}
-impl<A: BaseAddress> HasUartSignal<9> for Pin<A, 45, Uart> {}
+impl<A: BaseAddress> HasUartSignal<0> for Pad<A, 0, Uart> {}
+impl<A: BaseAddress> HasUartSignal<1> for Pad<A, 1, Uart> {}
+impl<A: BaseAddress> HasUartSignal<2> for Pad<A, 2, Uart> {}
+impl<A: BaseAddress> HasUartSignal<3> for Pad<A, 3, Uart> {}
+impl<A: BaseAddress> HasUartSignal<4> for Pad<A, 4, Uart> {}
+impl<A: BaseAddress> HasUartSignal<5> for Pad<A, 5, Uart> {}
+impl<A: BaseAddress> HasUartSignal<6> for Pad<A, 6, Uart> {}
+impl<A: BaseAddress> HasUartSignal<7> for Pad<A, 7, Uart> {}
+impl<A: BaseAddress> HasUartSignal<8> for Pad<A, 8, Uart> {}
+impl<A: BaseAddress> HasUartSignal<9> for Pad<A, 9, Uart> {}
+impl<A: BaseAddress> HasUartSignal<10> for Pad<A, 10, Uart> {}
+impl<A: BaseAddress> HasUartSignal<11> for Pad<A, 11, Uart> {}
+impl<A: BaseAddress> HasUartSignal<0> for Pad<A, 12, Uart> {}
+impl<A: BaseAddress> HasUartSignal<1> for Pad<A, 13, Uart> {}
+impl<A: BaseAddress> HasUartSignal<2> for Pad<A, 14, Uart> {}
+impl<A: BaseAddress> HasUartSignal<3> for Pad<A, 15, Uart> {}
+impl<A: BaseAddress> HasUartSignal<4> for Pad<A, 16, Uart> {}
+impl<A: BaseAddress> HasUartSignal<5> for Pad<A, 17, Uart> {}
+impl<A: BaseAddress> HasUartSignal<6> for Pad<A, 18, Uart> {}
+impl<A: BaseAddress> HasUartSignal<7> for Pad<A, 19, Uart> {}
+impl<A: BaseAddress> HasUartSignal<8> for Pad<A, 20, Uart> {}
+impl<A: BaseAddress> HasUartSignal<9> for Pad<A, 21, Uart> {}
+impl<A: BaseAddress> HasUartSignal<10> for Pad<A, 22, Uart> {}
+impl<A: BaseAddress> HasUartSignal<11> for Pad<A, 23, Uart> {}
+impl<A: BaseAddress> HasUartSignal<0> for Pad<A, 24, Uart> {}
+impl<A: BaseAddress> HasUartSignal<1> for Pad<A, 25, Uart> {}
+impl<A: BaseAddress> HasUartSignal<2> for Pad<A, 26, Uart> {}
+impl<A: BaseAddress> HasUartSignal<3> for Pad<A, 27, Uart> {}
+impl<A: BaseAddress> HasUartSignal<4> for Pad<A, 28, Uart> {}
+impl<A: BaseAddress> HasUartSignal<5> for Pad<A, 29, Uart> {}
+impl<A: BaseAddress> HasUartSignal<6> for Pad<A, 30, Uart> {}
+impl<A: BaseAddress> HasUartSignal<7> for Pad<A, 31, Uart> {}
+impl<A: BaseAddress> HasUartSignal<8> for Pad<A, 32, Uart> {}
+impl<A: BaseAddress> HasUartSignal<9> for Pad<A, 33, Uart> {}
+impl<A: BaseAddress> HasUartSignal<10> for Pad<A, 34, Uart> {}
+impl<A: BaseAddress> HasUartSignal<11> for Pad<A, 35, Uart> {}
+impl<A: BaseAddress> HasUartSignal<0> for Pad<A, 36, Uart> {}
+impl<A: BaseAddress> HasUartSignal<1> for Pad<A, 37, Uart> {}
+impl<A: BaseAddress> HasUartSignal<2> for Pad<A, 38, Uart> {}
+impl<A: BaseAddress> HasUartSignal<3> for Pad<A, 39, Uart> {}
+impl<A: BaseAddress> HasUartSignal<4> for Pad<A, 40, Uart> {}
+impl<A: BaseAddress> HasUartSignal<5> for Pad<A, 41, Uart> {}
+impl<A: BaseAddress> HasUartSignal<6> for Pad<A, 42, Uart> {}
+impl<A: BaseAddress> HasUartSignal<7> for Pad<A, 43, Uart> {}
+impl<A: BaseAddress> HasUartSignal<8> for Pad<A, 44, Uart> {}
+impl<A: BaseAddress> HasUartSignal<9> for Pad<A, 45, Uart> {}
 
 /// Check if an internal multi-media UART signal is connected to target gpio `Pin`.
 pub trait HasMmUartSignal {}
 
-impl<A: BaseAddress, const N: usize> HasMmUartSignal for Pin<A, N, MmUart> {}
+impl<A: BaseAddress, const N: usize> HasMmUartSignal for Pad<A, N, MmUart> {}
 
-/// Valid UART pins.
-pub trait Pins<const U: usize> {
+/// Valid UART pads.
+pub trait Pads<const U: usize> {
     /// Checks if this pin configuration includes Request-to-Send feature.
     const RTS: bool;
     /// Checks if this pin configuration includes Clear-to-Send feature.
@@ -959,12 +960,12 @@ pub trait Pins<const U: usize> {
     const RXD: bool;
 }
 
-impl<A1, A2, const I: usize, const U: usize, const N: usize> Pins<U>
-    for (Pin<A1, N, Uart>, UartMux<A2, I, MuxTxd<U>>)
+impl<A1, A2, const I: usize, const U: usize, const N: usize> Pads<U>
+    for (Pad<A1, N, Uart>, UartMux<A2, I, MuxTxd<U>>)
 where
     A1: BaseAddress,
     A2: BaseAddress,
-    Pin<A2, N, Uart>: HasUartSignal<I>,
+    Pad<A2, N, Uart>: HasUartSignal<I>,
 {
     const RTS: bool = false;
     const CTS: bool = false;
@@ -982,18 +983,18 @@ impl<
         const U: usize,
         const N1: usize,
         const N2: usize,
-    > Pins<U>
+    > Pads<U>
     for (
-        (Pin<A1, N1, Uart>, UartMux<A2, I1, MuxTxd<U>>),
-        (Pin<A3, N2, Uart>, UartMux<A4, I2, MuxRxd<U>>),
+        (Pad<A1, N1, Uart>, UartMux<A2, I1, MuxTxd<U>>),
+        (Pad<A3, N2, Uart>, UartMux<A4, I2, MuxRxd<U>>),
     )
 where
     A1: BaseAddress,
     A2: BaseAddress,
     A3: BaseAddress,
     A4: BaseAddress,
-    Pin<A2, N1, Uart>: HasUartSignal<I1>,
-    Pin<A4, N2, Uart>: HasUartSignal<I2>,
+    Pad<A2, N1, Uart>: HasUartSignal<I1>,
+    Pad<A4, N2, Uart>: HasUartSignal<I2>,
 {
     const RTS: bool = false;
     const CTS: bool = false;
@@ -1011,18 +1012,18 @@ impl<
         const U: usize,
         const N1: usize,
         const N2: usize,
-    > Pins<U>
+    > Pads<U>
     for (
-        (Pin<A1, N1, Uart>, UartMux<A2, I1, MuxTxd<U>>),
-        (Pin<A3, N2, Uart>, UartMux<A4, I2, MuxCts<U>>),
+        (Pad<A1, N1, Uart>, UartMux<A2, I1, MuxTxd<U>>),
+        (Pad<A3, N2, Uart>, UartMux<A4, I2, MuxCts<U>>),
     )
 where
     A1: BaseAddress,
     A2: BaseAddress,
     A3: BaseAddress,
     A4: BaseAddress,
-    Pin<A2, N1, Uart>: HasUartSignal<I1>,
-    Pin<A4, N2, Uart>: HasUartSignal<I2>,
+    Pad<A2, N1, Uart>: HasUartSignal<I1>,
+    Pad<A4, N2, Uart>: HasUartSignal<I2>,
 {
     const RTS: bool = false;
     const CTS: bool = true;
@@ -1048,12 +1049,12 @@ impl<
         const N2: usize,
         const N3: usize,
         const N4: usize,
-    > Pins<U>
+    > Pads<U>
     for (
-        (Pin<A1, N1, Uart>, UartMux<A2, I1, MuxTxd<U>>),
-        (Pin<A3, N2, Uart>, UartMux<A4, I2, MuxRxd<U>>),
-        (Pin<A5, N3, Uart>, UartMux<A6, I3, MuxRts<U>>),
-        (Pin<A7, N4, Uart>, UartMux<A8, I4, MuxCts<U>>),
+        (Pad<A1, N1, Uart>, UartMux<A2, I1, MuxTxd<U>>),
+        (Pad<A3, N2, Uart>, UartMux<A4, I2, MuxRxd<U>>),
+        (Pad<A5, N3, Uart>, UartMux<A6, I3, MuxRts<U>>),
+        (Pad<A7, N4, Uart>, UartMux<A8, I4, MuxCts<U>>),
     )
 where
     A1: BaseAddress,
@@ -1064,10 +1065,10 @@ where
     A6: BaseAddress,
     A7: BaseAddress,
     A8: BaseAddress,
-    Pin<A2, N1, Uart>: HasUartSignal<I1>,
-    Pin<A4, N2, Uart>: HasUartSignal<I2>,
-    Pin<A6, N3, Uart>: HasUartSignal<I3>,
-    Pin<A8, N4, Uart>: HasUartSignal<I4>,
+    Pad<A2, N1, Uart>: HasUartSignal<I1>,
+    Pad<A4, N2, Uart>: HasUartSignal<I2>,
+    Pad<A6, N3, Uart>: HasUartSignal<I3>,
+    Pad<A8, N4, Uart>: HasUartSignal<I4>,
 {
     const RTS: bool = false;
     const CTS: bool = true;
@@ -1075,10 +1076,10 @@ where
     const RXD: bool = false;
 }
 
-impl<A1, const U: usize, const N: usize> Pins<U> for Pin<A1, N, MmUart>
+impl<A1, const U: usize, const N: usize> Pads<U> for Pad<A1, N, MmUart>
 where
     A1: BaseAddress,
-    Pin<A1, N, MmUart>: HasMmUartSignal,
+    Pad<A1, N, MmUart>: HasMmUartSignal,
 {
     const RTS: bool = { N % 4 == 2 };
     const CTS: bool = { N % 4 == 3 };
@@ -1086,13 +1087,13 @@ where
     const RXD: bool = { N % 4 == 1 };
 }
 
-impl<A1, A2, const U: usize, const N1: usize, const N2: usize> Pins<U>
-    for (Pin<A1, N1, MmUart>, Pin<A2, N2, MmUart>)
+impl<A1, A2, const U: usize, const N1: usize, const N2: usize> Pads<U>
+    for (Pad<A1, N1, MmUart>, Pad<A2, N2, MmUart>)
 where
     A1: BaseAddress,
     A2: BaseAddress,
-    Pin<A1, N1, MmUart>: HasMmUartSignal,
-    Pin<A2, N2, MmUart>: HasMmUartSignal,
+    Pad<A1, N1, MmUart>: HasMmUartSignal,
+    Pad<A2, N2, MmUart>: HasMmUartSignal,
 {
     const RTS: bool = { N1 % 4 == 2 || N2 % 4 == 2 };
     const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 };
@@ -1100,19 +1101,19 @@ where
     const RXD: bool = { N1 % 4 == 1 || N2 % 4 == 1 };
 }
 
-impl<A1, A2, A3, const U: usize, const N1: usize, const N2: usize, const N3: usize> Pins<U>
+impl<A1, A2, A3, const U: usize, const N1: usize, const N2: usize, const N3: usize> Pads<U>
     for (
-        Pin<A1, N1, MmUart>,
-        Pin<A2, N2, MmUart>,
-        Pin<A3, N3, MmUart>,
+        Pad<A1, N1, MmUart>,
+        Pad<A2, N2, MmUart>,
+        Pad<A3, N3, MmUart>,
     )
 where
     A1: BaseAddress,
     A2: BaseAddress,
     A3: BaseAddress,
-    Pin<A1, N1, MmUart>: HasMmUartSignal,
-    Pin<A2, N2, MmUart>: HasMmUartSignal,
-    Pin<A3, N3, MmUart>: HasMmUartSignal,
+    Pad<A1, N1, MmUart>: HasMmUartSignal,
+    Pad<A2, N2, MmUart>: HasMmUartSignal,
+    Pad<A3, N3, MmUart>: HasMmUartSignal,
 {
     const RTS: bool = { N1 % 4 == 2 || N2 % 4 == 2 || N3 % 4 == 2 };
     const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 || N3 % 4 == 3 };
@@ -1130,22 +1131,22 @@ impl<
         const N2: usize,
         const N3: usize,
         const N4: usize,
-    > Pins<U>
+    > Pads<U>
     for (
-        Pin<A1, N1, MmUart>,
-        Pin<A2, N2, MmUart>,
-        Pin<A3, N3, MmUart>,
-        Pin<A4, N4, MmUart>,
+        Pad<A1, N1, MmUart>,
+        Pad<A2, N2, MmUart>,
+        Pad<A3, N3, MmUart>,
+        Pad<A4, N4, MmUart>,
     )
 where
     A1: BaseAddress,
     A2: BaseAddress,
     A3: BaseAddress,
     A4: BaseAddress,
-    Pin<A1, N1, MmUart>: HasMmUartSignal,
-    Pin<A2, N2, MmUart>: HasMmUartSignal,
-    Pin<A3, N3, MmUart>: HasMmUartSignal,
-    Pin<A4, N4, MmUart>: HasMmUartSignal,
+    Pad<A1, N1, MmUart>: HasMmUartSignal,
+    Pad<A2, N2, MmUart>: HasMmUartSignal,
+    Pad<A3, N3, MmUart>: HasMmUartSignal,
+    Pad<A4, N4, MmUart>: HasMmUartSignal,
 {
     const RTS: bool = { N1 % 4 == 2 || N2 % 4 == 2 || N3 % 4 == 2 || N4 % 4 == 2 };
     const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 || N3 % 4 == 3 || N4 % 4 == 3 };
@@ -1154,12 +1155,12 @@ where
 }
 
 /// Managed serial peripheral.
-pub struct Serial<const I: usize, A: BaseAddress, PINS> {
+pub struct Serial<const I: usize, A: BaseAddress, PADS> {
     uart: UART<A, I>,
-    pins: PINS,
+    pads: PADS,
 }
 
-impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
+impl<const I: usize, A: BaseAddress, PADS> Serial<I, A, PADS> {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
     ///
     /// This structure sets the same baudrate for transmit and receive halves.
@@ -1168,11 +1169,11 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
         uart: UART<A, I>,
         config: Config,
         baudrate: Baud,
-        pins: PINS,
+        pads: PADS,
         clocks: &Clocks,
     ) -> Self
     where
-        PINS: Pins<I>,
+        PADS: Pads<I>,
     {
         // Calculate transmit interval.
         let uart_clock = clocks.uart_clock::<I>().expect("a valid UART clock source");
@@ -1195,10 +1196,10 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
             .set_parity(config.parity)
             .set_stop_bits(config.stop_bits)
             .set_word_length(config.word_length);
-        if PINS::TXD {
+        if PADS::TXD {
             val = val.enable_txd();
         }
-        if PINS::CTS {
+        if PADS::CTS {
             val = val.enable_cts();
         }
         unsafe { uart.transmit_config.write(val) };
@@ -1207,48 +1208,48 @@ impl<const I: usize, A: BaseAddress, PINS> Serial<I, A, PINS> {
         let mut val = ReceiveConfig(0)
             .set_parity(config.parity)
             .set_word_length(config.word_length);
-        if PINS::RXD {
+        if PADS::RXD {
             val = val.enable_rxd();
         }
         unsafe { uart.receive_config.write(val) };
 
-        Self { uart, pins }
+        Self { uart, pads }
     }
 
-    /// Release serial instance and return its peripheral and pins.
+    /// Release serial instance and return its peripheral and pads.
     #[inline]
-    pub fn free(self) -> (UART<A, I>, PINS) {
-        (self.uart, self.pins)
+    pub fn free(self) -> (UART<A, I>, PADS) {
+        (self.uart, self.pads)
     }
 }
 
 /// Extend constructor to owned UART register blocks.
-pub trait UartExt<const I: usize, A: BaseAddress, PINS> {
+pub trait UartExt<const I: usize, A: BaseAddress, PADS> {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
     fn freerun(
         self,
         config: Config,
         baudrate: Baud,
-        pins: PINS,
+        pads: PADS,
         clocks: &Clocks,
-    ) -> Serial<I, A, PINS>
+    ) -> Serial<I, A, PADS>
     where
-        PINS: Pins<I>;
+        PADS: Pads<I>;
 }
 
-impl<const I: usize, A: BaseAddress, PINS> UartExt<I, A, PINS> for UART<A, I> {
+impl<const I: usize, A: BaseAddress, PADS> UartExt<I, A, PADS> for UART<A, I> {
     #[inline]
     fn freerun(
         self,
         config: Config,
         baudrate: Baud,
-        pins: PINS,
+        pads: PADS,
         clocks: &Clocks,
-    ) -> Serial<I, A, PINS>
+    ) -> Serial<I, A, PADS>
     where
-        PINS: Pins<I>,
+        PADS: Pads<I>,
     {
-        Serial::freerun(self, config, baudrate, pins, clocks)
+        Serial::freerun(self, config, baudrate, pads, clocks)
     }
 }
 
@@ -1259,11 +1260,11 @@ impl embedded_io::Error for Error {
     }
 }
 
-impl<const I: usize, A: BaseAddress, PINS> embedded_io::ErrorType for Serial<I, A, PINS> {
+impl<const I: usize, A: BaseAddress, PADS> embedded_io::ErrorType for Serial<I, A, PADS> {
     type Error = Error;
 }
 
-impl<const I: usize, A: BaseAddress, PINS> embedded_io::Write for Serial<I, A, PINS> {
+impl<const I: usize, A: BaseAddress, PADS> embedded_io::Write for Serial<I, A, PADS> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         while self.uart.fifo_config_1.read().transmit_available_bytes() == 0 {
@@ -1289,7 +1290,7 @@ impl<const I: usize, A: BaseAddress, PINS> embedded_io::Write for Serial<I, A, P
     }
 }
 
-impl<const I: usize, A: BaseAddress, PINS> embedded_io::Read for Serial<I, A, PINS> {
+impl<const I: usize, A: BaseAddress, PADS> embedded_io::Read for Serial<I, A, PADS> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         while self.uart.fifo_config_1.read().receive_available_bytes() == 0 {

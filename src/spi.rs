@@ -1,7 +1,7 @@
 //! Serial Peripheral Interface peripheral.
 
 use crate::glb::{v2::SpiMode, GLBv2};
-use crate::gpio::{self, Pin};
+use crate::gpio::{self, Pad};
 use crate::SPI;
 use base_address::BaseAddress;
 use embedded_hal::spi::Mode;
@@ -620,17 +620,17 @@ impl FifoConfig1 {
 }
 
 /// Managed Serial Peripheral Interface peripheral.
-pub struct Spi<A: BaseAddress, PINS, const I: usize> {
+pub struct Spi<A: BaseAddress, PADS, const I: usize> {
     spi: SPI<A>,
-    pins: PINS,
+    pads: PADS,
 }
 
-impl<A: BaseAddress, PINS, const I: usize> Spi<A, PINS, I> {
+impl<A: BaseAddress, PADS, const I: usize> Spi<A, PADS, I> {
     /// Create a new Serial Peripheral Interface instance.
     #[inline]
-    pub fn new(spi: SPI<A>, pins: PINS, mode: Mode, glb: &GLBv2<impl BaseAddress>) -> Self
+    pub fn new(spi: SPI<A>, pads: PADS, mode: Mode, glb: &GLBv2<impl BaseAddress>) -> Self
     where
-        PINS: Pins<I>,
+        PADS: Pads<I>,
     {
         let mut config = Config(0)
             .disable_deglitch()
@@ -678,13 +678,13 @@ impl<A: BaseAddress, PINS, const I: usize> Spi<A, PINS, I> {
             spi.period_interval
                 .write(PeriodInterval(0).set_frame_interval(1));
         }
-        Spi { spi, pins }
+        Spi { spi, pads }
     }
 
-    /// Release the SPI instance and return the pins.
+    /// Release the SPI instance and return the pads.
     #[inline]
-    pub fn free(self) -> (SPI<A>, PINS) {
-        (self.spi, self.pins)
+    pub fn free(self) -> (SPI<A>, PADS) {
+        (self.spi, self.pads)
     }
 }
 
@@ -705,11 +705,11 @@ impl embedded_hal::spi::Error for Error {
     }
 }
 
-impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::ErrorType for Spi<A, PINS, I> {
+impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::ErrorType for Spi<A, PADS, I> {
     type Error = Error;
 }
 
-impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiBus for Spi<A, PINS, I> {
+impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::SpiBus for Spi<A, PADS, I> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<(), Self::Error> {
         unsafe { self.spi.config.modify(|config| config.enable_master()) };
@@ -758,7 +758,7 @@ impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiBus for Spi<A, 
     }
 }
 
-impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiDevice for Spi<A, PINS, I> {
+impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::SpiDevice for Spi<A, PADS, I> {
     fn transaction(
         &mut self,
         operations: &mut [embedded_hal::spi::Operation<'_, u8>],
@@ -808,8 +808,8 @@ impl<A: BaseAddress, PINS, const I: usize> embedded_hal::spi::SpiDevice for Spi<
 // ecosystem crates, as some of them depends on embedded-hal v0.2.7 traits.
 // We encourage ecosystem developers to use embedded-hal v1.0.0 traits; after that, this part of code
 // would be removed in the future.
-impl<A: BaseAddress, PINS, const I: usize> embedded_hal_027::blocking::spi::Write<u8>
-    for Spi<A, PINS, I>
+impl<A: BaseAddress, PADS, const I: usize> embedded_hal_027::blocking::spi::Write<u8>
+    for Spi<A, PADS, I>
 {
     type Error = Error;
     #[inline]
@@ -818,44 +818,86 @@ impl<A: BaseAddress, PINS, const I: usize> embedded_hal_027::blocking::spi::Writ
     }
 }
 
-/// Valid SPI pins.
-pub trait Pins<const I: usize> {}
+/// Valid SPI pads.
+pub trait Pads<const I: usize> {}
 
-impl<A1, A2, A3, const N1: usize, const N2: usize, const N3: usize> Pins<1>
+impl<A1, A2, A3, const N1: usize, const N2: usize, const N3: usize> Pads<1>
     for (
-        Pin<A1, N1, gpio::Spi<1>>,
-        Pin<A2, N2, gpio::Spi<1>>,
-        Pin<A3, N3, gpio::Spi<1>>,
+        Pad<A1, N1, gpio::Spi<1>>,
+        Pad<A2, N2, gpio::Spi<1>>,
+        Pad<A3, N3, gpio::Spi<1>>,
     )
 where
     A1: BaseAddress,
     A2: BaseAddress,
     A3: BaseAddress,
-    Pin<A1, N1, gpio::Spi<1>>: HasClkSignal,
-    Pin<A2, N2, gpio::Spi<1>>: HasMosiSignal,
-    Pin<A3, N3, gpio::Spi<1>>: HasCsSignal,
+    Pad<A1, N1, gpio::Spi<1>>: HasClkSignal,
+    Pad<A2, N2, gpio::Spi<1>>: HasMosiSignal,
+    Pad<A3, N3, gpio::Spi<1>>: HasCsSignal,
 {
 }
 
 /// Check if target gpio `Pin` is internally connected to SPI clock signal.
 pub trait HasClkSignal {}
 
-impl<A: BaseAddress> HasClkSignal for Pin<A, 19, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pad<A, 3, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pad<A, 7, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pad<A, 11, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pad<A, 15, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pad<A, 19, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pad<A, 23, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pad<A, 27, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pad<A, 31, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pad<A, 35, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pad<A, 39, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasClkSignal for Pad<A, 43, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI MISO signal.
 pub trait HasMisoSignal {}
 
-impl<A: BaseAddress> HasMisoSignal for Pin<A, 26, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pad<A, 2, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pad<A, 6, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pad<A, 10, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pad<A, 14, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pad<A, 18, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pad<A, 22, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pad<A, 26, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pad<A, 30, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pad<A, 34, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pad<A, 38, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMisoSignal for Pad<A, 42, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI MOSI signal.
 pub trait HasMosiSignal {}
 
-impl<A: BaseAddress> HasMosiSignal for Pin<A, 25, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pad<A, 1, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pad<A, 5, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pad<A, 9, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pad<A, 13, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pad<A, 17, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pad<A, 21, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pad<A, 25, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pad<A, 29, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pad<A, 33, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pad<A, 37, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pad<A, 41, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasMosiSignal for Pad<A, 45, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI CS signal.
 pub trait HasCsSignal {}
 
-impl<A: BaseAddress> HasCsSignal for Pin<A, 12, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pad<A, 0, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pad<A, 4, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pad<A, 8, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pad<A, 12, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pad<A, 16, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pad<A, 20, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pad<A, 24, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pad<A, 28, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pad<A, 32, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pad<A, 36, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pad<A, 40, gpio::Spi<1>> {}
+impl<A: BaseAddress> HasCsSignal for Pad<A, 44, gpio::Spi<1>> {}
 
 #[cfg(test)]
 mod tests {
