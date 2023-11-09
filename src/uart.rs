@@ -1397,7 +1397,7 @@ pub enum Error {
 mod tests {
     use crate::uart::{StopBits, WordLength};
 
-    use super::{BitPeriod, Parity, RegisterBlock, TransmitConfig};
+    use super::{BitPeriod, Parity, ReceiveConfig, RegisterBlock, TransmitConfig};
     use memoffset::offset_of;
 
     #[test]
@@ -1534,6 +1534,94 @@ mod tests {
             val = val.set_receive_time_interval(recv);
             assert_eq!(val.0, (recv as u32) << 16);
             assert_eq!(val.receive_time_interval(), recv);
+        }
+    }
+
+    #[test]
+    fn struct_receive_config_functions() {
+        let mut val: ReceiveConfig = ReceiveConfig(0x0);
+
+        val = val.enable_rxd();
+        assert_eq!(val.0, 0x00000001);
+        assert!(val.is_rxd_enabled());
+        val = val.disable_rxd();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_rxd_enabled());
+
+        val = val.enable_auto_baudrate();
+        assert_eq!(val.0, 0x00000002);
+        assert!(val.is_auto_baudrate_enabled());
+        val = val.disable_auto_baudrate();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_auto_baudrate_enabled());
+
+        val = val.enable_lin_receive();
+        assert_eq!(val.0, 0x00000008);
+        assert!(val.is_lin_receive_enabled());
+        val = val.disable_lin_receive();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_lin_receive_enabled());
+
+        val = val.set_parity(Parity::Even);
+        assert_eq!(val.0, 0x00000010);
+        assert_eq!(val.parity(), Parity::Even);
+        val = val.set_parity(Parity::Odd);
+        assert_eq!(val.0, 0x00000030);
+        assert_eq!(val.parity(), Parity::Odd);
+        val = val.set_parity(Parity::None);
+        assert_eq!(val.0 & 0x00000010, 0x00000000);
+        assert_eq!(val.parity(), Parity::None);
+
+        val = ReceiveConfig(0x0);
+
+        val = val.enable_ir_receive();
+        assert_eq!(val.0, 0x00000040);
+        assert!(val.is_ir_receive_enabled());
+        val = val.disable_ir_receive();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_ir_receive_enabled());
+
+        val = val.enable_ir_inverse();
+        assert_eq!(val.0, 0x00000080);
+        assert!(val.is_ir_inverse_enabled());
+        val = val.disable_ir_inverse();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_ir_inverse_enabled());
+
+        val = val.set_word_length(WordLength::Five);
+        assert_eq!(val.0, 0x00000400);
+        assert_eq!(val.word_length(), WordLength::Five);
+        val = val.set_word_length(WordLength::Six);
+        assert_eq!(val.0, 0x00000500);
+        assert_eq!(val.word_length(), WordLength::Six);
+        val = val.set_word_length(WordLength::Seven);
+        assert_eq!(val.0, 0x00000600);
+        assert_eq!(val.word_length(), WordLength::Seven);
+        val = val.set_word_length(WordLength::Eight);
+        assert_eq!(val.0, 0x00000700);
+        assert_eq!(val.word_length(), WordLength::Eight);
+
+        val = ReceiveConfig(0x0);
+
+        val = val.enable_deglitch();
+        assert_eq!(val.0, 0x00000800);
+        assert!(val.is_deglitch_enabled());
+        val = val.disable_deglitch();
+        assert_eq!(val.0, 0x00000000);
+        assert!(!val.is_deglitch_enabled());
+
+        for num in 0..=7 {
+            val = val.set_deglitch_cycles(num);
+            assert_eq!(val.0, (num as u32) << 12);
+            assert_eq!(val.deglitch_cycles(), num);
+        }
+
+        val = ReceiveConfig(0x0);
+
+        for length in [0x0000, 0x1234, 0xabcd, 0xffff] {
+            val = val.set_transfer_length(length);
+            assert_eq!(val.0, (length as u32) << 16);
+            assert_eq!(val.transfer_length(), length);
         }
     }
 }
