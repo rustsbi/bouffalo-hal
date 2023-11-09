@@ -4,118 +4,121 @@ use volatile_register::{RO, RW};
 /// Ethernet Media Access Control peripheral registers.
 #[repr(C)]
 pub struct RegisterBlock {
-    /// Configuration
+    /// Configuration.
     pub mode: RW<Mode>,
-    /// Transmit control
+    /// Transmit control.
     pub interrupt_source: RW<InterruptSource>,
-    /// Interrupt mask
+    /// Interrupt mask.
     pub interrupt_mask: RW<InterruptMask>,
-    /// Inter-packet gap (backed-gap only, non-backed-gap not seen in bl-docs)
+    /// Inter-packet gap (backed-gap only, non-backed-gap not seen in bl-docs).
     pub backed_gap: RW<BackedGap>,
+    //  Flow control, not seen in bl-docs, temporarily reserved.
     _reserved0: [u8; 0x08],
-    /// Frame length, seen in bl-docs as PACKETLEN
+
+    /// Frame length, seen in bl-docs as PACKETLEN.
     pub frame_length: RW<FrameLength>,
-    /// Collision config
+    /// Collision config.
     pub collision: RW<Collision>,
-    /// transmit_buffer, seen in bl-docs as TX_BD_NUM
+    /// transmit_buffer, seen in bl-docs as TX_BD_NUM.
     pub transmit_buffer: RW<TransmitBuffer>,
-    // Flow control, not seen in bl-docs, temporarily reserved
+    //  Flow control, not seen in bl-docs, temporarily reserved.
     _reserved1: [u8; 0x04],
-    /// MII mode
+
+    /// MII mode.
     pub mii_mode: RW<MiiMode>,
-    /// MII command
+    /// MII command.
     pub mii_command: RW<MiiCommand>,
-    /// MII address
+    /// MII address.
     pub mii_address: RW<MiiAddress>,
-    /// MII write control
+    /// MII write control.
     pub control_write: RW<ControlWrite>,
-    /// MII read control
+    /// MII read control.
     pub control_read: RW<ControlRead>,
-    /// MII state
+    /// MII state.
     pub mii_state: RO<MiiState>,
-    /// Media Access Control address 0 and 1
+    /// Media Access Control address 0 and 1.
     pub mac_address: [RW<MacAddress>; 2],
-    /// Hash 0 and 1
+    /// Hash 0 and 1.
     pub hash: [RW<Hash>; 2],
-    /// Transmit control
+    /// Transmit control.
     pub transmit_control: RW<TransmitControl>,
 }
 
-/// EMAC mode configuration register
+/// EMAC mode configuration register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct Mode(u32);
 
-/// EMAC transmit control register
+/// EMAC transmit control register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct InterruptSource(u32);
 
-/// EMAC interrupt mask register
+/// EMAC interrupt mask register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct InterruptMask(u32);
 
-/// EMAC inter packet gap (backed gap) register
+/// EMAC inter packet gap (backed gap) register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct BackedGap(u32);
 
-/// EMAC frame length buffer
+/// EMAC frame length buffer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct FrameLength(u32);
 
-/// EMAC collision register
+/// EMAC collision register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct Collision(u32);
 
-/// EMAC transmit buffer register
+/// EMAC transmit buffer register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct TransmitBuffer(u32);
 
-/// MII clock divider and premable register
+/// MII clock divider and premable register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct MiiMode(u32);
 
-/// MII control data, read and scan state register
+/// MII control data, read and scan state register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct MiiCommand(u32);
 
-/// MII physical layer bus address register
+/// MII physical layer bus address register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct MiiAddress(u32);
 
-/// MII write control register
+/// MII write control register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct ControlWrite(u32);
 
-/// MII read control register
+/// MII read control register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct ControlRead(u32);
 
-/// MII state register
+/// MII state register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct MiiState(u32);
 
-/// Media Access Control address register
+/// Media Access Control address register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct MacAddress(u32);
 
-/// hash register (64-bit to double 32-bit)
+/// hash register (64-bit to double 32-bit).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct Hash(u32);
-/// Transit control register
+/// Transit control register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct TransmitControl(u32);
