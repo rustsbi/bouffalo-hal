@@ -860,62 +860,96 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
 
 /// Available GPIO pads.
 pub struct Pads<A: BaseAddress> {
-    // GPIO I/O 0.
+    /// GPIO I/O 0.
     pub io0: Pad<A, 0, Disabled>,
-    // GPIO I/O 1.
+    /// GPIO I/O 1.
     pub io1: Pad<A, 1, Disabled>,
-    // GPIO I/O 2.
+    /// GPIO I/O 2.
     pub io2: Pad<A, 2, Disabled>,
-    // GPIO I/O 3.
+    /// GPIO I/O 3.
     pub io3: Pad<A, 3, Disabled>,
-    // GPIO I/O 4.
+    /// GPIO I/O 4.
     pub io4: Pad<A, 4, Disabled>,
-    // GPIO I/O 5.
+    /// GPIO I/O 5.
     pub io5: Pad<A, 5, Disabled>,
-    // GPIO I/O 6.
+    /// GPIO I/O 6.
     pub io6: Pad<A, 6, Disabled>,
-    // GPIO I/O 7.
+    /// GPIO I/O 7.
     pub io7: Pad<A, 7, Disabled>,
-    // GPIO I/O 8.
+    /// GPIO I/O 8.
     pub io8: Pad<A, 8, Disabled>,
-    // GPIO I/O 9.
+    /// GPIO I/O 9.
     pub io9: Pad<A, 9, Disabled>,
-    // GPIO I/O 10.
+    /// GPIO I/O 10.
     pub io10: Pad<A, 10, Disabled>,
-    // GPIO I/O 11.
+    /// GPIO I/O 11.
     pub io11: Pad<A, 11, Disabled>,
-    // GPIO I/O 12.
+    /// GPIO I/O 12.
     pub io12: Pad<A, 12, Disabled>,
-    // GPIO I/O 13.
+    /// GPIO I/O 13.
     pub io13: Pad<A, 13, Disabled>,
-    // GPIO I/O 14.
+    /// GPIO I/O 14.
     pub io14: Pad<A, 14, Disabled>,
-    // GPIO I/O 15.
+    /// GPIO I/O 15.
     pub io15: Pad<A, 15, Disabled>,
-    // GPIO I/O 16.
+    /// GPIO I/O 16.
     pub io16: Pad<A, 16, Disabled>,
-    // GPIO I/O 17.
+    /// GPIO I/O 17.
     pub io17: Pad<A, 17, Disabled>,
-    // GPIO I/O 18.
+    /// GPIO I/O 18.
     pub io18: Pad<A, 18, Disabled>,
-    // GPIO I/O 19.
+    /// GPIO I/O 19.
     pub io19: Pad<A, 19, Disabled>,
-    // GPIO I/O 20.
+    /// GPIO I/O 20.
     pub io20: Pad<A, 20, Disabled>,
-    // GPIO I/O 21.
+    /// GPIO I/O 21.
     pub io21: Pad<A, 21, Disabled>,
-    // GPIO I/O 22.
+    /// GPIO I/O 22.
     pub io22: Pad<A, 22, Disabled>,
-    // GPIO I/O 23.
+    /// GPIO I/O 23.
     pub io23: Pad<A, 23, Disabled>,
-    // GPIO I/O 24.
+    /// GPIO I/O 24.
     pub io24: Pad<A, 24, Disabled>,
-    // GPIO I/O 25.
+    /// GPIO I/O 25.
     pub io25: Pad<A, 25, Disabled>,
-    // GPIO I/O 26.
+    /// GPIO I/O 26.
     pub io26: Pad<A, 26, Disabled>,
-    // GPIO I/O 27.
+    /// GPIO I/O 27.
     pub io27: Pad<A, 27, Disabled>,
-    // GPIO I/O 28.
+    /// GPIO I/O 28.
     pub io28: Pad<A, 28, Disabled>,
+    /// GPIO I/O 29.
+    pub io29: Pad<A, 29, Disabled>,
+    /// GPIO I/O 30.
+    pub io30: Pad<A, 30, Disabled>,
+    /// GPIO I/O 31.
+    pub io31: Pad<A, 31, Disabled>,
+    /// GPIO I/O 32.
+    pub io32: Pad<A, 32, Disabled>,
+    /// GPIO I/O 33.
+    pub io33: Pad<A, 33, Disabled>,
+    /// GPIO I/O 34.
+    pub io34: Pad<A, 34, Disabled>,
+    /// GPIO I/O 35.
+    pub io35: Pad<A, 35, Disabled>,
+    /// GPIO I/O 36.
+    pub io36: Pad<A, 36, Disabled>,
+    /// GPIO I/O 37.
+    pub io37: Pad<A, 37, Disabled>,
+    /// GPIO I/O 38.
+    pub io38: Pad<A, 38, Disabled>,
+    /// GPIO I/O 39.
+    pub io39: Pad<A, 39, Disabled>,
+    /// GPIO I/O 40.
+    pub io40: Pad<A, 40, Disabled>,
+    /// GPIO I/O 41.
+    pub io41: Pad<A, 41, Disabled>,
+    /// GPIO I/O 42.
+    pub io42: Pad<A, 42, Disabled>,
+    /// GPIO I/O 43.
+    pub io43: Pad<A, 43, Disabled>,
+    /// GPIO I/O 44.
+    pub io44: Pad<A, 44, Disabled>,
+    /// GPIO I/O 45.
+    pub io45: Pad<A, 45, Disabled>,
 }
