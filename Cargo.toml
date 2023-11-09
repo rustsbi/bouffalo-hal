@@ -3,7 +3,7 @@ name = "bl-soc"
 version = "0.0.0"
 authors = [
     "Mingrui Ma <m202271767@hust.edu.cn>",
-    "Zeqing Qin <zeqing@hust.edu.cn>"
+    "Zeqing Qin <zeqing@hust.edu.cn>",
 ]
 edition = "2021"
 
@@ -17,7 +17,7 @@ embedded-time = "0.12.1"
 embedded-io = "0.6.0"
 cfg-if = "1.0.0"
 # For backward compatibility only. 
-embedded-hal-027 ={ package = "embedded-hal" , version = "0.2.7" }
+embedded-hal-027 = { package = "embedded-hal", version = "0.2.7" }
 as-slice = "0.2.1"
 
 [dev-dependencies]
@@ -34,6 +34,8 @@ members = [
     "examples/peripherals/pwm-demo",
     "examples/peripherals/spi-demo",
     "examples/peripherals/uart-demo",
+    "examples/peripherals/sdcard-demo",
+    "examples/peripherals/sdcard-gpt-demo",
 ]
 
 [features]

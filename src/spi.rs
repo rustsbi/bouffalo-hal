@@ -670,13 +670,13 @@ impl<A: BaseAddress, PADS, const I: usize> Spi<A, PADS, I> {
             );
             spi.period_signal.write(
                 PeriodSignal(0)
-                    .set_data_phase_0(1)
-                    .set_data_phase_1(1)
-                    .set_start_condition(1)
-                    .set_stop_condition(1),
+                    .set_data_phase_0(4)
+                    .set_data_phase_1(4)
+                    .set_start_condition(4)
+                    .set_stop_condition(4),
             );
             spi.period_interval
-                .write(PeriodInterval(0).set_frame_interval(1));
+                .write(PeriodInterval(0).set_frame_interval(4));
         }
         Spi { spi, pads }
     }
@@ -733,6 +733,7 @@ impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::SpiBus for Spi<A, 
                 core::hint::spin_loop();
             }
             unsafe { self.spi.data_write.write(word) }
+            _ = self.spi.data_read.read();
         });
 
         unsafe { self.spi.config.modify(|config| config.disable_master()) };
@@ -743,8 +744,19 @@ impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::SpiBus for Spi<A, 
         todo!()
     }
     #[inline]
-    fn transfer_in_place(&mut self, _words: &mut [u8]) -> Result<(), Self::Error> {
-        todo!()
+    fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
+        unsafe { self.spi.config.modify(|config| config.enable_master()) };
+
+        for word in words.iter_mut() {
+            while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
+                core::hint::spin_loop();
+            }
+            unsafe { self.spi.data_write.write(*word) }
+            *word = self.spi.data_read.read();
+        }
+
+        unsafe { self.spi.config.modify(|config| config.disable_master()) };
+        Ok(())
     }
     #[inline]
     fn flush(&mut self) -> Result<(), Self::Error> {
@@ -814,7 +826,19 @@ impl<A: BaseAddress, PADS, const I: usize> embedded_hal_027::blocking::spi::Writ
     type Error = Error;
     #[inline]
     fn write(&mut self, words: &[u8]) -> Result<(), Self::Error> {
-        <Self as embedded_hal::spi::SpiBus>::write(self, words)
+        <Self as embedded_hal::spi::SpiBus>::write(self, words)?;
+        Ok(())
+    }
+}
+
+impl<A: BaseAddress, PINS, const I: usize> embedded_hal_027::blocking::spi::Transfer<u8>
+    for Spi<A, PINS, I>
+{
+    type Error = Error;
+    #[inline]
+    fn transfer<'w>(&mut self, words: &'w mut [u8]) -> Result<&'w [u8], Self::Error> {
+        <Self as embedded_hal::spi::SpiBus>::transfer_in_place(self, words)?;
+        Ok(words)
     }
 }
 
@@ -834,6 +858,25 @@ where
     Pad<A1, N1, gpio::Spi<1>>: HasClkSignal,
     Pad<A2, N2, gpio::Spi<1>>: HasMosiSignal,
     Pad<A3, N3, gpio::Spi<1>>: HasCsSignal,
+{
+}
+
+impl<A1, A2, A3, A4, const N1: usize, const N2: usize, const N3: usize, const N4: usize> Pads<1>
+    for (
+        Pad<A1, N1, gpio::Spi<1>>,
+        Pad<A2, N2, gpio::Spi<1>>,
+        Pad<A3, N3, gpio::Spi<1>>,
+        Pad<A4, N4, gpio::Spi<1>>,
+    )
+where
+    A1: BaseAddress,
+    A2: BaseAddress,
+    A3: BaseAddress,
+    A4: BaseAddress,
+    Pad<A1, N1, gpio::Spi<1>>: HasClkSignal,
+    Pad<A2, N2, gpio::Spi<1>>: HasMosiSignal,
+    Pad<A3, N3, gpio::Spi<1>>: HasMisoSignal,
+    Pad<A4, N4, gpio::Spi<1>>: HasCsSignal,
 {
 }
 
