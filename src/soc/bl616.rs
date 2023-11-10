@@ -224,8 +224,8 @@ pub struct HalCpuCfg {
 pub struct Peripherals {
     /// Global configuration peripheral.
     pub glb: bl_soc::glb::GLBv2<Static<0x20000000>>,
-    /// General Purpose Input/Output pins.
-    pub gpio: bl_soc::gpio::Pins<Static<0x20000000>>,
+    /// General Purpose Input/Output pads.
+    pub gpio: bl_soc::gpio::Pads<Static<0x20000000>>,
     /// UART signal multiplexers.
     pub uart_muxes: bl_soc::uart::UartMuxes<Static<0x20000000>>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
