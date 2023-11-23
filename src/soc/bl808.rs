@@ -43,9 +43,24 @@ unsafe extern "C" fn start() -> ! {
             addi    t4, t4, 4
             j       1b
         1:",
+        "   la      t0, {trap_entry}
+            ori     t0, t0, {trap_mode}
+            csrw    mtvec, t0",
+        "   li      t1, {stack_protect_pmp_address_begin}
+            csrw    pmpaddr0, t1
+            li      t1, {stack_protect_pmp_address_end}
+            csrw    pmpaddr1, t1
+            li      t2, {stack_protect_pmp_flags}
+            csrw    pmpcfg1, t2",
+        "   sfence.vma x0, x0",
         "   call  {main}",
         stack = sym STACK,
         hart_stack_size = const LEN_STACK_MCU,
+        trap_entry = sym trap_vectored,
+        trap_mode = const 1, // RISC-V standard vectored trap
+        stack_protect_pmp_address_begin = const {0x61030000},
+        stack_protect_pmp_address_end = const {0x62030000},
+        stack_protect_pmp_flags = const 0b00001000, // -r, -w, -x, tor, not locked
         main = sym main,
         options(noreturn)
     )
@@ -105,7 +120,7 @@ extern "Rust" {
 }
 
 // Alignment of this function is ensured by `build.rs` script.
-#[cfg(feature = "bl808-dsp")]
+#[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp"))]
 #[link_section = ".trap.trap-entry"]
 #[naked]
 unsafe extern "C" fn trap_vectored() -> ! {
@@ -142,13 +157,13 @@ unsafe extern "C" fn trap_vectored() -> ! {
     )
 }
 
-#[cfg(feature = "bl808-dsp")]
+#[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp"))]
 #[naked]
 unsafe extern "C" fn reserved() -> ! {
     asm!("1: j   1b", options(noreturn))
 }
 
-#[cfg(feature = "bl808-dsp")]
+#[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp"))]
 #[naked]
 unsafe extern "C" fn machine_external() -> ! {
     asm!(
