@@ -2,7 +2,7 @@
 #![feature(naked_functions, asm_const)]
 #![no_std]
 
-pub use bl_rom_rt_macros::{entry, interrupt};
+pub use bl_rom_rt_macros::{entry, exception, interrupt};
 
 pub mod soc;
 

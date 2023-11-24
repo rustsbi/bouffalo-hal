@@ -9,7 +9,7 @@
 #![no_std]
 #![no_main]
 
-use bl_rom_rt::{entry, interrupt, Clocks, Peripherals};
+use bl_rom_rt::{entry, exception, interrupt, soc::bl808::TrapFrame, Clocks, Peripherals};
 use embedded_hal::digital::OutputPin;
 use panic_halt as _;
 
@@ -27,4 +27,10 @@ fn main(p: Peripherals, _c: Clocks) -> ! {
 #[interrupt]
 fn uart3() {
     // TODO: interrupt handler content
+}
+
+#[exception]
+fn exceptions(tf: &mut TrapFrame) {
+    let _ = tf;
+    // TODO: handle exceptions
 }

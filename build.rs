@@ -225,6 +225,9 @@ SECTIONS {
         *(.eh_frame)
     }
 }
+/* exceptions */
+PROVIDE(exceptions = default_handler);
+/* interrupts */
 PROVIDE(bmx_dsp_bus_err = default_handler);
 PROVIDE(dsp_reserved1 = default_handler);
 PROVIDE(dsp_reserved2 = default_handler);

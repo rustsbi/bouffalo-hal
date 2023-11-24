@@ -243,3 +243,70 @@ const BL808_DSP_INTERRUPTS: [&'static str; 67] = [
     "wl_all",
     "pds",
 ];
+
+/// Exception handler function.
+#[proc_macro_attribute]
+pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
+    if !args.is_empty() {
+        return parse::Error::new(
+            Span::call_site(),
+            "#[exception] attribute accepts no arguments",
+        )
+        .to_compile_error()
+        .into();
+    }
+
+    let f = parse_macro_input!(input as ItemFn);
+
+    if f.sig.inputs.len() != 1 {
+        return parse::Error::new(
+            f.sig.inputs.span(),
+            "`#[exception]` function should include exactly one parameter",
+        )
+        .to_compile_error()
+        .into();
+    }
+
+    let valid_signature = f.sig.constness.is_none()
+        && f.vis == Visibility::Inherited
+        && f.sig.abi.is_none()
+        && f.sig.generics.params.is_empty()
+        && f.sig.generics.where_clause.is_none()
+        && f.sig.variadic.is_none()
+        && match f.sig.output {
+            ReturnType::Default => true,
+            ReturnType::Type(_, ref ty) => match **ty {
+                Type::Tuple(ref tuple) => tuple.elems.is_empty(),
+                Type::Never(..) => true,
+                _ => false,
+            },
+        };
+
+    if !valid_signature {
+        return parse::Error::new(
+            f.sig.span(),
+            "`#[exception]` handlers must have signature `[unsafe] fn(&mut TrapFrame) [-> !]`",
+        )
+        .to_compile_error()
+        .into();
+    }
+
+    let attrs = f.attrs;
+    let unsafety = f.sig.unsafety;
+    let stmts = f.block.stmts;
+    let ident = f.sig.ident;
+    let output = f.sig.output;
+    let inputs = f.sig.inputs;
+
+    // FIXME: check input type of arguments
+
+    quote!(
+        #(#attrs)*
+        #[no_mangle]
+        #[export_name = "exceptions"]
+        pub #unsafety extern "C" fn #ident(#inputs) #output {
+            #(#stmts)*
+        }
+    )
+    .into()
+}

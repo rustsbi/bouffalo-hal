@@ -144,12 +144,12 @@ unsafe extern "C" fn trap_vectored() -> ! {
         "j {reserved}",
         "j {reserved}",
         "j {thead_hpm_overflow}",
-        exceptions = sym reserved,
+        exceptions = sym exceptions_trampoline,
         supervisor_software = sym reserved,
         machine_software = sym reserved,
         supervisor_timer = sym reserved,
         machine_timer = sym reserved,
-        machine_external = sym machine_external,
+        machine_external = sym machine_external_trampoline,
         supervisor_external = sym reserved,
         thead_hpm_overflow = sym reserved,
         reserved = sym reserved,
@@ -164,8 +164,72 @@ unsafe extern "C" fn reserved() -> ! {
 }
 
 #[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp"))]
+extern "C" {
+    fn exceptions(tf: &mut TrapFrame);
+}
+
+#[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp"))]
 #[naked]
-unsafe extern "C" fn machine_external() -> ! {
+unsafe extern "C" fn exceptions_trampoline() -> ! {
+    asm!(
+        "addi   sp, sp, -19*8",
+        "sd     ra, 0*8(sp)",
+        "sd     t0, 1*8(sp)",
+        "sd     t1, 2*8(sp)",
+        "sd     t2, 3*8(sp)",
+        "sd     a0, 4*8(sp)",
+        "sd     a1, 5*8(sp)",
+        "sd     a2, 6*8(sp)",
+        "sd     a3, 7*8(sp)",
+        "sd     a4, 8*8(sp)",
+        "sd     a5, 9*8(sp)",
+        "sd     a6, 10*8(sp)",
+        "sd     a7, 11*8(sp)",
+        "sd     t3, 12*8(sp)",
+        "sd     t4, 13*8(sp)",
+        "sd     t5, 14*8(sp)",
+        "sd     t6, 15*8(sp)",
+        "csrr   t0, mcause",
+        "sd     t0, 16*8(sp)",
+        "csrr   t1, mepc",
+        "sd     t1, 17*8(sp)",
+        "csrr   t2, mstatus",
+        "sd     t2, 18*8(sp)",
+        // "csrs   mstatus, 8", // TODO: disallow nested interrupt by now
+        "mv     a0, sp",
+        "call   {rust_exceptions}",
+        "ld     t0, 16*8(sp)",
+        "csrw   mcause, t0",
+        "ld     t1, 17*8(sp)",
+        "csrw   mepc, t1",
+        "ld     t2, 18*8(sp)",
+        "csrw   mstatus, t2",
+        "ld     ra, 0*8(sp)",
+        "ld     t0, 1*8(sp)",
+        "ld     t1, 2*8(sp)",
+        "ld     t2, 3*8(sp)",
+        "ld     a0, 4*8(sp)",
+        "ld     a1, 5*8(sp)",
+        "ld     a2, 6*8(sp)",
+        "ld     a3, 7*8(sp)",
+        "ld     a4, 8*8(sp)",
+        "ld     a5, 9*8(sp)",
+        "ld     a6, 10*8(sp)",
+        "ld     a7, 11*8(sp)",
+        "ld     t3, 12*8(sp)",
+        "ld     t4, 13*8(sp)",
+        "ld     t5, 14*8(sp)",
+        "ld     t6, 15*8(sp)",
+        "addi   sp, sp, 19*8",
+        "mret",
+        rust_exceptions = sym exceptions,
+        options(noreturn)
+    )
+}
+
+#[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp"))]
+#[naked]
+unsafe extern "C" fn machine_external_trampoline() -> ! {
     asm!(
         "addi   sp, sp, -19*8",
         "sd     ra, 0*8(sp)",
@@ -398,25 +462,44 @@ impl plic::InterruptSource for PlicSource {
 /// Trap stack frame.
 #[repr(C)]
 pub struct TrapFrame {
-    ra: usize,
-    t0: usize,
-    t1: usize,
-    t2: usize,
-    a0: usize,
-    a1: usize,
-    a2: usize,
-    a3: usize,
-    a4: usize,
-    a5: usize,
-    a6: usize,
-    a7: usize,
-    t3: usize,
-    t4: usize,
-    t5: usize,
-    t6: usize,
-    mcause: usize,
-    mepc: usize,
-    mstatus: usize,
+    /// Return address register.
+    pub ra: usize,
+    /// Temporary register 0.
+    pub t0: usize,
+    /// Temporary register 1.
+    pub t1: usize,
+    /// Temporary register 2.
+    pub t2: usize,
+    /// Argument register 0.
+    pub a0: usize,
+    /// Argument register 1.
+    pub a1: usize,
+    /// Argument register 2.
+    pub a2: usize,
+    /// Argument register 3.
+    pub a3: usize,
+    /// Argument register 4.
+    pub a4: usize,
+    /// Argument register 5.
+    pub a5: usize,
+    /// Argument register 6.
+    pub a6: usize,
+    /// Argument register 7.
+    pub a7: usize,
+    /// Temporary register 3.
+    pub t3: usize,
+    /// Temporary register 4.
+    pub t4: usize,
+    /// Temporary register 5.
+    pub t5: usize,
+    /// Temporary register 6.
+    pub t6: usize,
+    /// Machine cause register.
+    pub mcause: usize,
+    /// Machine exception program counter register.
+    pub mepc: usize,
+    /// Machine status register.
+    pub mstatus: usize,
 }
 
 /// Clock configuration at boot-time.
@@ -717,7 +800,7 @@ pub struct Peripherals {
     /// Platform-local Interrupt Controller.
     pub plic: PLIC<Static<0xE0000000>>,
     /// Multi-media subsystem global peripheral.
-    pub mmglb: bl_soc::glb::MMGLB<Static<0x30007000>>, 
+    pub mmglb: bl_soc::glb::MMGLB<Static<0x30007000>>,
 }
 
 /// Platform-local Interrupt Controller.
