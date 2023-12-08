@@ -858,7 +858,7 @@ impl<A: BaseAddress, S, const I: usize, const J: usize> embedded_hal::pwm::SetDu
     for Channel<A, S, I, J>
 {
     #[inline]
-    fn get_max_duty_cycle(&self) -> u16 {
+    fn max_duty_cycle(&self) -> u16 {
         self.pwm.group[I].period_config.read().period()
     }
     #[inline]

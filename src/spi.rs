@@ -807,7 +807,7 @@ impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::SpiDevice for Spi<
                 embedded_hal::spi::Operation::TransferInPlace(_buf) => {
                     todo!()
                 }
-                embedded_hal::spi::Operation::DelayUs(_delay) => {
+                embedded_hal::spi::Operation::DelayNs(_delay) => {
                     todo!()
                 }
             }
