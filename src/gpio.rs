@@ -195,7 +195,7 @@ impl<A: BaseAddress, const N: usize, M> ErrorType for Pad<A, N, Output<M>> {
 
 impl<A: BaseAddress, const N: usize, M> InputPin for Pad<A, N, Input<M>> {
     #[inline]
-    fn is_high(&self) -> Result<bool, Self::Error> {
+    fn is_high(&mut self) -> Result<bool, Self::Error> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 Ok(self.base.gpio_input_value.read() & (1 << N) != 0)
@@ -207,7 +207,7 @@ impl<A: BaseAddress, const N: usize, M> InputPin for Pad<A, N, Input<M>> {
         }
     }
     #[inline]
-    fn is_low(&self) -> Result<bool, Self::Error> {
+    fn is_low(&mut self) -> Result<bool, Self::Error> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 Ok(self.base.gpio_input_value.read() & (1 << N) == 0)
@@ -271,7 +271,7 @@ impl<A: BaseAddress, const N: usize, M> embedded_hal_027::digital::v2::OutputPin
     }
 }
 
-// We do not support StatefulOutputPin and ToggleableOutputPin here, because the hardware does not
+// We do not support StatefulOutputPin in embedded-hal 1.0.0 here, because the hardware does not
 // have such functionality to read back the previously set pin state.
 // It is recommended that users add a variable to store the pin state if necessary; see examples/gpio-demo.
 
