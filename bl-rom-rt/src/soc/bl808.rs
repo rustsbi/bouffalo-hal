@@ -15,7 +15,7 @@ const LEN_STACK_MCU: usize = 1 * 1024;
 #[cfg(feature = "bl808-dsp")]
 const LEN_STACK_DSP: usize = 4 * 1024;
 
-#[cfg(feature = "bl808-mcu")]
+#[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
 #[naked]
 #[link_section = ".text.entry"]
 #[export_name = "_start"]
@@ -66,7 +66,7 @@ unsafe extern "C" fn start() -> ! {
     )
 }
 
-#[cfg(feature = "bl808-dsp")]
+#[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
 #[naked]
 #[link_section = ".text.entry"]
 #[export_name = "_start"]

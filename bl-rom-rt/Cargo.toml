@@ -9,7 +9,7 @@ edition = "2021"
 bl-rom-rt-macros = { path = "macros" }
 crc = "3.0.1"
 cfg-if = "1.0.0"
-bl-soc = { git = "https://gitee.com/rustsbi/bl-soc", branch = "main", optional = true }
+bl-soc = { path = "../bl-soc", optional = true }
 base-address = { version = "0.0.0", optional = true }
 embedded-time = { version = "0.12.1", optional = true }
 plic = "0.0.2"
@@ -31,10 +31,3 @@ bl702 = ["bl-soc/bl702", "bl-rom-rt-macros/bl702", "dep:base-address"]
 rom-peripherals = ["bl-rom-rt-macros/rom-peripherals", "dep:bl-soc", "dep:base-address", "dep:embedded-time"]
 
 # TODO: remove "dep:base-address" once nested interrupt on BL808 is supported
-
-[workspace]
-members = [
-    "macros",
-    "examples/blinky-bl808",
-    "examples/blinky-bl616",
-]

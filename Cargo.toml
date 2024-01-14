@@ -1,30 +1,10 @@
-[package]
-name = "bl-soc"
-version = "0.0.0"
-authors = [
-    "Mingrui Ma <m202271767@hust.edu.cn>",
-    "Zeqing Qin <zeqing@hust.edu.cn>",
-]
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-base-address = "0.0.0"
-volatile-register = "0.2.1"
-embedded-hal = { git = "https://github.com/rust-embedded/embedded-hal", version = "1.0.0-rc.3" }
-embedded-time = "0.12.1"
-embedded-io = "0.6.1"
-cfg-if = "1.0.0"
-# For backward compatibility only. 
-embedded-hal-027 = { package = "embedded-hal", version = "0.2.7" }
-as-slice = "0.2.1"
-
-[dev-dependencies]
-memoffset = "0.9.0"
-
 [workspace]
 members = [
+    "bl-rom-rt",
+    "bl-rom-rt/macros",
+    "bl-soc",
+    "bl-rom-rt/examples/blinky-bl808",
+    "bl-rom-rt/examples/blinky-bl616",
     "examples/multicore/multicore-demo/mcu",
     "examples/multicore/multicore-demo/dsp",
     "examples/peripherals/gpio-demo",
@@ -37,12 +17,4 @@ members = [
     "examples/peripherals/sdcard-demo",
     "examples/peripherals/sdcard-gpt-demo",
 ]
-
-[features]
-default = []
-bl602 = ["glb-v1"]
-bl616 = ["glb-v2"]
-bl702 = ["glb-v1"]
-bl808 = ["glb-v2"]
-glb-v1 = []
-glb-v2 = []
+resolver = "2"

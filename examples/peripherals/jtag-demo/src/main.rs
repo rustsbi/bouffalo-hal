@@ -5,21 +5,19 @@
 #![no_std]
 #![no_main]
 
-use base_address::Static;
-use bl_rom_rt::entry;
-use bl_soc::{gpio::Pads, prelude::*};
+use bl_rom_rt::{entry, Clocks, Peripherals};
+use bl_soc::prelude::*;
 use panic_halt as _;
 
 #[entry]
-fn main() -> ! {
-    let gpio: Pads<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
+fn main(p: Peripherals, _c: Clocks) -> ! {
     // enable jtag
-    gpio.io0.into_jtag_d0();
-    gpio.io1.into_jtag_d0();
-    gpio.io2.into_jtag_d0();
-    gpio.io3.into_jtag_d0();
+    p.gpio.io0.into_jtag_d0();
+    p.gpio.io1.into_jtag_d0();
+    p.gpio.io2.into_jtag_d0();
+    p.gpio.io3.into_jtag_d0();
 
-    let mut led = gpio.io8.into_floating_output();
+    let mut led = p.gpio.io8.into_floating_output();
     loop {
         led.set_low().ok();
         unsafe { riscv::asm::delay(100_000) };

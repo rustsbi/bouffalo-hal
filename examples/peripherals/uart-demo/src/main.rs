@@ -5,37 +5,30 @@
 #![no_std]
 #![no_main]
 
-use base_address::Static;
-use bl_rom_rt::entry;
-use bl_soc::{clocks::Clocks, gpio::Pads, prelude::*, uart::UartMuxes, UART};
+use bl_rom_rt::{entry, Clocks, Peripherals};
+use bl_soc::prelude::*;
 use embedded_time::rate::*;
 use panic_halt as _;
 
 #[entry]
-fn main() -> ! {
-    // values initialized by ROM runtime
-    let gpio: Pads<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
-    let uart0: UART<Static<0x2000A000>, 0> = unsafe { core::mem::transmute(()) };
-    let uart_muxes: UartMuxes<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
-    let clocks = Clocks {
-        xtal: Hertz(40_000_000),
-    };
-
+fn main(p: Peripherals, c: Clocks) -> ! {
     // enable jtag
-    gpio.io0.into_jtag_d0();
-    gpio.io1.into_jtag_d0();
-    gpio.io2.into_jtag_d0();
-    gpio.io3.into_jtag_d0();
+    p.gpio.io0.into_jtag_d0();
+    p.gpio.io1.into_jtag_d0();
+    p.gpio.io2.into_jtag_d0();
+    p.gpio.io3.into_jtag_d0();
 
-    let tx = gpio.io14.into_uart();
-    let rx = gpio.io15.into_uart();
-    let sig2 = uart_muxes.sig2.into_transmit::<0>();
-    let sig3 = uart_muxes.sig3.into_receive::<0>();
+    let tx = p.gpio.io14.into_uart();
+    let rx = p.gpio.io15.into_uart();
+    let sig2 = p.uart_muxes.sig2.into_transmit::<0>();
+    let sig3 = p.uart_muxes.sig3.into_receive::<0>();
 
     let config = Default::default();
-    let mut serial = uart0.freerun(config, 2000000.Bd(), ((tx, sig2), (rx, sig3)), &clocks);
+    let mut serial = p
+        .uart0
+        .freerun(config, 2000000.Bd(), ((tx, sig2), (rx, sig3)), &c);
 
-    let mut led = gpio.io8.into_floating_output();
+    let mut led = p.gpio.io8.into_floating_output();
     let mut led_state = PinState::Low;
     let mut buf = [0u8; 32];
     let mut ch = b'\r';

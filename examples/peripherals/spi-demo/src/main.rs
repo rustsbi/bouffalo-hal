@@ -5,9 +5,8 @@
 #![no_std]
 #![no_main]
 
-use base_address::Static;
-use bl_rom_rt::entry;
-use bl_soc::{gpio::Pads, prelude::*, spi::Spi, GLB, SPI};
+use bl_rom_rt::{entry, Clocks, Peripherals};
+use bl_soc::{prelude::*, spi::Spi};
 use embedded_graphics::{
     draw_target::DrawTarget,
     image::*,
@@ -22,28 +21,23 @@ use mipidsi::Builder;
 use panic_halt as _;
 
 #[entry]
-fn main() -> ! {
-    // values initialized by ROM runtime
-    let gpio: Pads<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
-    let glb: GLB<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
-    let spi: SPI<Static<0x30008000>> = unsafe { core::mem::transmute(()) };
-
+fn main(p: Peripherals, _c: Clocks) -> ! {
     // enable jtag
-    gpio.io0.into_jtag_d0();
-    gpio.io1.into_jtag_d0();
-    gpio.io2.into_jtag_d0();
-    gpio.io3.into_jtag_d0();
+    p.gpio.io0.into_jtag_d0();
+    p.gpio.io1.into_jtag_d0();
+    p.gpio.io2.into_jtag_d0();
+    p.gpio.io3.into_jtag_d0();
 
-    let mut led = gpio.io8.into_floating_output();
+    let mut led = p.gpio.io8.into_floating_output();
     let mut led_state = PinState::Low;
 
-    let spi_cs = gpio.io12.into_spi::<1>();
-    let spi_mosi = gpio.io25.into_spi::<1>();
-    let spi_clk = gpio.io19.into_spi::<1>();
-    let lcd_dc = gpio.io13.into_floating_output();
-    let mut lcd_bl = gpio.io11.into_floating_output();
-    let lcd_rst = gpio.io24.into_floating_output();
-    let spi_lcd = Spi::new(spi, (spi_clk, spi_mosi, spi_cs), MODE_0, &glb);
+    let spi_cs = p.gpio.io12.into_spi::<1>();
+    let spi_mosi = p.gpio.io25.into_spi::<1>();
+    let spi_clk = p.gpio.io19.into_spi::<1>();
+    let lcd_dc = p.gpio.io13.into_floating_output();
+    let mut lcd_bl = p.gpio.io11.into_floating_output();
+    let lcd_rst = p.gpio.io24.into_floating_output();
+    let spi_lcd = Spi::new(p.spi, (spi_clk, spi_mosi, spi_cs), MODE_0, &p.glb);
 
     let mut delay = riscv::delay::McycleDelay::new(40_000_000);
     let di = display_interface_spi::SPIInterfaceNoCS::new(spi_lcd, lcd_dc);

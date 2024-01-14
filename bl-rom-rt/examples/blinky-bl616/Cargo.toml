@@ -7,11 +7,7 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bl-rom-rt = { path = "../.." }
-embedded-hal = "1.0.0-rc.1"
+bl-rom-rt = { path = "../..", features = ["bl616"]}
+embedded-hal = "1.0.0"
 panic-halt = "0.2.0"
 riscv = "0.10.1"
-
-[features]
-default = ["bl616"]
-bl616 = ["bl-rom-rt/bl616"]

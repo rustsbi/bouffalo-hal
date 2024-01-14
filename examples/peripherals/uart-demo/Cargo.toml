@@ -7,14 +7,13 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bl-soc = { path = "../../..", features = ["bl808"] }
+bl-soc = { path = "../../../bl-soc", features = ["bl808"] }
 base-address = "0.0.0"
 panic-halt = "0.2.0"
 embedded-time = "0.12.1"
 
 [dependencies.bl-rom-rt]
-git = "https://gitee.com/rustsbi/bl-rom-rt"
-branch = "main"
+path = "../../../bl-rom-rt"
 default-features = false
 features = ["bl808-dsp"]
  
