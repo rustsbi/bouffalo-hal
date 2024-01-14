@@ -1,0 +1,26 @@
+[package]
+name = "bl-rom-rt-macros"
+version = "0.0.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "1.0"
+proc-macro2 = "1.0"
+
+[dependencies.syn]
+version = "2.0.15"
+features = ["extra-traits", "full"]
+
+[features]
+default = []
+rom-peripherals = []
+bl616 = []
+bl808-mcu = []
+bl808-dsp = []
+bl808-lp = []
+bl702 = []

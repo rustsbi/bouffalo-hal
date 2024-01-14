@@ -1,0 +1,40 @@
+[package]
+name = "bl-rom-rt"
+version = "0.0.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bl-rom-rt-macros = { path = "macros" }
+crc = "3.0.1"
+cfg-if = "1.0.0"
+bl-soc = { git = "https://gitee.com/rustsbi/bl-soc", branch = "main", optional = true }
+base-address = { version = "0.0.0", optional = true }
+embedded-time = { version = "0.12.1", optional = true }
+plic = "0.0.2"
+
+[dev-dependencies]
+memoffset = "0.8.0"
+
+[features]
+default = ["rom-peripherals"]
+# BL616 and BL618 chip series.
+bl616 = ["bl-soc/bl616", "bl-rom-rt-macros/bl616", "dep:base-address"]
+# BL808 chip.
+bl808-mcu = ["bl-soc/bl808", "bl-rom-rt-macros/bl808-mcu", "dep:base-address"]
+bl808-dsp = ["bl-soc/bl808", "bl-rom-rt-macros/bl808-dsp", "dep:base-address"]
+bl808-lp = ["bl-soc/bl808", "bl-rom-rt-macros/bl808-lp", "dep:base-address"]
+# BL702, BL704 and BL706 chip series.
+bl702 = ["bl-soc/bl702", "bl-rom-rt-macros/bl702", "dep:base-address"]
+# Provide ROM peripherals on #[entry] function.
+rom-peripherals = ["bl-rom-rt-macros/rom-peripherals", "dep:bl-soc", "dep:base-address", "dep:embedded-time"]
+
+# TODO: remove "dep:base-address" once nested interrupt on BL808 is supported
+
+[workspace]
+members = [
+    "macros",
+    "examples/blinky-bl808",
+    "examples/blinky-bl616",
+]
