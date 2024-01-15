@@ -7,22 +7,17 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bl-soc = { path = "../../..", features = ["bl808"] }
+bl-soc = { path = "../../../bl-soc", features = ["bl808"] }
+bl-rom-rt = { path = "../../../bl-rom-rt", features = ["bl808-dsp"] }
 base-address = "0.0.0"
 panic-halt = "0.2.0"
 embedded-time = "0.12.1"
-embedded-hal = "1.0.0-rc.1"
-riscv = "0.10.1"
+embedded-hal = "1.0.0"
+riscv = "0.11.0"
 display-interface-spi = "0.4.1"
 mipidsi = "0.7.1"
 embedded-graphics = "0.8.1"
-embedded-sdmmc = "0.6.0"
+embedded-sdmmc = { git = "https://github.com/rust-embedded-community/embedded-sdmmc-rs" }
 gpt_disk_io = "0.15.0"
 gpt_disk_types = "0.15.0"
 fatfs = { default-features = false, git = "https://github.com/rafalh/rust-fatfs" }
-
-[dependencies.bl-rom-rt]
-git = "https://gitee.com/rustsbi/bl-rom-rt"
-branch = "main"
-default-features = false
-features = ["bl808-dsp"]

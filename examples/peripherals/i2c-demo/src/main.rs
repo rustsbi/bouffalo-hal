@@ -5,9 +5,8 @@
 #![no_std]
 #![no_main]
 
-use base_address::Static;
-use bl_rom_rt::entry;
-use bl_soc::{clocks::Clocks, gpio::Pads, i2c::I2c, prelude::*, uart::UartMuxes, GLB, I2C, UART};
+use bl_rom_rt::{entry, Clocks, Peripherals};
+use bl_soc::{i2c::I2c, prelude::*};
 use embedded_time::rate::*;
 use panic_halt as _;
 
@@ -15,41 +14,27 @@ const SCREEN_TOUCH_SUB_ADDRESS: u8 = 0x01;
 const SCREEN_ADDRESS: u8 = 0x15;
 
 #[entry]
-fn main() -> ! {
-    // values initialized by ROM runtime
-    let gpio: Pads<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
-    let glb: GLB<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
-    let uart0: UART<Static<0x2000A000>, 0> = unsafe { core::mem::transmute(()) };
-    let uart_muxes: UartMuxes<Static<0x20000000>> = unsafe { core::mem::transmute(()) };
-    let i2c: I2C<Static<0x30003000>> = unsafe { core::mem::transmute(()) };
-    let clocks = Clocks {
-        xtal: Hertz(40_000_000),
-    };
-
-    // enable jtag
-    gpio.io0.into_jtag_d0();
-    gpio.io1.into_jtag_d0();
-    gpio.io2.into_jtag_d0();
-    gpio.io3.into_jtag_d0();
-
-    let tx = gpio.io14.into_uart();
-    let rx = gpio.io15.into_uart();
-    let sig2 = uart_muxes.sig2.into_transmit::<0>();
-    let sig3 = uart_muxes.sig3.into_receive::<0>();
+fn main(p: Peripherals, c: Clocks) -> ! {
+    let tx = p.gpio.io14.into_uart();
+    let rx = p.gpio.io15.into_uart();
+    let sig2 = p.uart_muxes.sig2.into_transmit::<0>();
+    let sig3 = p.uart_muxes.sig3.into_receive::<0>();
 
     let config = Default::default();
-    let mut serial = uart0.freerun(config, 2000000.Bd(), ((tx, sig2), (rx, sig3)), &clocks);
-    let mut led = gpio.io8.into_floating_output();
+    let mut serial = p
+        .uart0
+        .freerun(config, 2000000.Bd(), ((tx, sig2), (rx, sig3)), &c);
+    let mut led = p.gpio.io8.into_floating_output();
 
-    let scl = gpio.io6.into_i2c::<2>();
-    let sda = gpio.io7.into_i2c::<2>();
-    let mut i2c = I2c::new(i2c, (scl, sda), &glb);
+    let scl = p.gpio.io6.into_i2c::<2>();
+    let sda = p.gpio.io7.into_i2c::<2>();
+    let mut i2c = I2c::new(p.i2c0, (scl, sda), &p.glb);
     i2c.enable_sub_address(SCREEN_TOUCH_SUB_ADDRESS);
 
     writeln!(serial, "Hello Rust🦀!").ok();
     let mut buf = [0u8; 6];
     loop {
-        unsafe { riscv::asm::delay(100_000) };
+        riscv::asm::delay(100_000);
         match i2c.read(SCREEN_ADDRESS, &mut buf) {
             Ok(_) => {
                 if buf[2] >> 4 == 8 {

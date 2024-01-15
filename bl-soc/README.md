@@ -1,10 +1,14 @@
-# Bouffalo chip Rust Hardware Abstraction Layer (HAL)
+# 博流芯片组件化外设支持库
 
-This repository contains `bl-soc` and `bl-rom-rt` packages.
+[![crates.io](https://img.shields.io/crates/v/bl-soc.svg)](https://crates.io/crates/bl-soc)
+[![Documentation](https://docs.rs/bl-soc/badge.svg)](https://docs.rs/bl-soc)
+![License](https://img.shields.io/crates/l/bl-soc.svg)
 
-## License
+本仓库是根据组件化外设思想，为博流物联网芯片提供的Rust语言支持。
 
-Project is dual licensed under MIT or Mulan-PSL v2.
+## 许可协议
+
+根据木兰宽松许可证，第2版发布。
 
 ```
 Copyright (c) 2023 RustSBI Team

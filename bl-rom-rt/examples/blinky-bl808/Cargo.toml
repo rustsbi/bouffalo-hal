@@ -1,5 +1,5 @@
 [package]
-name = "i2c-demo"
+name = "blinky-bl808"
 version = "0.1.0"
 edition = "2021"
 publish = false
@@ -7,8 +7,12 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bl-soc = { path = "../../../bl-soc", features = ["bl808"] }
-bl-rom-rt = { path = "../../../bl-rom-rt", features = ["bl808-dsp"] }
+bl-rom-rt = { path = "../.." }
+embedded-hal = "1.0.0"
 panic-halt = "0.2.0"
-embedded-time = "0.12.1"
 riscv = "0.11.0"
+
+[features]
+default = ["bl808-dsp"]
+bl808-dsp = ["bl-rom-rt/bl808-dsp"]
+bl808-mcu = ["bl-rom-rt/bl808-mcu"]
