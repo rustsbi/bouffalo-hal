@@ -53,7 +53,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let mut volume_mgr = VolumeManager::new(sdcard, time_source);
 
     let volume0 = volume_mgr
-        .open_volume(embedded_sdmmc::VolumeIdx(0))
+        .open_raw_volume(embedded_sdmmc::VolumeIdx(0))
         .unwrap();
     let root_dir = volume_mgr.open_root_dir(volume0).unwrap();
 
@@ -68,6 +68,6 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     loop {
         led.set_state(led_state).ok();
         led_state = !led_state;
-        unsafe { riscv::asm::delay(100_000) }
+        riscv::asm::delay(100_000)
     }
 }

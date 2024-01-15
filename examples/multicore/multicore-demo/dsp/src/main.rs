@@ -20,6 +20,6 @@ fn main(p: Peripherals, c: Clocks) -> ! {
 
     loop {
         writeln!(serial, "Welcome to bl-soc multicore demo from DSP core🦀!").ok();
-        unsafe { riscv::asm::delay(100_000) };
+        riscv::asm::delay(100_000);
     }
 }

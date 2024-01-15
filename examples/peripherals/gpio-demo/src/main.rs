@@ -29,12 +29,12 @@ fn main(p: Peripherals, _c: Clocks) -> ! {
         if button_1_pressed && button_2_pressed {
             led.set_state(led_state).ok();
             led_state = !led_state;
-            unsafe { riscv::asm::delay(10_000) }
+            riscv::asm::delay(10_000)
         } else if button_1_pressed {
             led.set_low().ok();
         } else if button_2_pressed {
             led.set_high().ok();
         }
-        unsafe { riscv::asm::delay(100_000) }
+        riscv::asm::delay(100_000)
     }
 }

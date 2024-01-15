@@ -12,7 +12,7 @@ bl-rom-rt = { path = "../../../bl-rom-rt", features = ["bl808-dsp"] }
 panic-halt = "0.2.0"
 embedded-time = "0.12.1"
 embedded-hal = "1.0.0"
-riscv = "0.10.1"
+riscv = "0.10.1" # Let's update to 0.11.0 later after `mipidsi` crate is updated to embedded-hal 1.0.0
 display-interface-spi = "0.4.1"
 mipidsi = "0.7.1"
 embedded-graphics = "0.8.1"

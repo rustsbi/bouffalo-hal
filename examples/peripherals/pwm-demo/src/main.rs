@@ -32,17 +32,17 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     loop {
         for duty in 0..100 {
             led.set_duty_cycle(duty).ok();
-            unsafe { riscv::asm::delay(1_000) };
+            riscv::asm::delay(1_000);
         }
         led.set_high().ok();
-        unsafe { riscv::asm::delay(100_000) };
+        riscv::asm::delay(100_000);
         led.enable_pwm_output();
         for duty in (0..100).rev() {
             led.set_duty_cycle(duty).ok();
-            unsafe { riscv::asm::delay(1_000) };
+            riscv::asm::delay(1_000);
         }
         led.set_low().ok();
-        unsafe { riscv::asm::delay(200_000) };
+        riscv::asm::delay(200_000);
         led.enable_pwm_output();
     }
 }

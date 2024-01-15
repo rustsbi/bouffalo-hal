@@ -291,6 +291,6 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     loop {
         led.set_state(led_state).ok();
         led_state = !led_state;
-        unsafe { riscv::asm::delay(100_000) }
+        riscv::asm::delay(100_000)
     }
 }

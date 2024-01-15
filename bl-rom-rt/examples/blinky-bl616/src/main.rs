@@ -22,9 +22,9 @@ fn main(p: Peripherals, _c: Clocks) -> ! {
     loop {
         io27.set_low().ok();
         io28.set_low().ok();
-        unsafe { riscv::asm::delay(100_000) };
+        riscv::asm::delay(100_000);
         io27.set_high().ok();
         io28.set_high().ok();
-        unsafe { riscv::asm::delay(100_000) };
+        riscv::asm::delay(100_000);
     }
 }

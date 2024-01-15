@@ -20,8 +20,8 @@ fn main(p: Peripherals, _c: Clocks) -> ! {
     let mut led = p.gpio.io8.into_floating_output();
     loop {
         led.set_low().ok();
-        unsafe { riscv::asm::delay(100_000) };
+        riscv::asm::delay(100_000);
         led.set_high().ok();
-        unsafe { riscv::asm::delay(100_000) };
+        riscv::asm::delay(100_000);
     }
 }

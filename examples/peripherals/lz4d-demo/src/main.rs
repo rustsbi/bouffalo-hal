@@ -43,7 +43,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     loop {
         if decompress.is_ongoing() {
             writeln!(serial, "Decompression is in progress...").ok();
-            unsafe { riscv::asm::delay(100_000) }
+            riscv::asm::delay(100_000)
         } else {
             let (resource, len) = decompress.wait().unwrap();
             writeln!(serial, "Decompression finished, output {} bytes.", len).ok();

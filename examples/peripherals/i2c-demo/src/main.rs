@@ -40,7 +40,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     writeln!(serial, "Hello Rust🦀!").ok();
     let mut buf = [0u8; 6];
     loop {
-        unsafe { riscv::asm::delay(100_000) };
+        riscv::asm::delay(100_000);
         match i2c.read(SCREEN_ADDRESS, &mut buf) {
             Ok(_) => {
                 if buf[2] >> 4 == 8 {
