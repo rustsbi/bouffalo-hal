@@ -15,12 +15,6 @@ use panic_halt as _;
 
 #[entry]
 fn main(p: Peripherals, c: Clocks) -> ! {
-    // enable jtag
-    p.gpio.io0.into_jtag_d0();
-    p.gpio.io1.into_jtag_d0();
-    p.gpio.io2.into_jtag_d0();
-    p.gpio.io3.into_jtag_d0();
-
     let led = p.gpio.io8.into_pull_down_pwm::<0>();
 
     let mut pwm = Pwm::new(p.pwm, SingleEnd, SingleEnd, &p.glb);

@@ -16,12 +16,6 @@ static mut LZ4_OUTPUT: [u8; 2048] = [0u8; 2048];
 
 #[entry]
 fn main(p: Peripherals, c: Clocks) -> ! {
-    // enable jtag
-    p.gpio.io0.into_jtag_d0();
-    p.gpio.io1.into_jtag_d0();
-    p.gpio.io2.into_jtag_d0();
-    p.gpio.io3.into_jtag_d0();
-
     let tx = p.gpio.io14.into_uart();
     let rx = p.gpio.io15.into_uart();
     let sig2 = p.uart_muxes.sig2.into_transmit::<0>();

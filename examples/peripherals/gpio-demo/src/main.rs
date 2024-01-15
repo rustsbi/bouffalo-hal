@@ -11,12 +11,6 @@ use panic_halt as _;
 
 #[entry]
 fn main(p: Peripherals, _c: Clocks) -> ! {
-    // enable jtag
-    p.gpio.io0.into_jtag_d0();
-    p.gpio.io1.into_jtag_d0();
-    p.gpio.io2.into_jtag_d0();
-    p.gpio.io3.into_jtag_d0();
-
     let mut led = p.gpio.io8.into_floating_output();
     let mut button_1 = p.gpio.io22.into_pull_up_input();
     let mut button_2 = p.gpio.io23.into_pull_up_input();
