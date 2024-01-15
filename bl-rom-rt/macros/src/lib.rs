@@ -15,21 +15,10 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let f = parse_macro_input!(input as ItemFn);
 
-    #[cfg(not(feature = "rom-peripherals"))]
-    if f.sig.inputs.len() != 0 {
-        return parse::Error::new(
-            f.sig.inputs.span(),
-            "`#[entry]` function without rom peripherals should not include any parameter",
-        )
-        .to_compile_error()
-        .into();
-    }
-
-    #[cfg(feature = "rom-peripherals")]
     if f.sig.inputs.len() != 2 {
         return parse::Error::new(
             f.sig.inputs.span(),
-            "`#[entry]` function with rom peripherals should include exactly two parameters",
+            "`#[entry]` function should include exactly two parameters",
         )
         .to_compile_error()
         .into();
@@ -45,14 +34,6 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
         && matches!(f.sig.output, ReturnType::Type(_, ref t) if matches!(t.as_ref(), &Type::Never(_)));
 
     if !valid_signature {
-        #[cfg(not(feature = "rom-peripherals"))]
-        return parse::Error::new(
-            f.sig.span(),
-            "`#[entry]` function must have signature `[unsafe] fn() -> !`",
-        )
-        .to_compile_error()
-        .into();
-        #[cfg(feature = "rom-peripherals")]
         return parse::Error::new(
             f.sig.span(),
             "`#[entry]` function must have signature `[unsafe] fn(p: Peripherals, c: Clocks) -> !`",
@@ -64,35 +45,22 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     let attrs = f.attrs;
     let unsafety = f.sig.unsafety;
     let stmts = f.block.stmts;
-    #[cfg(feature = "rom-peripherals")]
     let inputs = f.sig.inputs;
 
-    match () {
-        #[cfg(not(feature = "rom-peripherals"))]
-        () => quote!(
-            #[allow(non_snake_case)]
-            #[export_name = "main"]
-            #(#attrs)*
-            pub #unsafety fn main() -> ! {
-                #(#stmts)*
-            }
-        ),
-        #[cfg(feature = "rom-peripherals")]
-        () => quote!(
-            #[export_name = "main"]
-            pub extern "C" fn main() -> ! {
-                let p = unsafe { core::mem::transmute(()) };
-                let c = bl_rom_rt::__new_clocks(40_000_000);
-                unsafe { __bl_rom_rt_macros__main(p, c) }
-            }
-            #[allow(non_snake_case)]
-            #[inline(always)]
-            #(#attrs)*
-            #unsafety fn __bl_rom_rt_macros__main(#inputs) -> ! {
-                #(#stmts)*
-            }
-        ),
-    }
+    quote!(
+        #[export_name = "main"]
+        pub extern "C" fn main() -> ! {
+            let p = unsafe { core::mem::transmute(()) };
+            let c = bl_rom_rt::__new_clocks(40_000_000);
+            unsafe { __bl_rom_rt_macros__main(p, c) }
+        }
+        #[allow(non_snake_case)]
+        #[inline(always)]
+        #(#attrs)*
+        #unsafety fn __bl_rom_rt_macros__main(#inputs) -> ! {
+            #(#stmts)*
+        }
+    )
     .into()
 }
 

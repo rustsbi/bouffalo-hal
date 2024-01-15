@@ -14,5 +14,4 @@ riscv = "0.10.1"
 
 [dependencies.bl-rom-rt]
 path = "../../../bl-rom-rt"
-default-features = false
 features = ["bl808-dsp"]

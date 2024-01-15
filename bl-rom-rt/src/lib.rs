@@ -6,20 +6,19 @@ pub use bl_rom_rt_macros::{entry, exception, interrupt};
 
 pub mod soc;
 
-#[cfg(feature = "rom-peripherals")]
 cfg_if::cfg_if! {
-    if #[cfg(feature = "bl616")] {
-        pub use soc::bl616::{Peripherals, Clocks};
+    if #[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp"))] {
+        pub use soc::bl808::{Peripherals, Clocks};
         #[doc(hidden)]
-        pub use soc::bl616::__new_clocks;
+        pub use soc::bl808::__new_clocks;
     } else if #[cfg(feature = "bl702")] {
         pub use soc::bl702::{Peripherals, Clocks};
         #[doc(hidden)]
         pub use soc::bl702::__new_clocks;
-    } else if #[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp"))] {
-        pub use soc::bl808::{Peripherals, Clocks};
+    } else if #[cfg(feature = "bl616")] {
+        pub use soc::bl616::{Peripherals, Clocks};
         #[doc(hidden)]
-        pub use soc::bl808::__new_clocks;
+        pub use soc::bl616::__new_clocks;
     }
 }
 

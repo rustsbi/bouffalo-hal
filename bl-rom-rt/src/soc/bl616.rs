@@ -2,7 +2,6 @@
 
 use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
 
-#[cfg(feature = "rom-peripherals")]
 use base_address::Static;
 
 #[cfg(all(feature = "bl616", target_arch = "riscv32"))]
@@ -216,7 +215,6 @@ pub struct HalCpuCfg {
 }
 
 /// Peripherals available on ROM start.
-#[cfg(feature = "rom-peripherals")]
 pub struct Peripherals {
     /// Global configuration peripheral.
     pub glb: bl_soc::glb::GLBv2<Static<0x20000000>>,
@@ -242,11 +240,9 @@ pub struct Peripherals {
     pub emac: bl_soc::EMAC<Static<0x20070000>>,
 }
 
-#[cfg(feature = "rom-peripherals")]
 pub use bl_soc::clocks::Clocks;
 
 // Used by macros only.
-#[cfg(feature = "rom-peripherals")]
 #[doc(hidden)]
 #[inline(always)]
 pub fn __new_clocks(xtal_hz: u32) -> Clocks {

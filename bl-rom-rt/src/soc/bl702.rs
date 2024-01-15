@@ -3,8 +3,6 @@
 // TODO: this module is not verified yet.
 
 use crate::HalFlashConfig;
-
-#[cfg(feature = "rom-peripherals")]
 use base_address::Static;
 
 #[cfg(feature = "bl702")]
@@ -172,7 +170,6 @@ struct HalBasicConfig {
 }
 
 /// Peripherals available on ROM start.
-#[cfg(feature = "rom-peripherals")]
 pub struct Peripherals {
     /// Global configuration peripheral.
     pub glb: bl_soc::glb::GLBv1<Static<0x40000000>>,
@@ -194,12 +191,10 @@ pub struct Peripherals {
     pub usb: bl_soc::usb::USBv1<Static<0x4000D800>>,
 }
 
-#[cfg(feature = "rom-peripherals")]
 pub use bl_soc::clocks::Clocks;
 
 // TODO: BL702 clock tree configuration.
 // Used by macros only.
-#[cfg(feature = "rom-peripherals")]
 #[doc(hidden)]
 #[inline(always)]
 pub fn __new_clocks(xtal_hz: u32) -> Clocks {
