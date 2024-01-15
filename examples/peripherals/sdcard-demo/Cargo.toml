@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 bl-soc = { path = "../../../bl-soc", features = ["bl808"] }
-base-address = "0.0.0"
+bl-rom-rt = { path = "../../../bl-rom-rt", features = ["bl808-dsp"] }
 panic-halt = "0.2.0"
 embedded-time = "0.12.1"
 embedded-hal = "1.0.0"
@@ -17,8 +17,3 @@ display-interface-spi = "0.4.1"
 mipidsi = "0.7.1"
 embedded-graphics = "0.8.1"
 embedded-sdmmc = "0.6.0"
-
-[dependencies.bl-rom-rt]
-path = "../../../bl-rom-rt"
-default-features = false
-features = ["bl808-dsp"]

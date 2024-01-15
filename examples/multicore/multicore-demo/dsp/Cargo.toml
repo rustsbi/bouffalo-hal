@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 bl-soc = { path = "../../../../bl-soc", features = ["bl808"] }
-base-address = "0.0.0"
 panic-halt = "0.2.0"
 embedded-time = "0.12.1"
 riscv = "0.10.1"

@@ -8,12 +8,6 @@ publish = false
 
 [dependencies]
 bl-soc = { path = "../../../bl-soc", features = ["bl808"] }
-base-address = "0.0.0"
+bl-rom-rt = { path = "../../../bl-rom-rt", features = ["bl808-dsp"] }
 panic-halt = "0.2.0"
 embedded-time = "0.12.1"
-
-[dependencies.bl-rom-rt]
-path = "../../../bl-rom-rt"
-default-features = false
-features = ["bl808-dsp"]
- 
