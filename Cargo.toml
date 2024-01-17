@@ -3,6 +3,7 @@ members = [
     "bl-rom-rt",
     "bl-rom-rt/macros",
     "bl-soc",
+    "blri",
     "bl-rom-rt/examples/blinky-bl808",
     "bl-rom-rt/examples/blinky-bl616",
     "examples/multicore/multicore-demo/mcu",
