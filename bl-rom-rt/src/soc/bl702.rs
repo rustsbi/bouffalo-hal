@@ -10,6 +10,7 @@ use crate::Stack;
 
 #[cfg(feature = "bl702")]
 use core::arch::asm;
+use core::ops::Deref;
 
 #[cfg(feature = "bl702")]
 const LEN_STACK: usize = 1 * 1024;
@@ -174,9 +175,9 @@ pub struct Peripherals {
     /// Global configuration peripheral.
     pub glb: bl_soc::glb::GLBv1<Static<0x40000000>>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
-    pub uart0: bl_soc::UART<Static<0x4000A000>, 0>,
+    pub uart0: UART0,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
-    pub uart1: bl_soc::UART<Static<0x4000A100>, 1>,
+    pub uart1: UART1,
     /// Seriel Peripheral Interface peripheral.
     pub spi: bl_soc::SPI<Static<0x4000A200>>,
     /// Inter-Integrated Circuit bus peripheral.
@@ -189,6 +190,34 @@ pub struct Peripherals {
     pub hbn: bl_soc::HBN<Static<0x4000F000>>,
     /// Universal Serial Bus peripheral.
     pub usb: bl_soc::usb::USBv1<Static<0x4000D800>>,
+}
+
+/// Universal Asynchronous Receiver/Transmitter 0 with fixed base address.
+pub struct UART0 {
+    _private: (),
+}
+
+/// Universal Asynchronous Receiver/Transmitter 1 with fixed base address.
+pub struct UART1 {
+    _private: (),
+}
+
+impl Deref for UART0 {
+    type Target = bl_soc::uart::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x4000A000 as *const _) }
+    }
+}
+
+impl Deref for UART1 {
+    type Target = bl_soc::uart::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x4000A100 as *const _) }
+    }
 }
 
 pub use bl_soc::clocks::Clocks;

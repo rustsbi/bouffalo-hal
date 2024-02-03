@@ -1,6 +1,7 @@
 //! BL616/BL618 single-core Wi-Fi 6, Bluetooth 5.3, Zigbee AIoT system-on-chip.
 
 use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
+use core::ops::Deref;
 
 use base_address::Static;
 
@@ -223,9 +224,9 @@ pub struct Peripherals {
     /// UART signal multiplexers.
     pub uart_muxes: bl_soc::uart::UartMuxes<Static<0x20000000>>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
-    pub uart0: bl_soc::UART<Static<0x2000A000>, 0>,
+    pub uart0: UART0,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
-    pub uart1: bl_soc::UART<Static<0x2000A100>, 1>,
+    pub uart1: UART1,
     /// Seriel Peripheral Interface peripheral.
     pub spi: bl_soc::SPI<Static<0x2000A200>>,
     /// Inter-Integrated Circuit bus peripheral 0.
@@ -238,6 +239,34 @@ pub struct Peripherals {
     pub hbn: bl_soc::HBN<Static<0x2000F000>>,
     /// Ethernet Media Access Control peripheral.
     pub emac: bl_soc::EMAC<Static<0x20070000>>,
+}
+
+/// Universal Asynchronous Receiver/Transmitter 0 with fixed base address.
+pub struct UART0 {
+    _private: (),
+}
+
+/// Universal Asynchronous Receiver/Transmitter 1 with fixed base address.
+pub struct UART1 {
+    _private: (),
+}
+
+impl Deref for UART0 {
+    type Target = bl_soc::uart::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x2000A000 as *const _) }
+    }
+}
+
+impl Deref for UART1 {
+    type Target = bl_soc::uart::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x2000A100 as *const _) }
+    }
 }
 
 pub use bl_soc::clocks::Clocks;

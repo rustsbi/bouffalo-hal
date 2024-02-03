@@ -1,24 +1,21 @@
 //! Universal Asynchronous Receiver/Transmitter.
 use crate::clocks::Clocks;
 use crate::glb::{v2::UartSignal, GLBv2};
-use crate::gpio::MmUart;
-use crate::{
-    gpio::{Pad, Uart},
-    UART,
-};
+use crate::gpio::{MmUart, Pad, Uart};
 use base_address::BaseAddress;
 use core::marker::PhantomData;
+use core::ops::Deref;
 use embedded_time::rate::Baud;
 use volatile_register::{RO, RW, WO};
 
-/// Universal Asynchoronous Receiver/Transmitter registers.
+/// Universal Asynchronous Receiver/Transmitter registers.
 #[repr(C)]
 pub struct RegisterBlock {
     /// Transmit configuration.
     pub transmit_config: RW<TransmitConfig>,
     /// Receive configuration.
     pub receive_config: RW<ReceiveConfig>,
-    /// Bit period in clocks.
+    /// Bit-period in clocks.
     pub bit_period: RW<BitPeriod>,
     /// Data format configuration.
     pub data_config: RW<DataConfig>,
@@ -216,7 +213,7 @@ impl TransmitConfig {
             _ => unreachable!(),
         }
     }
-    /// Set stop bit configuration.
+    /// Set stop-bit configuration.
     #[inline]
     pub const fn set_stop_bits(self, val: StopBits) -> Self {
         let val = match val {
@@ -227,7 +224,7 @@ impl TransmitConfig {
         };
         Self(self.0 & !Self::STOP_BITS | val << 11)
     }
-    /// Get stop bit configuration.
+    /// Get stop-bit configuration.
     #[inline]
     pub const fn stop_bits(self) -> StopBits {
         let val = (self.0 & Self::STOP_BITS) >> 11;
@@ -255,7 +252,7 @@ impl TransmitConfig {
     pub const fn lin_break_bits(self) -> u8 {
         ((self.0 & Self::LIN_BREAK_BITS) >> 13) as u8
     }
-    /// Trigger interrupt when specified length of data is send.
+    /// Trigger interrupt when specified length of data is sent.
     ///
     /// NOTE: This bit is not valid when it is running under free-run mode.
     #[inline]
@@ -541,7 +538,7 @@ pub enum Interrupt {
 pub struct InterruptState(u32);
 
 impl InterruptState {
-    /// Check if has interrupt.
+    /// Check if there is an interrupt flag.
     #[inline]
     pub const fn has_interrupt(self, val: Interrupt) -> bool {
         (self.0 & (1 << (val as u32))) != 0
@@ -762,7 +759,7 @@ pub struct MuxRxd<const I: usize>;
 
 impl<const I: usize> MuxRts<I> {
     #[inline]
-    fn to_signal() -> UartSignal {
+    fn signal() -> UartSignal {
         match I {
             0 => UartSignal::Rts0,
             1 => UartSignal::Rts1,
@@ -774,7 +771,7 @@ impl<const I: usize> MuxRts<I> {
 
 impl<const I: usize> MuxCts<I> {
     #[inline]
-    fn to_signal() -> UartSignal {
+    fn signal() -> UartSignal {
         match I {
             0 => UartSignal::Cts0,
             1 => UartSignal::Cts1,
@@ -786,7 +783,7 @@ impl<const I: usize> MuxCts<I> {
 
 impl<const I: usize> MuxTxd<I> {
     #[inline]
-    fn to_signal() -> UartSignal {
+    fn signal() -> UartSignal {
         match I {
             0 => UartSignal::Txd0,
             1 => UartSignal::Txd1,
@@ -798,7 +795,7 @@ impl<const I: usize> MuxTxd<I> {
 
 impl<const I: usize> MuxRxd<I> {
     #[inline]
-    fn to_signal() -> UartSignal {
+    fn signal() -> UartSignal {
         match I {
             0 => UartSignal::Rxd0,
             1 => UartSignal::Rxd1,
@@ -820,7 +817,7 @@ impl<A: BaseAddress, const N: usize, M> UartMux<A, N, M> {
     pub fn into_request_to_send<const U: usize>(self) -> UartMux<A, N, MuxRts<U>> {
         let config = self.base.uart_mux_group[N >> 3]
             .read()
-            .set_signal(N & 0x7, MuxRts::<U>::to_signal());
+            .set_signal(N & 0x7, MuxRts::<U>::signal());
         unsafe { self.base.uart_mux_group[N >> 3].write(config) };
         UartMux {
             base: self.base,
@@ -832,7 +829,7 @@ impl<A: BaseAddress, const N: usize, M> UartMux<A, N, M> {
     pub fn into_transmit<const U: usize>(self) -> UartMux<A, N, MuxTxd<U>> {
         let config = self.base.uart_mux_group[N >> 3]
             .read()
-            .set_signal(N & 0x7, MuxTxd::<U>::to_signal());
+            .set_signal(N & 0x7, MuxTxd::<U>::signal());
         unsafe { self.base.uart_mux_group[N >> 3].write(config) };
         UartMux {
             base: self.base,
@@ -844,7 +841,7 @@ impl<A: BaseAddress, const N: usize, M> UartMux<A, N, M> {
     pub fn into_receive<const U: usize>(self) -> UartMux<A, N, MuxRxd<U>> {
         let config = self.base.uart_mux_group[N >> 3]
             .read()
-            .set_signal(N & 0x7, MuxRxd::<U>::to_signal());
+            .set_signal(N & 0x7, MuxRxd::<U>::signal());
         unsafe { self.base.uart_mux_group[N >> 3].write(config) };
         UartMux {
             base: self.base,
@@ -856,7 +853,7 @@ impl<A: BaseAddress, const N: usize, M> UartMux<A, N, M> {
     pub fn into_clear_to_send<const U: usize>(self) -> UartMux<A, N, MuxCts<U>> {
         let config = self.base.uart_mux_group[N >> 3]
             .read()
-            .set_signal(N & 0x7, MuxCts::<U>::to_signal());
+            .set_signal(N & 0x7, MuxCts::<U>::signal());
         unsafe { self.base.uart_mux_group[N >> 3].write(config) };
         UartMux {
             base: self.base,
@@ -1155,18 +1152,18 @@ where
 }
 
 /// Managed serial peripheral.
-pub struct Serial<const I: usize, A: BaseAddress, PADS> {
-    uart: UART<A, I>,
+pub struct Serial<UART, PADS> {
+    uart: UART,
     pads: PADS,
 }
 
-impl<const I: usize, A: BaseAddress, PADS> Serial<I, A, PADS> {
+impl<UART: Deref<Target = RegisterBlock>, PADS> Serial<UART, PADS> {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
     ///
     /// This structure sets the same baudrate for transmit and receive halves.
     #[inline]
-    pub fn freerun(
-        uart: UART<A, I>,
+    pub fn freerun<const I: usize>(
+        uart: UART,
         config: Config,
         baudrate: Baud,
         pads: PADS,
@@ -1186,7 +1183,7 @@ impl<const I: usize, A: BaseAddress, PADS> Serial<I, A, PADS> {
             .set_receive_time_interval(interval as u16);
         unsafe { uart.bit_period.write(val) };
 
-        // Write bit order.
+        // Write the bit-order.
         let val = DataConfig(0).set_bit_order(config.bit_order);
         unsafe { uart.data_config.write(val) };
 
@@ -1218,34 +1215,34 @@ impl<const I: usize, A: BaseAddress, PADS> Serial<I, A, PADS> {
 
     /// Release serial instance and return its peripheral and pads.
     #[inline]
-    pub fn free(self) -> (UART<A, I>, PADS) {
+    pub fn free(self) -> (UART, PADS) {
         (self.uart, self.pads)
     }
 }
 
 /// Extend constructor to owned UART register blocks.
-pub trait UartExt<const I: usize, A: BaseAddress, PADS> {
+pub trait UartExt<PADS>: Sized {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
-    fn freerun(
+    fn freerun<const I: usize>(
         self,
         config: Config,
         baudrate: Baud,
         pads: PADS,
         clocks: &Clocks,
-    ) -> Serial<I, A, PADS>
+    ) -> Serial<Self, PADS>
     where
         PADS: Pads<I>;
 }
 
-impl<const I: usize, A: BaseAddress, PADS> UartExt<I, A, PADS> for UART<A, I> {
+impl<UART: Deref<Target = RegisterBlock>, PADS> UartExt<PADS> for UART {
     #[inline]
-    fn freerun(
+    fn freerun<const I: usize>(
         self,
         config: Config,
         baudrate: Baud,
         pads: PADS,
         clocks: &Clocks,
-    ) -> Serial<I, A, PADS>
+    ) -> Serial<Self, PADS>
     where
         PADS: Pads<I>,
     {
@@ -1260,11 +1257,11 @@ impl embedded_io::Error for Error {
     }
 }
 
-impl<const I: usize, A: BaseAddress, PADS> embedded_io::ErrorType for Serial<I, A, PADS> {
+impl<UART, PADS> embedded_io::ErrorType for Serial<UART, PADS> {
     type Error = Error;
 }
 
-impl<const I: usize, A: BaseAddress, PADS> embedded_io::Write for Serial<I, A, PADS> {
+impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Write for Serial<UART, PADS> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         while self.uart.fifo_config_1.read().transmit_available_bytes() == 0 {
@@ -1290,7 +1287,7 @@ impl<const I: usize, A: BaseAddress, PADS> embedded_io::Write for Serial<I, A, P
     }
 }
 
-impl<const I: usize, A: BaseAddress, PADS> embedded_io::Read for Serial<I, A, PADS> {
+impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Read for Serial<UART, PADS> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         while self.uart.fifo_config_1.read().receive_available_bytes() == 0 {
