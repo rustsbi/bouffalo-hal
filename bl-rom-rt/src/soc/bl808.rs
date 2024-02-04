@@ -779,7 +779,7 @@ impl HalCpuCfg {
 /// Peripherals available on ROM start.
 pub struct Peripherals {
     /// Global configuration peripheral.
-    pub glb: bl_soc::glb::GLBv2<Static<0x20000000>>,
+    pub glb: GLBv2,
     /// General Purpose Input/Output pads.
     pub gpio: bl_soc::gpio::Pads<Static<0x20000000>>,
     /// UART signal multiplexers.
@@ -791,11 +791,11 @@ pub struct Peripherals {
     /// Serial Peripheral Interface peripheral 0.
     pub spi0: SPI0,
     /// Inter-Integrated Circuit bus peripheral 0.
-    pub i2c0: bl_soc::I2C<Static<0x2000A300>>,
+    pub i2c0: I2C0,
     /// Pulse Width Modulation peripheral.
     pub pwm: bl_soc::PWM<Static<0x2000A400>>,
     /// Inter-Integrated Circuit bus peripheral 1.
-    pub i2c1: bl_soc::I2C<Static<0x2000A900>>,
+    pub i2c1: I2C1,
     /// Universal Asynchronous Receiver/Transmitter peripheral 2.
     pub uart2: UART2,
     /// Hardware LZ4 Decompressor.
@@ -807,10 +807,10 @@ pub struct Peripherals {
     /// Universal Asynchronous Receiver/Transmitter peripheral 3.
     pub uart3: UART3,
     /// Inter-Integrated Circuit bus peripheral 2.
-    pub i2c2: bl_soc::I2C<Static<0x30003000>>,
+    pub i2c2: I2C2,
     /// Inter-Integrated Circuit bus peripheral 3.
-    pub i2c3: bl_soc::I2C<Static<0x30004000>>,
-    /// Seriel Peripheral Interface peripheral 1.
+    pub i2c3: I2C3,
+    /// Serial Peripheral Interface peripheral 1.
     pub spi1: SPI1,
     /// Platform-local Interrupt Controller.
     pub plic: PLIC<Static<0xE0000000>>,
@@ -916,6 +916,62 @@ impl Deref for SPI1 {
     }
 }
 
+/// Inter-Integrated Circuit bus 0 with fixed base address.
+pub struct I2C0 {
+    _private: (),
+}
+
+/// Inter-Integrated Circuit bus 1 with fixed base address.
+pub struct I2C1 {
+    _private: (),
+}
+
+/// Inter-Integrated Circuit bus 2 with fixed base address.
+pub struct I2C2 {
+    _private: (),
+}
+
+/// Inter-Integrated Circuit bus 3 with fixed base address.
+pub struct I2C3 {
+    _private: (),
+}
+
+impl Deref for I2C0 {
+    type Target = bl_soc::i2c::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x2000A300 as *const _) }
+    }
+}
+
+impl Deref for I2C1 {
+    type Target = bl_soc::i2c::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x2000A900 as *const _) }
+    }
+}
+
+impl Deref for I2C2 {
+    type Target = bl_soc::i2c::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x30003000 as *const _) }
+    }
+}
+
+impl Deref for I2C3 {
+    type Target = bl_soc::i2c::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x30004000 as *const _) }
+    }
+}
+
 /// Platform-local Interrupt Controller.
 pub struct PLIC<A: base_address::BaseAddress> {
     base: A,
@@ -923,7 +979,7 @@ pub struct PLIC<A: base_address::BaseAddress> {
 
 unsafe impl<A: base_address::BaseAddress> Send for PLIC<A> {}
 
-impl<A: base_address::BaseAddress> core::ops::Deref for PLIC<A> {
+impl<A: base_address::BaseAddress> Deref for PLIC<A> {
     type Target = plic::Plic;
 
     #[inline(always)]

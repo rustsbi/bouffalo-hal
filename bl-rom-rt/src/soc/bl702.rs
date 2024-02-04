@@ -181,7 +181,7 @@ pub struct Peripherals {
     /// Serial Peripheral Interface peripheral.
     pub spi: SPI,
     /// Inter-Integrated Circuit bus peripheral.
-    pub i2c: bl_soc::I2C<Static<0x4000A300>>,
+    pub i2c: I2C,
     /// Pulse Width Modulation peripheral.
     pub pwn: bl_soc::PWM<Static<0x4000A400>>,
     /// Ethernet Media Access Control peripheral.
@@ -231,6 +231,20 @@ impl Deref for SPI {
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
         unsafe { &*(0x4000A200 as *const _) }
+    }
+}
+
+/// Inter-Integrated Circuit bus with fixed base address.
+pub struct I2C {
+    _private: (),
+}
+
+impl Deref for I2C {
+    type Target = bl_soc::i2c::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x4000A300 as *const _) }
     }
 }
 

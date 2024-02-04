@@ -1,10 +1,10 @@
 //! Inter-Integrated Circuit bus.
 use crate::{
-    glb::{v2::I2cClockSource, GLBv2},
+    glb::{self, v2::I2cClockSource},
     gpio::{self, Pad},
-    I2C,
 };
 use base_address::BaseAddress;
+use core::ops::Deref;
 use volatile_register::{RO, RW, WO};
 
 /// Inter-integrated circuit registers.
@@ -83,12 +83,12 @@ impl Config {
     pub fn set_write_direction(self) -> Self {
         Self(self.0 & !Self::PACKET_DIRECTION)
     }
-    /// Check if packet direction is set to read.
+    /// Check if the packet direction is set to read.
     #[inline]
     pub fn is_read_direction(self) -> bool {
         self.0 & Self::PACKET_DIRECTION != 0
     }
-    /// Check if packet direction is set to write.
+    /// Check if the packet direction is set to write.
     #[inline]
     pub fn is_write_direction(self) -> bool {
         self.0 & Self::PACKET_DIRECTION == 0
@@ -462,32 +462,32 @@ impl FifoConfig1 {
     const TRANSMIT_THRESHOLD: u32 = 0x1 << 16;
     const RECEIVE_THRESHOLD: u32 = 0x1 << 24;
 
-    /// Get number of empty spaces remained in transmit FIFO queue.
+    /// Get the number of empty spaces remained in the transmit FIFO queue.
     #[inline]
     pub const fn transmit_available_bytes(self) -> u8 {
         (self.0 & Self::TRANSMIT_COUNT) as u8
     }
-    /// Get number of available bytes received in receive FIFO queue.
+    /// Get the number of available bytes received in the receive FIFO queue.
     #[inline]
     pub const fn receive_available_bytes(self) -> u8 {
         ((self.0 & Self::RECEIVE_COUNT) >> 8) as u8
     }
-    /// Set transmit FIFO threshold.
+    /// Set the threshold of transmit-side FIFO.
     #[inline]
     pub const fn set_transmit_threshold(self, val: u8) -> Self {
         Self(self.0 & !Self::TRANSMIT_THRESHOLD | ((val as u32) << 16))
     }
-    /// Get transmit FIFO threshold.
+    /// Get the threshold of transmit-side FIFO.
     #[inline]
     pub const fn transmit_threshold(self) -> u8 {
         ((self.0 & Self::TRANSMIT_THRESHOLD) >> 16) as u8
     }
-    /// Set receive FIFO threshold.
+    /// Set the threshold of receive-side FIFO.
     #[inline]
     pub const fn set_receive_threshold(self, val: u8) -> Self {
         Self(self.0 & !Self::RECEIVE_THRESHOLD | ((val as u32) << 24))
     }
-    /// Get receive FIFO threshold.
+    /// Get the threshold of receive-side FIFO.
     #[inline]
     pub const fn receive_threshold(self) -> u8 {
         ((self.0 & Self::RECEIVE_THRESHOLD) >> 24) as u8
@@ -495,15 +495,15 @@ impl FifoConfig1 {
 }
 
 /// Managed Inter-Integrated Circuit peripheral.
-pub struct I2c<A: BaseAddress, PADS> {
-    i2c: I2C<A>,
+pub struct I2c<I2C, PADS> {
+    i2c: I2C,
     pads: PADS,
 }
 
-impl<A: BaseAddress, SCL, SDA> I2c<A, (SCL, SDA)> {
+impl<I2C: Deref<Target = RegisterBlock>, SCL, SDA> I2c<I2C, (SCL, SDA)> {
     /// Create a new Inter-Integrated Circuit instance.
     #[inline]
-    pub fn new<const I: usize>(i2c: I2C<A>, pads: (SCL, SDA), glb: &GLBv2<impl BaseAddress>) -> Self
+    pub fn new<const I: usize>(i2c: I2C, pads: (SCL, SDA), glb: &glb::v2::RegisterBlock) -> Self
     where
         SCL: SclPin<I>,
         SDA: SdaPin<I>,
@@ -552,7 +552,7 @@ impl<A: BaseAddress, SCL, SDA> I2c<A, (SCL, SDA)> {
 
     /// Release the I2C instance and return the pads.
     #[inline]
-    pub fn free(self, glb: &GLBv2<impl BaseAddress>) -> (I2C<A>, (SCL, SDA)) {
+    pub fn free(self, glb: &glb::v2::RegisterBlock) -> (I2C, (SCL, SDA)) {
         unsafe {
             glb.i2c_config.modify(|config| config.disable_clock());
             glb.clock_config_1.modify(|config| config.disable_i2c());
@@ -602,11 +602,11 @@ impl embedded_hal::i2c::Error for Error {
     }
 }
 
-impl<A: BaseAddress, PADS> embedded_hal::i2c::ErrorType for I2c<A, PADS> {
+impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::ErrorType for I2c<I2C, PADS> {
     type Error = Error;
 }
 
-impl<A: BaseAddress, PADS> embedded_hal::i2c::I2c for I2c<A, PADS> {
+impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2C, PADS> {
     #[inline]
     fn transaction(
         &mut self,

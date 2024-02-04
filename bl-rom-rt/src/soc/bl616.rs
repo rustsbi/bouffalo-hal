@@ -230,11 +230,11 @@ pub struct Peripherals {
     /// Serial Peripheral Interface peripheral.
     pub spi: SPI,
     /// Inter-Integrated Circuit bus peripheral 0.
-    pub i2c0: bl_soc::I2C<Static<0x2000A300>>,
+    pub i2c0: I2C0,
     /// Pulse Width Modulation peripheral.
     pub pwm: bl_soc::PWM<Static<0x2000A400>>,
     /// Inter-Integrated Circuit bus peripheral 1.
-    pub i2c1: bl_soc::I2C<Static<0x2000A900>>,
+    pub i2c1: I2C1,
     /// Hibernation control peripheral.
     pub hbn: bl_soc::HBN<Static<0x2000F000>>,
     /// Ethernet Media Access Control peripheral.
@@ -294,6 +294,34 @@ impl Deref for SPI {
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
         unsafe { &*(0x2000A200 as *const _) }
+    }
+}
+
+/// Inter-Integrated Circuit bus 0 with fixed base address.
+pub struct I2C0 {
+    _private: (),
+}
+
+/// Inter-Integrated Circuit bus 1 with fixed base address.
+pub struct I2C1 {
+    _private: (),
+}
+
+impl Deref for I2C0 {
+    type Target = bl_soc::i2c::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x2000A300 as *const _) }
+    }
+}
+
+impl Deref for I2C1 {
+    type Target = bl_soc::i2c::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x2000A900 as *const _) }
     }
 }
 
