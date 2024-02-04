@@ -2,8 +2,8 @@
 
 use crate::glb::{v2::SpiMode, GLBv2};
 use crate::gpio::{self, Pad};
-use crate::SPI;
 use base_address::BaseAddress;
+use core::ops::Deref;
 use embedded_hal::spi::Mode;
 use volatile_register::{RO, RW, WO};
 
@@ -307,7 +307,7 @@ impl InterruptConfig {
     ///
     /// Note that `TransmitFifoReady`, `ReceiveFifoReady` and `FifoError` interrupts
     /// are auto-cleared when certain queue flags in other registers are cleared.
-    /// Those three interrupts cannot be cleared by this function.
+    /// This function cannot clear those three interrupts.
     #[inline]
     pub const fn clear_interrupt(self, val: Interrupt) -> Self {
         Self(self.0 | (1 << (val as u32 + 16)))
@@ -620,15 +620,15 @@ impl FifoConfig1 {
 }
 
 /// Managed Serial Peripheral Interface peripheral.
-pub struct Spi<A: BaseAddress, PADS, const I: usize> {
-    spi: SPI<A>,
+pub struct Spi<SPI, PADS, const I: usize> {
+    spi: SPI,
     pads: PADS,
 }
 
-impl<A: BaseAddress, PADS, const I: usize> Spi<A, PADS, I> {
+impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> Spi<SPI, PADS, I> {
     /// Create a new Serial Peripheral Interface instance.
     #[inline]
-    pub fn new(spi: SPI<A>, pads: PADS, mode: Mode, glb: &GLBv2<impl BaseAddress>) -> Self
+    pub fn new(spi: SPI, pads: PADS, mode: Mode, glb: &GLBv2<impl BaseAddress>) -> Self
     where
         PADS: Pads<I>,
     {
@@ -683,7 +683,7 @@ impl<A: BaseAddress, PADS, const I: usize> Spi<A, PADS, I> {
 
     /// Release the SPI instance and return the pads.
     #[inline]
-    pub fn free(self) -> (SPI<A>, PADS) {
+    pub fn free(self) -> (SPI, PADS) {
         (self.spi, self.pads)
     }
 }
@@ -705,11 +705,15 @@ impl embedded_hal::spi::Error for Error {
     }
 }
 
-impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::ErrorType for Spi<A, PADS, I> {
+impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi::ErrorType
+    for Spi<SPI, PADS, I>
+{
     type Error = Error;
 }
 
-impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::SpiBus for Spi<A, PADS, I> {
+impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi::SpiBus
+    for Spi<SPI, PADS, I>
+{
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<(), Self::Error> {
         unsafe { self.spi.config.modify(|config| config.enable_master()) };
@@ -770,7 +774,9 @@ impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::SpiBus for Spi<A, 
     }
 }
 
-impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::SpiDevice for Spi<A, PADS, I> {
+impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi::SpiDevice
+    for Spi<SPI, PADS, I>
+{
     fn transaction(
         &mut self,
         operations: &mut [embedded_hal::spi::Operation<'_, u8>],
@@ -820,8 +826,8 @@ impl<A: BaseAddress, PADS, const I: usize> embedded_hal::spi::SpiDevice for Spi<
 // ecosystem crates, as some of them depends on embedded-hal v0.2.7 traits.
 // We encourage ecosystem developers to use embedded-hal v1.0.0 traits; after that, this part of code
 // would be removed in the future.
-impl<A: BaseAddress, PADS, const I: usize> embedded_hal_027::blocking::spi::Write<u8>
-    for Spi<A, PADS, I>
+impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize>
+    embedded_hal_027::blocking::spi::Write<u8> for Spi<SPI, PADS, I>
 {
     type Error = Error;
     #[inline]
@@ -831,8 +837,8 @@ impl<A: BaseAddress, PADS, const I: usize> embedded_hal_027::blocking::spi::Writ
     }
 }
 
-impl<A: BaseAddress, PINS, const I: usize> embedded_hal_027::blocking::spi::Transfer<u8>
-    for Spi<A, PINS, I>
+impl<SPI: Deref<Target = RegisterBlock>, PINS, const I: usize>
+    embedded_hal_027::blocking::spi::Transfer<u8> for Spi<SPI, PINS, I>
 {
     type Error = Error;
     #[inline]

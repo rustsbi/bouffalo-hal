@@ -1,8 +1,3 @@
-// This is a example of how to read a SD card with a GPT partition table and a EFI partition.
-// Build this example with:
-// rustup target install riscv64imac-unknown-none-elf
-// cargo build --target riscv64imac-unknown-none-elf --release -p sdcard-gpt-demo
-
 #![no_std]
 #![no_main]
 
@@ -214,7 +209,12 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let spi_cs = p.gpio.io0.into_spi::<1>();
     let fake_cs = p.gpio.io12.into_floating_output();
 
-    let spi_sd = Spi::new(p.spi, (spi_clk, spi_mosi, spi_miso, spi_cs), MODE_3, &p.glb);
+    let spi_sd = Spi::new(
+        p.spi0,
+        (spi_clk, spi_mosi, spi_miso, spi_cs),
+        MODE_3,
+        &p.glb,
+    );
 
     let delay = riscv::delay::McycleDelay::new(40_000_000);
     let sdcard = SdCard::new(spi_sd, fake_cs, delay);
@@ -245,7 +245,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let my_sdcard: MySdCard<
         SdCard<
             Spi<
-                Static<805339136>,
+                bl_rom_rt::soc::bl808::SPI0,
                 (
                     bl_soc::gpio::Pad<Static<536870912>, 3, bl_soc::gpio::Spi<1>>,
                     bl_soc::gpio::Pad<Static<536870912>, 1, bl_soc::gpio::Spi<1>>,

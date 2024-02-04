@@ -789,7 +789,7 @@ pub struct Peripherals {
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
     pub uart1: UART1,
     /// Serial Peripheral Interface peripheral 0.
-    pub spi: bl_soc::SPI<Static<0x2000A200>>,
+    pub spi0: SPI0,
     /// Inter-Integrated Circuit bus peripheral 0.
     pub i2c0: bl_soc::I2C<Static<0x2000A300>>,
     /// Pulse Width Modulation peripheral.
@@ -811,7 +811,7 @@ pub struct Peripherals {
     /// Inter-Integrated Circuit bus peripheral 3.
     pub i2c3: bl_soc::I2C<Static<0x30004000>>,
     /// Seriel Peripheral Interface peripheral 1.
-    pub spi1: bl_soc::SPI<Static<0x30008000>>,
+    pub spi1: SPI1,
     /// Platform-local Interrupt Controller.
     pub plic: PLIC<Static<0xE0000000>>,
     /// Multi-media subsystem global peripheral.
@@ -885,6 +885,34 @@ impl Deref for UART3 {
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
         unsafe { &*(0x30002000 as *const _) }
+    }
+}
+
+/// Serial Peripheral Interface peripheral 0.
+pub struct SPI0 {
+    _private: (),
+}
+
+impl Deref for SPI0 {
+    type Target = bl_soc::spi::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x2000A200 as *const _) }
+    }
+}
+
+/// Serial Peripheral Interface peripheral 1.
+pub struct SPI1 {
+    _private: (),
+}
+
+impl Deref for SPI1 {
+    type Target = bl_soc::spi::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x30008000 as *const _) }
     }
 }
 

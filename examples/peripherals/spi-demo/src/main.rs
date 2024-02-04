@@ -1,7 +1,3 @@
-// Build this example with:
-// rustup target install riscv64imac-unknown-none-elf
-// cargo build --target riscv64imac-unknown-none-elf --release -p spi-demo
-
 #![no_std]
 #![no_main]
 
@@ -31,7 +27,7 @@ fn main(p: Peripherals, _c: Clocks) -> ! {
     let lcd_dc = p.gpio.io13.into_floating_output();
     let mut lcd_bl = p.gpio.io11.into_floating_output();
     let lcd_rst = p.gpio.io24.into_floating_output();
-    let spi_lcd = Spi::new(p.spi, (spi_clk, spi_mosi, spi_cs), MODE_0, &p.glb);
+    let spi_lcd = Spi::new(p.spi0, (spi_clk, spi_mosi, spi_cs), MODE_0, &p.glb);
 
     let mut delay = riscv::delay::McycleDelay::new(40_000_000);
     let di = display_interface_spi::SPIInterfaceNoCS::new(spi_lcd, lcd_dc);

@@ -178,8 +178,8 @@ pub struct Peripherals {
     pub uart0: UART0,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
     pub uart1: UART1,
-    /// Seriel Peripheral Interface peripheral.
-    pub spi: bl_soc::SPI<Static<0x4000A200>>,
+    /// Serial Peripheral Interface peripheral.
+    pub spi: SPI,
     /// Inter-Integrated Circuit bus peripheral.
     pub i2c: bl_soc::I2C<Static<0x4000A300>>,
     /// Pulse Width Modulation peripheral.
@@ -217,6 +217,20 @@ impl Deref for UART1 {
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
         unsafe { &*(0x4000A100 as *const _) }
+    }
+}
+
+/// Serial Peripheral Interface peripheral.
+pub struct SPI {
+    _private: (),
+}
+
+impl Deref for SPI {
+    type Target = bl_soc::spi::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x4000A200 as *const _) }
     }
 }
 

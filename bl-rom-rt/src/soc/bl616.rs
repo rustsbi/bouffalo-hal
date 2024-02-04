@@ -218,17 +218,17 @@ pub struct HalCpuCfg {
 /// Peripherals available on ROM start.
 pub struct Peripherals {
     /// Global configuration peripheral.
-    pub glb: bl_soc::glb::GLBv2<Static<0x20000000>>,
+    pub glb: GLBv2,
     /// General Purpose Input/Output pads.
     pub gpio: bl_soc::gpio::Pads<Static<0x20000000>>,
     /// UART signal multiplexers.
-    pub uart_muxes: bl_soc::uart::UartMuxes<Static<0x20000000>>,
+    pub uart_muxes: bl_soc::uart::UartMuxes<GLBv2>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
     pub uart0: UART0,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
     pub uart1: UART1,
-    /// Seriel Peripheral Interface peripheral.
-    pub spi: bl_soc::SPI<Static<0x2000A200>>,
+    /// Serial Peripheral Interface peripheral.
+    pub spi: SPI,
     /// Inter-Integrated Circuit bus peripheral 0.
     pub i2c0: bl_soc::I2C<Static<0x2000A300>>,
     /// Pulse Width Modulation peripheral.
@@ -239,6 +239,20 @@ pub struct Peripherals {
     pub hbn: bl_soc::HBN<Static<0x2000F000>>,
     /// Ethernet Media Access Control peripheral.
     pub emac: bl_soc::EMAC<Static<0x20070000>>,
+}
+
+/// Global configuration peripheral.
+pub struct GLBv2 {
+    _private: (),
+}
+
+impl Deref for GLBv2 {
+    type Target = bl_soc::glb::v2::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x20000000 as *const _) }
+    }
 }
 
 /// Universal Asynchronous Receiver/Transmitter 0 with fixed base address.
@@ -266,6 +280,20 @@ impl Deref for UART1 {
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
         unsafe { &*(0x2000A100 as *const _) }
+    }
+}
+
+/// Serial Peripheral Interface peripheral.
+pub struct SPI {
+    _private: (),
+}
+
+impl Deref for SPI {
+    type Target = bl_soc::spi::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x2000A200 as *const _) }
     }
 }
 

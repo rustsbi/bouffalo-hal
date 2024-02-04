@@ -1,8 +1,3 @@
-// This is a example of how to read a SD card with a MBR partition table and a FAT32 partition.
-// Build this example with:
-// rustup target install riscv64imac-unknown-none-elf
-// cargo build --target riscv64imac-unknown-none-elf --release -p sdcard-demo
-
 #![no_std]
 #![no_main]
 
@@ -13,9 +8,9 @@ use embedded_sdmmc::{SdCard, VolumeManager};
 use embedded_time::rate::*;
 use panic_halt as _;
 
-struct MyTimeSourse {}
+struct MyTimeSource {}
 
-impl embedded_sdmmc::TimeSource for MyTimeSourse {
+impl embedded_sdmmc::TimeSource for MyTimeSource {
     fn get_timestamp(&self) -> embedded_sdmmc::Timestamp {
         // TODO
         embedded_sdmmc::Timestamp::from_calendar(2023, 1, 1, 0, 0, 0).unwrap()
@@ -41,7 +36,12 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let spi_mosi = p.gpio.io1.into_spi::<1>();
     let spi_miso = p.gpio.io2.into_spi::<1>();
     let spi_cs = p.gpio.io0.into_spi::<1>();
-    let spi_sd = Spi::new(p.spi, (spi_clk, spi_mosi, spi_miso, spi_cs), MODE_3, &p.glb);
+    let spi_sd = Spi::new(
+        p.spi0,
+        (spi_clk, spi_mosi, spi_miso, spi_cs),
+        MODE_3,
+        &p.glb,
+    );
 
     let delay = riscv::delay::McycleDelay::new(40_000_000);
     // TODO: let embedded_sdmmc::SdCard control cs pin
@@ -49,7 +49,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let sdcard = SdCard::new(spi_sd, fake_cs, delay);
     writeln!(serial, "Card size: {}", sdcard.num_bytes().unwrap()).ok();
 
-    let time_source = MyTimeSourse {};
+    let time_source = MyTimeSource {};
     let mut volume_mgr = VolumeManager::new(sdcard, time_source);
 
     let volume0 = volume_mgr
