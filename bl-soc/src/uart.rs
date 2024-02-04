@@ -1,6 +1,6 @@
 //! Universal Asynchronous Receiver/Transmitter.
 use crate::clocks::Clocks;
-use crate::glb::{v2::UartSignal, GLBv2};
+use crate::glb::{self, v2::UartSignal};
 use crate::gpio::{MmUart, Pad, Uart};
 use base_address::BaseAddress;
 use core::marker::PhantomData;
@@ -527,7 +527,7 @@ pub enum Interrupt {
     TransmitFifoError = 6,
     ReceiveFifoError = 7,
     ReceiveSyncError = 8,
-    ReceiveByteCountReacheed = 9,
+    ReceiveByteCountReached = 9,
     ReceiveAutoBaudrateByStartBit = 10,
     ReceiveAutoBaudrateByFiveFive = 11,
 }
@@ -806,15 +806,17 @@ impl<const I: usize> MuxRxd<I> {
 }
 
 /// Global peripheral UART signal multiplexer.
-pub struct UartMux<A: BaseAddress, const N: usize, M> {
-    base: GLBv2<A>,
+///
+/// This structure only owns the GLB signal multiplexer for signal number `N`.
+pub struct UartMux<GLB, const N: usize, M> {
+    base: GLB,
     _mode: PhantomData<M>,
 }
 
-impl<A: BaseAddress, const N: usize, M> UartMux<A, N, M> {
+impl<GLB: Deref<Target = glb::v2::RegisterBlock>, const N: usize, M> UartMux<GLB, N, M> {
     /// Configure the internal UART signal to Request-to-Send (RTS).
     #[inline]
-    pub fn into_request_to_send<const U: usize>(self) -> UartMux<A, N, MuxRts<U>> {
+    pub fn into_request_to_send<const U: usize>(self) -> UartMux<GLB, N, MuxRts<U>> {
         let config = self.base.uart_mux_group[N >> 3]
             .read()
             .set_signal(N & 0x7, MuxRts::<U>::signal());
@@ -826,7 +828,7 @@ impl<A: BaseAddress, const N: usize, M> UartMux<A, N, M> {
     }
     /// Configure the internal UART signal to Transmit (TXD).
     #[inline]
-    pub fn into_transmit<const U: usize>(self) -> UartMux<A, N, MuxTxd<U>> {
+    pub fn into_transmit<const U: usize>(self) -> UartMux<GLB, N, MuxTxd<U>> {
         let config = self.base.uart_mux_group[N >> 3]
             .read()
             .set_signal(N & 0x7, MuxTxd::<U>::signal());
@@ -838,7 +840,7 @@ impl<A: BaseAddress, const N: usize, M> UartMux<A, N, M> {
     }
     /// Configure the internal UART signal to Receive (RXD).
     #[inline]
-    pub fn into_receive<const U: usize>(self) -> UartMux<A, N, MuxRxd<U>> {
+    pub fn into_receive<const U: usize>(self) -> UartMux<GLB, N, MuxRxd<U>> {
         let config = self.base.uart_mux_group[N >> 3]
             .read()
             .set_signal(N & 0x7, MuxRxd::<U>::signal());
@@ -850,7 +852,7 @@ impl<A: BaseAddress, const N: usize, M> UartMux<A, N, M> {
     }
     /// Configure the internal UART signal to Clear-to-Send (CTS).
     #[inline]
-    pub fn into_clear_to_send<const U: usize>(self) -> UartMux<A, N, MuxCts<U>> {
+    pub fn into_clear_to_send<const U: usize>(self) -> UartMux<GLB, N, MuxCts<U>> {
         let config = self.base.uart_mux_group[N >> 3]
             .read()
             .set_signal(N & 0x7, MuxCts::<U>::signal());
@@ -863,31 +865,31 @@ impl<A: BaseAddress, const N: usize, M> UartMux<A, N, M> {
 }
 
 /// Available UART signal multiplexers.
-pub struct UartMuxes<A: BaseAddress> {
+pub struct UartMuxes<GLB> {
     /// Multiplexer of UART signal 0.
-    pub sig0: UartMux<A, 0, MuxRts<0>>,
+    pub sig0: UartMux<GLB, 0, MuxRts<0>>,
     /// Multiplexer of UART signal 1.
-    pub sig1: UartMux<A, 1, MuxRts<0>>,
+    pub sig1: UartMux<GLB, 1, MuxRts<0>>,
     /// Multiplexer of UART signal 2.
-    pub sig2: UartMux<A, 2, MuxRts<0>>,
+    pub sig2: UartMux<GLB, 2, MuxRts<0>>,
     /// Multiplexer of UART signal 3.
-    pub sig3: UartMux<A, 3, MuxRts<0>>,
+    pub sig3: UartMux<GLB, 3, MuxRts<0>>,
     /// Multiplexer of UART signal 4.
-    pub sig4: UartMux<A, 4, MuxRts<0>>,
+    pub sig4: UartMux<GLB, 4, MuxRts<0>>,
     /// Multiplexer of UART signal 5.
-    pub sig5: UartMux<A, 5, MuxRts<0>>,
+    pub sig5: UartMux<GLB, 5, MuxRts<0>>,
     /// Multiplexer of UART signal 6.
-    pub sig6: UartMux<A, 6, MuxRts<0>>,
+    pub sig6: UartMux<GLB, 6, MuxRts<0>>,
     /// Multiplexer of UART signal 7.
-    pub sig7: UartMux<A, 7, MuxRts<0>>,
+    pub sig7: UartMux<GLB, 7, MuxRts<0>>,
     /// Multiplexer of UART signal 8.
-    pub sig8: UartMux<A, 8, MuxRts<0>>,
+    pub sig8: UartMux<GLB, 8, MuxRts<0>>,
     /// Multiplexer of UART signal 9.
-    pub sig9: UartMux<A, 9, MuxRts<0>>,
+    pub sig9: UartMux<GLB, 9, MuxRts<0>>,
     /// Multiplexer of UART signal 10.
-    pub sig10: UartMux<A, 10, MuxRts<0>>,
+    pub sig10: UartMux<GLB, 10, MuxRts<0>>,
     /// Multiplexer of UART signal 11.
-    pub sig11: UartMux<A, 11, MuxRts<0>>,
+    pub sig11: UartMux<GLB, 11, MuxRts<0>>,
 }
 
 /// Check if target gpio `Pin` is internally connected to UART signal index `I`.
@@ -957,12 +959,11 @@ pub trait Pads<const U: usize> {
     const RXD: bool;
 }
 
-impl<A1, A2, const I: usize, const U: usize, const N: usize> Pads<U>
-    for (Pad<A1, N, Uart>, UartMux<A2, I, MuxTxd<U>>)
+impl<A1, GLB2, const I: usize, const U: usize, const N: usize> Pads<U>
+    for (Pad<A1, N, Uart>, UartMux<GLB2, I, MuxTxd<U>>)
 where
     A1: BaseAddress,
-    A2: BaseAddress,
-    Pad<A2, N, Uart>: HasUartSignal<I>,
+    Pad<A1, N, Uart>: HasUartSignal<I>,
 {
     const RTS: bool = false;
     const CTS: bool = false;
@@ -972,9 +973,9 @@ where
 
 impl<
         A1,
-        A2,
+        GLB2,
         A3,
-        A4,
+        GLB4,
         const I1: usize,
         const I2: usize,
         const U: usize,
@@ -982,16 +983,14 @@ impl<
         const N2: usize,
     > Pads<U>
     for (
-        (Pad<A1, N1, Uart>, UartMux<A2, I1, MuxTxd<U>>),
-        (Pad<A3, N2, Uart>, UartMux<A4, I2, MuxRxd<U>>),
+        (Pad<A1, N1, Uart>, UartMux<GLB2, I1, MuxTxd<U>>),
+        (Pad<A3, N2, Uart>, UartMux<GLB4, I2, MuxRxd<U>>),
     )
 where
     A1: BaseAddress,
-    A2: BaseAddress,
     A3: BaseAddress,
-    A4: BaseAddress,
-    Pad<A2, N1, Uart>: HasUartSignal<I1>,
-    Pad<A4, N2, Uart>: HasUartSignal<I2>,
+    Pad<A1, N1, Uart>: HasUartSignal<I1>,
+    Pad<A3, N2, Uart>: HasUartSignal<I2>,
 {
     const RTS: bool = false;
     const CTS: bool = false;
@@ -1001,9 +1000,9 @@ where
 
 impl<
         A1,
-        A2,
+        GLB2,
         A3,
-        A4,
+        GLB4,
         const I1: usize,
         const I2: usize,
         const U: usize,
@@ -1011,16 +1010,14 @@ impl<
         const N2: usize,
     > Pads<U>
     for (
-        (Pad<A1, N1, Uart>, UartMux<A2, I1, MuxTxd<U>>),
-        (Pad<A3, N2, Uart>, UartMux<A4, I2, MuxCts<U>>),
+        (Pad<A1, N1, Uart>, UartMux<GLB2, I1, MuxTxd<U>>),
+        (Pad<A3, N2, Uart>, UartMux<GLB4, I2, MuxCts<U>>),
     )
 where
     A1: BaseAddress,
-    A2: BaseAddress,
     A3: BaseAddress,
-    A4: BaseAddress,
-    Pad<A2, N1, Uart>: HasUartSignal<I1>,
-    Pad<A4, N2, Uart>: HasUartSignal<I2>,
+    Pad<A1, N1, Uart>: HasUartSignal<I1>,
+    Pad<A3, N2, Uart>: HasUartSignal<I2>,
 {
     const RTS: bool = false;
     const CTS: bool = true;
@@ -1030,13 +1027,13 @@ where
 
 impl<
         A1,
-        A2,
+        GLB2,
         A3,
-        A4,
+        GLB4,
         A5,
-        A6,
+        GLB6,
         A7,
-        A8,
+        GLB8,
         const I1: usize,
         const I2: usize,
         const I3: usize,
@@ -1048,24 +1045,20 @@ impl<
         const N4: usize,
     > Pads<U>
     for (
-        (Pad<A1, N1, Uart>, UartMux<A2, I1, MuxTxd<U>>),
-        (Pad<A3, N2, Uart>, UartMux<A4, I2, MuxRxd<U>>),
-        (Pad<A5, N3, Uart>, UartMux<A6, I3, MuxRts<U>>),
-        (Pad<A7, N4, Uart>, UartMux<A8, I4, MuxCts<U>>),
+        (Pad<A1, N1, Uart>, UartMux<GLB2, I1, MuxTxd<U>>),
+        (Pad<A3, N2, Uart>, UartMux<GLB4, I2, MuxRxd<U>>),
+        (Pad<A5, N3, Uart>, UartMux<GLB6, I3, MuxRts<U>>),
+        (Pad<A7, N4, Uart>, UartMux<GLB8, I4, MuxCts<U>>),
     )
 where
     A1: BaseAddress,
-    A2: BaseAddress,
     A3: BaseAddress,
-    A4: BaseAddress,
     A5: BaseAddress,
-    A6: BaseAddress,
     A7: BaseAddress,
-    A8: BaseAddress,
-    Pad<A2, N1, Uart>: HasUartSignal<I1>,
-    Pad<A4, N2, Uart>: HasUartSignal<I2>,
-    Pad<A6, N3, Uart>: HasUartSignal<I3>,
-    Pad<A8, N4, Uart>: HasUartSignal<I4>,
+    Pad<A1, N1, Uart>: HasUartSignal<I1>,
+    Pad<A3, N2, Uart>: HasUartSignal<I2>,
+    Pad<A5, N3, Uart>: HasUartSignal<I3>,
+    Pad<A7, N4, Uart>: HasUartSignal<I4>,
 {
     const RTS: bool = false;
     const CTS: bool = true;

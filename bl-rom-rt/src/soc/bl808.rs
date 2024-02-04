@@ -783,7 +783,7 @@ pub struct Peripherals {
     /// General Purpose Input/Output pads.
     pub gpio: bl_soc::gpio::Pads<Static<0x20000000>>,
     /// UART signal multiplexers.
-    pub uart_muxes: bl_soc::uart::UartMuxes<Static<0x20000000>>,
+    pub uart_muxes: bl_soc::uart::UartMuxes<GLBv2>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
     pub uart0: UART0,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
@@ -816,6 +816,20 @@ pub struct Peripherals {
     pub plic: PLIC<Static<0xE0000000>>,
     /// Multi-media subsystem global peripheral.
     pub mmglb: bl_soc::glb::MMGLB<Static<0x30007000>>,
+}
+
+/// Global configuration peripheral.
+pub struct GLBv2 {
+    _private: (),
+}
+
+impl Deref for GLBv2 {
+    type Target = bl_soc::glb::v2::RegisterBlock;
+
+    #[inline(always)]
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*(0x20000000 as *const _) }
+    }
 }
 
 /// Universal Asynchronous Receiver/Transmitter 0 with fixed base address.
