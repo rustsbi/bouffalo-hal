@@ -15,7 +15,7 @@ embedded-time = "0.12.1"
 embedded-hal = "1.0.0"
 riscv = "0.11.1"
 embedded-graphics = "0.8.1"
-embedded-sdmmc = { git = "https://github.com/rust-embedded-community/embedded-sdmmc-rs" }
+embedded-sdmmc = "0.7.0"
 gpt_disk_io = "0.15.0"
 gpt_disk_types = "0.15.0"
 fatfs = { default-features = false, git = "https://github.com/rafalh/rust-fatfs" }
