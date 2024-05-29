@@ -12,4 +12,4 @@ bl-rom-rt = { path = "../../../bl-rom-rt", features = ["bl808-dsp"] }
 panic-halt = "0.2.0"
 embedded-hal = "1.0.0"
 embedded-time = "0.12.1"
-riscv = "0.11.0"
+riscv = "0.11.1"
