@@ -1,8 +1,8 @@
 # 博流芯片组件化外设支持库
 
-[![crates.io](https://img.shields.io/crates/v/bl-soc.svg)](https://crates.io/crates/bl-soc)
-[![Documentation](https://docs.rs/bl-soc/badge.svg)](https://docs.rs/bl-soc)
-![License](https://img.shields.io/crates/l/bl-soc.svg)
+[![crates.io](https://img.shields.io/crates/v/bouffalo-hal.svg)](https://crates.io/crates/bouffalo-hal)
+[![Documentation](https://docs.rs/bouffalo-hal/badge.svg)](https://docs.rs/bouffalo-hal)
+![License](https://img.shields.io/crates/l/bouffalo-hal.svg)
 
 本仓库是根据组件化外设思想，为博流物联网芯片提供的Rust语言支持。
 
@@ -12,7 +12,7 @@
 
 ```
 Copyright (c) 2023 RustSBI Team
-bl-soc is licensed under Mulan PSL v2.
+bouffalo-hal is licensed under Mulan PSL v2.
 You can use this software according to the terms and conditions of the Mulan PSL v2.
 You may obtain a copy of Mulan PSL v2 at:
          http://license.coscl.org.cn/MulanPSL2

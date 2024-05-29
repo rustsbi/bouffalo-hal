@@ -2,7 +2,7 @@
 members = [
     "bl-rom-rt",
     "bl-rom-rt/macros",
-    "bl-soc",
+    "bouffalo-hal",
     "blri",
     "bl-rom-rt/examples/blinky-bl808",
     "bl-rom-rt/examples/blinky-bl616",

@@ -7,7 +7,7 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bl-soc = { path = "../../../bl-soc", features = ["bl808"] }
+bouffalo-hal = { path = "../../../bouffalo-hal", features = ["bl808"] }
 bl-rom-rt = { path = "../../../bl-rom-rt", features = ["bl808-dsp"] }
 panic-halt = "0.2.0"
 embedded-hal = "1.0.0"

@@ -4,7 +4,7 @@
 //! used in kernels, firmwares and embedded development with both dynamic and static base
 //! address support.
 //!
-//! Most of `bl-soc` structures have `embedded-hal` traits implemented. Users may combine
+//! Most of `bouffalo-hal` structures have `embedded-hal` traits implemented. Users may combine
 //! this package with `embedded-hal` ecosystem drivers to provide abundant amount of features.
 #![no_std]
 
@@ -35,8 +35,8 @@ pub mod usb;
 
 #[doc(hidden)]
 pub mod prelude {
-    pub use crate::lz4d::Lz4dExt as _bl_soc_lz4d_Lz4dExt;
-    pub use crate::uart::UartExt as _bl_soc_uart_UartExt;
+    pub use crate::lz4d::Lz4dExt as _bouffalo_hal_lz4d_Lz4dExt;
+    pub use crate::uart::UartExt as _bouffalo_hal_uart_UartExt;
     pub use embedded_hal::digital::{
         InputPin as _embedded_hal_digital_InputPin, OutputPin as _embedded_hal_digital_OutputPin,
         PinState,

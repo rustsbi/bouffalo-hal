@@ -6,7 +6,7 @@
 #![no_main]
 
 use bl_rom_rt::{entry, Clocks, Peripherals};
-use bl_soc::{
+use bouffalo_hal::{
     prelude::*,
     pwm::{ClockSource::Xclk, Pwm, SingleEnd},
 };

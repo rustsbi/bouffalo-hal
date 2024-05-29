@@ -1,5 +1,5 @@
 [package]
-name = "bl-soc"
+name = "bouffalo-hal"
 version = "0.0.0"
 authors = [
     "Mingrui Ma <m202271767@hust.edu.cn>",

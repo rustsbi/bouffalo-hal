@@ -2,7 +2,7 @@
 #![no_main]
 
 use bl_rom_rt::{entry, Clocks, Peripherals};
-use bl_soc::{prelude::*, spi::Spi};
+use bouffalo_hal::{prelude::*, spi::Spi};
 use embedded_hal::spi::MODE_3;
 use embedded_sdmmc::{SdCard, VolumeManager};
 use embedded_time::rate::*;

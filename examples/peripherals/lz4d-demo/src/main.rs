@@ -6,7 +6,7 @@
 #![no_main]
 
 use bl_rom_rt::{entry, Peripherals};
-use bl_soc::{clocks::Clocks, prelude::*};
+use bouffalo_hal::{clocks::Clocks, prelude::*};
 use core::pin::Pin;
 use embedded_time::rate::*;
 use panic_halt as _;

@@ -173,7 +173,7 @@ struct HalBasicConfig {
 /// Peripherals available on ROM start.
 pub struct Peripherals {
     /// Global configuration peripheral.
-    pub glb: bl_soc::glb::GLBv1<Static<0x40000000>>,
+    pub glb: bouffalo_hal::glb::GLBv1<Static<0x40000000>>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
     pub uart0: UART0,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
@@ -183,13 +183,13 @@ pub struct Peripherals {
     /// Inter-Integrated Circuit bus peripheral.
     pub i2c: I2C,
     /// Pulse Width Modulation peripheral.
-    pub pwn: bl_soc::PWM<Static<0x4000A400>>,
+    pub pwn: bouffalo_hal::PWM<Static<0x4000A400>>,
     /// Ethernet Media Access Control peripheral.
-    pub emac: bl_soc::EMAC<Static<0x4000D000>>,
+    pub emac: bouffalo_hal::EMAC<Static<0x4000D000>>,
     /// Hibernation control peripheral.
-    pub hbn: bl_soc::HBN<Static<0x4000F000>>,
+    pub hbn: bouffalo_hal::HBN<Static<0x4000F000>>,
     /// Universal Serial Bus peripheral.
-    pub usb: bl_soc::usb::USBv1<Static<0x4000D800>>,
+    pub usb: bouffalo_hal::usb::USBv1<Static<0x4000D800>>,
 }
 
 /// Universal Asynchronous Receiver/Transmitter 0 with fixed base address.
@@ -203,7 +203,7 @@ pub struct UART1 {
 }
 
 impl Deref for UART0 {
-    type Target = bl_soc::uart::RegisterBlock;
+    type Target = bouffalo_hal::uart::RegisterBlock;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
@@ -212,7 +212,7 @@ impl Deref for UART0 {
 }
 
 impl Deref for UART1 {
-    type Target = bl_soc::uart::RegisterBlock;
+    type Target = bouffalo_hal::uart::RegisterBlock;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
@@ -226,7 +226,7 @@ pub struct SPI {
 }
 
 impl Deref for SPI {
-    type Target = bl_soc::spi::RegisterBlock;
+    type Target = bouffalo_hal::spi::RegisterBlock;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
@@ -240,7 +240,7 @@ pub struct I2C {
 }
 
 impl Deref for I2C {
-    type Target = bl_soc::i2c::RegisterBlock;
+    type Target = bouffalo_hal::i2c::RegisterBlock;
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
@@ -248,7 +248,7 @@ impl Deref for I2C {
     }
 }
 
-pub use bl_soc::clocks::Clocks;
+pub use bouffalo_hal::clocks::Clocks;
 
 // TODO: BL702 clock tree configuration.
 // Used by macros only.

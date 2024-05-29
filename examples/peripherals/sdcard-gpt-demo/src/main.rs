@@ -3,7 +3,7 @@
 
 use base_address::Static;
 use bl_rom_rt::{entry, Clocks, Peripherals};
-use bl_soc::{prelude::*, spi::Spi};
+use bouffalo_hal::{prelude::*, spi::Spi};
 use embedded_hal::spi::MODE_3;
 use embedded_sdmmc::*;
 use embedded_time::rate::*;
@@ -247,14 +247,18 @@ fn main(p: Peripherals, c: Clocks) -> ! {
             Spi<
                 bl_rom_rt::soc::bl808::SPI0,
                 (
-                    bl_soc::gpio::Pad<Static<536870912>, 3, bl_soc::gpio::Spi<1>>,
-                    bl_soc::gpio::Pad<Static<536870912>, 1, bl_soc::gpio::Spi<1>>,
-                    bl_soc::gpio::Pad<Static<536870912>, 2, bl_soc::gpio::Spi<1>>,
-                    bl_soc::gpio::Pad<Static<536870912>, 0, bl_soc::gpio::Spi<1>>,
+                    bouffalo_hal::gpio::Pad<Static<536870912>, 3, bouffalo_hal::gpio::Spi<1>>,
+                    bouffalo_hal::gpio::Pad<Static<536870912>, 1, bouffalo_hal::gpio::Spi<1>>,
+                    bouffalo_hal::gpio::Pad<Static<536870912>, 2, bouffalo_hal::gpio::Spi<1>>,
+                    bouffalo_hal::gpio::Pad<Static<536870912>, 0, bouffalo_hal::gpio::Spi<1>>,
                 ),
                 1,
             >,
-            bl_soc::gpio::Pad<Static<536870912>, 12, bl_soc::gpio::Output<bl_soc::gpio::Floating>>,
+            bouffalo_hal::gpio::Pad<
+                Static<536870912>,
+                12,
+                bouffalo_hal::gpio::Output<bouffalo_hal::gpio::Floating>,
+            >,
             riscv::delay::McycleDelay,
         >,
     > = unsafe { core::mem::transmute(disk) };

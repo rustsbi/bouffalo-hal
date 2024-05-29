@@ -6,7 +6,7 @@
 #![no_main]
 
 use bl_rom_rt::{entry, Clocks, Peripherals};
-use bl_soc::prelude::*;
+use bouffalo_hal::prelude::*;
 use panic_halt as _;
 
 #[entry]

@@ -2,7 +2,7 @@
 #![no_main]
 
 use bl_rom_rt::{entry, Clocks, Peripherals};
-use bl_soc::{i2c::I2c, prelude::*};
+use bouffalo_hal::{i2c::I2c, prelude::*};
 use embedded_time::rate::*;
 use panic_halt as _;
 

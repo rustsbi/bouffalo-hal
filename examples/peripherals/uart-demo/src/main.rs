@@ -2,7 +2,7 @@
 #![no_main]
 
 use bl_rom_rt::{entry, Clocks, Peripherals};
-use bl_soc::prelude::*;
+use bouffalo_hal::prelude::*;
 use embedded_time::rate::*;
 use panic_halt as _;
 
@@ -23,7 +23,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let mut buf = [0u8; 32];
     let mut ch = b'\r';
 
-    writeln!(serial, "Welcome to console example by bl-soc🦀!").ok();
+    writeln!(serial, "Welcome to console example by bouffalo-hal🦀!").ok();
     writeln!(serial, "Command helps: ").ok();
     writeln!(serial, "    led [<none>|on|off|switch]: operate on LED").ok();
 

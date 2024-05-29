@@ -2,7 +2,7 @@
 #![no_main]
 
 use bl_rom_rt::{entry, Clocks, Peripherals};
-use bl_soc::prelude::*;
+use bouffalo_hal::prelude::*;
 use embedded_time::rate::*;
 use panic_halt as _;
 
@@ -19,7 +19,11 @@ fn main(p: Peripherals, c: Clocks) -> ! {
         .freerun(config, 2000000.Bd(), ((tx, sig2), (rx, sig3)), &c);
 
     loop {
-        writeln!(serial, "Welcome to bl-soc multicore demo from DSP core🦀!").ok();
+        writeln!(
+            serial,
+            "Welcome to bouffalo-hal multicore demo from DSP core🦀!"
+        )
+        .ok();
         riscv::asm::delay(100_000);
     }
 }

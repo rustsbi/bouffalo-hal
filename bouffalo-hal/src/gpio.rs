@@ -43,7 +43,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 ///
 /// ```no_run
 /// # use base_address::Static;
-/// # use bl_soc::gpio::Pads;
+/// # use bouffalo_hal::gpio::Pads;
 /// # pub struct Peripherals { gpio: Pads<Static<0x20000000>> }
 /// # fn main() -> ! {
 /// #   let p: Peripherals = unsafe { core::mem::transmute(()) };
@@ -75,7 +75,7 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// ```no_run
 /// # use base_address::{BaseAddress, Static};
 /// # use embedded_time::rate::*;
-/// # use bl_soc::{
+/// # use bouffalo_hal::{
 /// #     clocks::Clocks,
 /// #     gpio::{Pads, Pad, Alternate},
 /// #     uart::{BitOrder, Config, Parity, StopBits, WordLength},
