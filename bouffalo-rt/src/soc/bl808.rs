@@ -303,7 +303,7 @@ unsafe extern "C" fn machine_external_trampoline() -> ! {
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
 fn rust_bl808_dsp_machine_external(_tf: &mut TrapFrame) {
-    let plic: PLIC<Static<0xE0000000>> = unsafe { core::mem::transmute(()) };
+    let plic: PLIC = unsafe { core::mem::transmute(()) };
     if let Some(source) = plic.claim(D0Machine) {
         let idx = source.get() as usize;
         if idx >= 16 && idx < 16 + 67 {
