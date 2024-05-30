@@ -46,7 +46,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
                 .write_all(&Pin::into_inner(resource.output)[..len])
                 .unwrap();
             loop {
-                unsafe { riscv::asm::wfi() }
+                riscv::asm::wfi()
             }
         }
     }

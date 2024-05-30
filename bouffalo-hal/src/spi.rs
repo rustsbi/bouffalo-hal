@@ -3,7 +3,6 @@
 use crate::glb::{v2::SpiMode, GLBv2};
 use crate::gpio::{self, Pad};
 use base_address::BaseAddress;
-use core::ops::Deref;
 use embedded_hal::spi::Mode;
 use volatile_register::{RO, RW, WO};
 
@@ -625,7 +624,7 @@ pub struct Spi<SPI, PADS, const I: usize> {
     pads: PADS,
 }
 
-impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> Spi<SPI, PADS, I> {
+impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> Spi<SPI, PADS, I> {
     /// Create a new Serial Peripheral Interface instance.
     #[inline]
     pub fn new(spi: SPI, pads: PADS, mode: Mode, glb: &GLBv2<impl BaseAddress>) -> Self
@@ -657,6 +656,7 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> Spi<SPI, PADS, I>
         };
 
         unsafe {
+            let spi = spi.as_ref();
             glb.param_config
                 .modify(|c| c.set_spi_mode::<I>(SpiMode::Master));
 
@@ -705,42 +705,44 @@ impl embedded_hal::spi::Error for Error {
     }
 }
 
-impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi::ErrorType
+impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> embedded_hal::spi::ErrorType
     for Spi<SPI, PADS, I>
 {
     type Error = Error;
 }
 
-impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi::SpiBus
+impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> embedded_hal::spi::SpiBus
     for Spi<SPI, PADS, I>
 {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<(), Self::Error> {
-        unsafe { self.spi.config.modify(|config| config.enable_master()) };
+        let spi = self.spi.as_ref();
+        unsafe { spi.config.modify(|config| config.enable_master()) };
 
         buf.iter_mut().for_each(|slot| {
-            while self.spi.fifo_config_1.read().receive_available_bytes() == 0 {
+            while spi.fifo_config_1.read().receive_available_bytes() == 0 {
                 core::hint::spin_loop();
             }
-            *slot = self.spi.data_read.read()
+            *slot = spi.data_read.read()
         });
 
-        unsafe { self.spi.config.modify(|config| config.disable_master()) };
+        unsafe { spi.config.modify(|config| config.disable_master()) };
         Ok(())
     }
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<(), Self::Error> {
-        unsafe { self.spi.config.modify(|config| config.enable_master()) };
+        let spi = self.spi.as_ref();
+        unsafe { spi.config.modify(|config| config.enable_master()) };
 
         buf.iter().for_each(|&word| {
-            while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
+            while spi.fifo_config_1.read().transmit_available_bytes() == 0 {
                 core::hint::spin_loop();
             }
-            unsafe { self.spi.data_write.write(word) }
-            _ = self.spi.data_read.read();
+            unsafe { spi.data_write.write(word) }
+            _ = spi.data_read.read();
         });
 
-        unsafe { self.spi.config.modify(|config| config.disable_master()) };
+        unsafe { spi.config.modify(|config| config.disable_master()) };
         Ok(())
     }
     #[inline]
@@ -749,63 +751,66 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi
     }
     #[inline]
     fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
-        unsafe { self.spi.config.modify(|config| config.enable_master()) };
+        let spi = self.spi.as_ref();
+        unsafe { spi.config.modify(|config| config.enable_master()) };
 
         for word in words.iter_mut() {
-            while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
+            while spi.fifo_config_1.read().transmit_available_bytes() == 0 {
                 core::hint::spin_loop();
             }
-            unsafe { self.spi.data_write.write(*word) }
-            *word = self.spi.data_read.read();
+            unsafe { spi.data_write.write(*word) }
+            *word = spi.data_read.read();
         }
 
-        unsafe { self.spi.config.modify(|config| config.disable_master()) };
+        unsafe { spi.config.modify(|config| config.disable_master()) };
         Ok(())
     }
     #[inline]
     fn flush(&mut self) -> Result<(), Self::Error> {
-        while self.spi.fifo_config_1.read().transmit_available_bytes() != 32 {
+        let spi = self.spi.as_ref();
+        while spi.fifo_config_1.read().transmit_available_bytes() != 32 {
             core::hint::spin_loop();
         }
-        while self.spi.fifo_config_1.read().receive_available_bytes() != 32 {
+        while spi.fifo_config_1.read().receive_available_bytes() != 32 {
             core::hint::spin_loop();
         }
         Ok(())
     }
 }
 
-impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi::SpiDevice
+impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> embedded_hal::spi::SpiDevice
     for Spi<SPI, PADS, I>
 {
     fn transaction(
         &mut self,
         operations: &mut [embedded_hal::spi::Operation<'_, u8>],
     ) -> Result<(), Self::Error> {
+        let spi = self.spi.as_ref();
         for op in operations {
             match op {
                 embedded_hal::spi::Operation::Read(buf) => {
-                    unsafe { self.spi.config.modify(|config| config.enable_master()) };
+                    unsafe { spi.config.modify(|config| config.enable_master()) };
 
                     buf.iter_mut().for_each(|slot| {
-                        while self.spi.fifo_config_1.read().receive_available_bytes() == 0 {
+                        while spi.fifo_config_1.read().receive_available_bytes() == 0 {
                             core::hint::spin_loop();
                         }
-                        *slot = self.spi.data_read.read()
+                        *slot = spi.data_read.read()
                     });
 
-                    unsafe { self.spi.config.modify(|config| config.disable_master()) };
+                    unsafe { spi.config.modify(|config| config.disable_master()) };
                 }
                 embedded_hal::spi::Operation::Write(buf) => {
-                    unsafe { self.spi.config.modify(|config| config.enable_master()) };
+                    unsafe { spi.config.modify(|config| config.enable_master()) };
 
                     buf.iter().for_each(|&word| {
-                        while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
+                        while spi.fifo_config_1.read().transmit_available_bytes() == 0 {
                             core::hint::spin_loop();
                         }
-                        unsafe { self.spi.data_write.write(word) }
+                        unsafe { spi.data_write.write(word) }
                     });
 
-                    unsafe { self.spi.config.modify(|config| config.disable_master()) };
+                    unsafe { spi.config.modify(|config| config.disable_master()) };
                 }
                 embedded_hal::spi::Operation::Transfer(_read, _write) => {
                     todo!()
@@ -826,8 +831,8 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi
 // ecosystem crates, as some of them depends on embedded-hal v0.2.7 traits.
 // We encourage ecosystem developers to use embedded-hal v1.0.0 traits; after that, this part of code
 // would be removed in the future.
-impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize>
-    embedded_hal_027::blocking::spi::Write<u8> for Spi<SPI, PADS, I>
+impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> embedded_hal_027::blocking::spi::Write<u8>
+    for Spi<SPI, PADS, I>
 {
     type Error = Error;
     #[inline]
@@ -837,8 +842,8 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize>
     }
 }
 
-impl<SPI: Deref<Target = RegisterBlock>, PINS, const I: usize>
-    embedded_hal_027::blocking::spi::Transfer<u8> for Spi<SPI, PINS, I>
+impl<SPI: AsRef<RegisterBlock>, PINS, const I: usize> embedded_hal_027::blocking::spi::Transfer<u8>
+    for Spi<SPI, PINS, I>
 {
     type Error = Error;
     #[inline]

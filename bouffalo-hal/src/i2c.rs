@@ -4,7 +4,6 @@ use crate::{
     gpio::{self, Pad},
 };
 use base_address::BaseAddress;
-use core::ops::Deref;
 use volatile_register::{RO, RW, WO};
 
 /// Inter-integrated circuit registers.
@@ -500,7 +499,7 @@ pub struct I2c<I2C, PADS> {
     pads: PADS,
 }
 
-impl<I2C: Deref<Target = RegisterBlock>, SCL, SDA> I2c<I2C, (SCL, SDA)> {
+impl<I2C: AsRef<RegisterBlock>, SCL, SDA> I2c<I2C, (SCL, SDA)> {
     /// Create a new Inter-Integrated Circuit instance.
     #[inline]
     pub fn new<const I: usize>(i2c: I2C, pads: (SCL, SDA), glb: &glb::v2::RegisterBlock) -> Self
@@ -511,6 +510,7 @@ impl<I2C: Deref<Target = RegisterBlock>, SCL, SDA> I2c<I2C, (SCL, SDA)> {
         // TODO: support custom clock and frequency
         // Enable clock
         unsafe {
+            let i2c = i2c.as_ref();
             glb.i2c_config.modify(|config| {
                 config
                     .enable_clock()
@@ -563,24 +563,24 @@ impl<I2C: Deref<Target = RegisterBlock>, SCL, SDA> I2c<I2C, (SCL, SDA)> {
     /// Enable sub-address.
     #[inline]
     pub fn enable_sub_address(&mut self, sub_address: u8) {
+        let i2c = self.i2c.as_ref();
         // TODO: support sub-address with more than one byte
         unsafe {
-            self.i2c.config.modify(|config| {
+            i2c.config.modify(|config| {
                 config
                     .enable_sub_address()
                     .set_sub_address_byte_count(SubAddressByteCount::One)
             });
-            self.i2c.sub_address.write(sub_address as u32);
+            i2c.sub_address.write(sub_address as u32);
         }
     }
 
     /// Disable sub-address.
     #[inline]
     pub fn disable_sub_address(&mut self) {
+        let i2c = self.i2c.as_ref();
         unsafe {
-            self.i2c
-                .config
-                .modify(|config| config.disable_sub_address());
+            i2c.config.modify(|config| config.disable_sub_address());
         }
     }
 }
@@ -602,17 +602,18 @@ impl embedded_hal::i2c::Error for Error {
     }
 }
 
-impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::ErrorType for I2c<I2C, PADS> {
+impl<I2C: AsRef<RegisterBlock>, PADS> embedded_hal::i2c::ErrorType for I2c<I2C, PADS> {
     type Error = Error;
 }
 
-impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2C, PADS> {
+impl<I2C: AsRef<RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2C, PADS> {
     #[inline]
     fn transaction(
         &mut self,
         address: u8,
         operations: &mut [embedded_hal::i2c::Operation<'_>],
     ) -> Result<(), Self::Error> {
+        let i2c = self.i2c.as_ref();
         for op in operations {
             match op {
                 embedded_hal::i2c::Operation::Write(_bytes) => {
@@ -621,7 +622,7 @@ impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2
                 embedded_hal::i2c::Operation::Read(bytes) => {
                     let len = bytes.len() as u8;
                     unsafe {
-                        self.i2c.config.modify(|config| {
+                        i2c.config.modify(|config| {
                             config
                                 .set_read_direction()
                                 .set_slave_address(address as u16)
@@ -632,10 +633,10 @@ impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2
 
                     let mut i = 0;
                     while i < len {
-                        while self.i2c.fifo_config_1.read().receive_available_bytes() == 0 {
+                        while i2c.fifo_config_1.read().receive_available_bytes() == 0 {
                             core::hint::spin_loop();
                         }
-                        let word = self.i2c.data_read.read();
+                        let word = i2c.data_read.read();
                         let bytes_to_read = core::cmp::min(len - i, 4);
                         for j in 0..bytes_to_read {
                             bytes[i as usize] = (word >> (j * 8)) as u8;
@@ -643,7 +644,7 @@ impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2
                         }
                     }
 
-                    unsafe { self.i2c.config.modify(|config| config.disable_master()) };
+                    unsafe { i2c.config.modify(|config| config.disable_master()) };
                 }
             }
         }

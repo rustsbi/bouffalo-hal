@@ -1150,7 +1150,7 @@ pub struct Serial<UART, PADS> {
     pads: PADS,
 }
 
-impl<UART: Deref<Target = RegisterBlock>, PADS> Serial<UART, PADS> {
+impl<UART: AsRef<RegisterBlock>, PADS> Serial<UART, PADS> {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
     ///
     /// This structure sets the same baudrate for transmit and receive halves.
@@ -1174,11 +1174,11 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> Serial<UART, PADS> {
         let val = BitPeriod(0)
             .set_transmit_time_interval(interval as u16)
             .set_receive_time_interval(interval as u16);
-        unsafe { uart.bit_period.write(val) };
+        unsafe { uart.as_ref().bit_period.write(val) };
 
         // Write the bit-order.
         let val = DataConfig(0).set_bit_order(config.bit_order);
-        unsafe { uart.data_config.write(val) };
+        unsafe { uart.as_ref().data_config.write(val) };
 
         // Configure transmit feature.
         let mut val = TransmitConfig(0)
@@ -1192,7 +1192,7 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> Serial<UART, PADS> {
         if PADS::CTS {
             val = val.enable_cts();
         }
-        unsafe { uart.transmit_config.write(val) };
+        unsafe { uart.as_ref().transmit_config.write(val) };
 
         // Configure receive feature.
         let mut val = ReceiveConfig(0)
@@ -1201,7 +1201,7 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> Serial<UART, PADS> {
         if PADS::RXD {
             val = val.enable_rxd();
         }
-        unsafe { uart.receive_config.write(val) };
+        unsafe { uart.as_ref().receive_config.write(val) };
 
         Self { uart, pads }
     }
@@ -1227,7 +1227,7 @@ pub trait UartExt<PADS>: Sized {
         PADS: Pads<I>;
 }
 
-impl<UART: Deref<Target = RegisterBlock>, PADS> UartExt<PADS> for UART {
+impl<UART: AsRef<RegisterBlock>, PADS> UartExt<PADS> for UART {
     #[inline]
     fn freerun<const I: usize>(
         self,
@@ -1254,45 +1254,48 @@ impl<UART, PADS> embedded_io::ErrorType for Serial<UART, PADS> {
     type Error = Error;
 }
 
-impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Write for Serial<UART, PADS> {
+impl<UART: AsRef<RegisterBlock>, PADS> embedded_io::Write for Serial<UART, PADS> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        while self.uart.fifo_config_1.read().transmit_available_bytes() == 0 {
+        let uart = self.uart.as_ref();
+        while uart.fifo_config_1.read().transmit_available_bytes() == 0 {
             core::hint::spin_loop();
         }
         let len = core::cmp::min(
-            self.uart.fifo_config_1.read().transmit_available_bytes() as usize,
+            uart.fifo_config_1.read().transmit_available_bytes() as usize,
             buf.len(),
         );
         buf.iter()
             .take(len)
-            .for_each(|&word| unsafe { self.uart.data_write.write(word) });
+            .for_each(|&word| unsafe { uart.data_write.write(word) });
         Ok(len)
     }
     #[inline]
     fn flush(&mut self) -> Result<(), Self::Error> {
+        let uart = self.uart.as_ref();
         // There are maximum 32 bytes in transmit FIFO queue, wait until all bytes are available,
         // meaning that all data in queue has been sent into UART bus.
-        while self.uart.fifo_config_1.read().transmit_available_bytes() != 32 {
+        while uart.fifo_config_1.read().transmit_available_bytes() != 32 {
             core::hint::spin_loop();
         }
         Ok(())
     }
 }
 
-impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Read for Serial<UART, PADS> {
+impl<UART: AsRef<RegisterBlock>, PADS> embedded_io::Read for Serial<UART, PADS> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
-        while self.uart.fifo_config_1.read().receive_available_bytes() == 0 {
+        let uart = self.uart.as_ref();
+        while uart.fifo_config_1.read().receive_available_bytes() == 0 {
             core::hint::spin_loop();
         }
         let len = core::cmp::min(
-            self.uart.fifo_config_1.read().receive_available_bytes() as usize,
+            uart.fifo_config_1.read().receive_available_bytes() as usize,
             buf.len(),
         );
         buf.iter_mut()
             .take(len)
-            .for_each(|slot| *slot = self.uart.data_read.read());
+            .for_each(|slot| *slot = uart.data_read.read());
         Ok(len)
     }
 }

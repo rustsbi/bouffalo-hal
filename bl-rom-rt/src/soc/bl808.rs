@@ -861,6 +861,13 @@ impl Deref for UART0 {
     }
 }
 
+impl AsRef<bouffalo_hal::uart::RegisterBlock> for UART0 {
+    #[inline(always)]
+    fn as_ref(&self) -> &bouffalo_hal::uart::RegisterBlock {
+        self
+    }
+}
+
 impl Deref for UART1 {
     type Target = bouffalo_hal::uart::RegisterBlock;
 
@@ -899,6 +906,13 @@ impl Deref for SPI0 {
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
         unsafe { &*(0x2000A200 as *const _) }
+    }
+}
+
+impl AsRef<bouffalo_hal::spi::RegisterBlock> for SPI0 {
+    #[inline(always)]
+    fn as_ref(&self) -> &bouffalo_hal::spi::RegisterBlock {
+        self
     }
 }
 
@@ -942,6 +956,13 @@ impl Deref for I2C0 {
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
         unsafe { &*(0x2000A300 as *const _) }
+    }
+}
+
+impl AsRef<bouffalo_hal::i2c::RegisterBlock> for I2C0 {
+    #[inline(always)]
+    fn as_ref(&self) -> &bouffalo_hal::i2c::RegisterBlock {
+        self
     }
 }
 
