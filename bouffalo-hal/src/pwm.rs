@@ -1,11 +1,7 @@
 //! Pulse Width Modulation peripheral.
-use crate::glb::{
-    v2::{PwmSignal0, PwmSignal1},
-    GLBv2,
-};
+use crate::clocks::Clocks;
+use crate::glb::v2::{self, PwmSignal0, PwmSignal1};
 use crate::gpio::{self, Alternate, Pad};
-use crate::{clocks::Clocks, PWM};
-use base_address::BaseAddress;
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
 use embedded_time::rate::Hertz;
@@ -646,16 +642,17 @@ impl Signal1 for BrushlessDcMotor {
 }
 
 /// Managed pulse width modulation peripheral.
-pub struct Pwm<A: BaseAddress, S> {
-    pub group0: Channels<A, S, 0>,
-    pub group1: Channels<A, S, 1>,
+pub struct Pwm<PWM, S> {
+    pub group0: Channels<PWM, S, 0>,
+    pub group1: Channels<PWM, S, 1>,
 }
 
-impl<A: BaseAddress, S0: Signal0, S1: Signal1> Pwm<A, (S0, S1)> {
+impl<PWM: Deref<Target = RegisterBlock>, S0: Signal0, S1: Signal1> Pwm<PWM, (S0, S1)> {
     /// Creates a pulse width modulation instance with given signal settings.
     #[rustfmt::skip]
     #[inline]
-    pub fn new(pwm: PWM<A>, signal_0: S0, signal_1: S1, glb: &GLBv2<impl BaseAddress>) -> Self {
+    pub fn new<GLB>(pwm: PWM, signal_0: S0, signal_1: S1, glb: &GLB) -> Self
+    where GLB: Deref<Target = v2::RegisterBlock> {
         unsafe {
             glb.pwm_config
                 .modify(|config| config.set_signal_0(S0::VALUE).set_signal_1(S1::VALUE));
@@ -686,22 +683,22 @@ impl<A: BaseAddress, S0: Signal0, S1: Signal1> Pwm<A, (S0, S1)> {
 }
 
 /// PWM group with all its channels.
-pub struct Channels<A: BaseAddress, S, const I: usize> {
+pub struct Channels<PWM, S, const I: usize> {
     /// Channel 0 of current PWM group.
-    pub channel0: Channel<A, S, I, 0>,
+    pub channel0: Channel<PWM, S, I, 0>,
     /// Channel 1 of current PWM group.
-    pub channel1: Channel<A, S, I, 1>,
+    pub channel1: Channel<PWM, S, I, 1>,
     /// Channel 2 of current PWM group.
-    pub channel2: Channel<A, S, I, 2>,
+    pub channel2: Channel<PWM, S, I, 2>,
     /// Channel 3 of current PWM group.
-    pub channel3: Channel<A, S, I, 3>,
+    pub channel3: Channel<PWM, S, I, 3>,
     /// External break signal for current PWM group.
     pub external_break: ExternalBreak<S, I>,
-    pwm: PWM<A>,
+    pwm: PWM,
     _signals: PhantomData<S>,
 }
 
-impl<A: BaseAddress, S, const I: usize> Channels<A, S, I> {
+impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize> Channels<PWM, S, I> {
     /// Configure clock settings for current PWM group.
     ///
     /// Clock settings would affect all the channels in the PWM group.
@@ -759,24 +756,24 @@ impl<A: BaseAddress, S, const I: usize> Channels<A, S, I> {
 }
 
 /// Pulse Width Modulation channel.
-pub struct Channel<A: BaseAddress, S, const I: usize, const J: usize> {
-    pwm: PWM<A>,
+pub struct Channel<PWM, S, const I: usize, const J: usize> {
+    pwm: PWM,
     _signals: PhantomData<S>,
 }
 
-impl<A1: BaseAddress, S, const I: usize, const J: usize> Channel<A1, S, I, J> {
+impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize> Channel<PWM, S, I, J> {
     /// Wrap current channel as positive signal with GPIO pin.
     ///
     /// This function statically checks if target GPIO pin mode matches current PWM channel.
     /// If won't match, it will raise compile error.
     #[inline]
-    pub fn positive_signal_pin<A2: BaseAddress, const N: usize, const F: usize>(
+    pub fn positive_signal_pin<GLB, const N: usize, const F: usize>(
         self,
-        pin: Pad<A2, N, gpio::Pwm<F>>,
-    ) -> PwmPin<Self, Pad<A2, N, gpio::Pwm<F>>, Positive>
+        pin: Pad<GLB, N, gpio::Pwm<F>>,
+    ) -> PwmPin<Self, Pad<GLB, N, gpio::Pwm<F>>, Positive>
     where
         gpio::Pwm<F>: Alternate,
-        Pad<A2, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Positive>,
+        Pad<GLB, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Positive>,
     {
         PwmPin {
             channel: self,
@@ -789,13 +786,17 @@ impl<A1: BaseAddress, S, const I: usize, const J: usize> Channel<A1, S, I, J> {
     /// This function statically checks if target GPIO pin mode matches current PWM channel.
     /// If won't match, it will raise compile error.
     #[inline]
-    pub fn negative_signal_pin<A2: BaseAddress, const N: usize, const F: usize>(
+    pub fn negative_signal_pin<
+        GLB: Deref<Target = v2::RegisterBlock>,
+        const N: usize,
+        const F: usize,
+    >(
         self,
-        pin: Pad<A2, N, gpio::Pwm<F>>,
-    ) -> PwmPin<Self, Pad<A2, N, gpio::Pwm<F>>, Negative>
+        pin: Pad<GLB, N, gpio::Pwm<F>>,
+    ) -> PwmPin<Self, Pad<GLB, N, gpio::Pwm<F>>, Negative>
     where
         gpio::Pwm<F>: Alternate,
-        Pad<A2, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Negative>,
+        Pad<GLB, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Negative>,
     {
         PwmPin {
             channel: self,
@@ -816,13 +817,17 @@ impl<S, const I: usize> ExternalBreak<S, I> {
     /// This function statically checks if target GPIO pin mode matches the external
     /// break signal of current PWM group. If won't match, it will raise compile error.
     #[inline]
-    pub fn external_break_pin<A2: BaseAddress, const N: usize, const F: usize>(
+    pub fn external_break_pin<
+        GLB: Deref<Target = v2::RegisterBlock>,
+        const N: usize,
+        const F: usize,
+    >(
         self,
-        pin: Pad<A2, N, gpio::Pwm<F>>,
-    ) -> PwmPin<Self, Pad<A2, N, gpio::Pwm<F>>, ()>
+        pin: Pad<GLB, N, gpio::Pwm<F>>,
+    ) -> PwmPin<Self, Pad<GLB, N, gpio::Pwm<F>>, ()>
     where
         gpio::Pwm<F>: Alternate,
-        Pad<A2, N, gpio::Pwm<F>>: HasPwmExternalBreak<I>,
+        Pad<GLB, N, gpio::Pwm<F>>: HasPwmExternalBreak<I>,
     {
         PwmPin {
             channel: self,
@@ -848,14 +853,14 @@ pub trait HasPwmSignal<S, const I: usize, const J: usize, P> {}
 /// It checks if it is connected to external break signal of PWM group `I`.
 pub trait HasPwmExternalBreak<const I: usize> {}
 
-impl<A: BaseAddress, S, const I: usize, const J: usize> embedded_hal::pwm::ErrorType
-    for Channel<A, S, I, J>
+impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize>
+    embedded_hal::pwm::ErrorType for Channel<PWM, S, I, J>
 {
     type Error = core::convert::Infallible;
 }
 
-impl<A: BaseAddress, S, const I: usize, const J: usize> embedded_hal::pwm::SetDutyCycle
-    for Channel<A, S, I, J>
+impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize>
+    embedded_hal::pwm::SetDutyCycle for Channel<PWM, S, I, J>
 {
     #[inline]
     fn max_duty_cycle(&self) -> u16 {
@@ -886,8 +891,8 @@ impl<CHANNEL, PIN, POLARITY> PwmPin<CHANNEL, PIN, POLARITY> {
     }
 }
 
-impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN>
-    PwmPin<Channel<A1, S, I, J>, PIN, Positive>
+impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN>
+    PwmPin<Channel<PWM, S, I, J>, PIN, Positive>
 {
     /// Enable PWM output for this pin.
     #[inline]
@@ -900,8 +905,8 @@ impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN>
     }
 }
 
-impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN>
-    PwmPin<Channel<A1, S, I, J>, PIN, Negative>
+impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN>
+    PwmPin<Channel<PWM, S, I, J>, PIN, Negative>
 {
     /// Enable PWM output for this pin.
     #[inline]
@@ -914,14 +919,14 @@ impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN>
     }
 }
 
-impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN, POLARITY>
-    embedded_hal::digital::ErrorType for PwmPin<Channel<A1, S, I, J>, PIN, POLARITY>
+impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN, POLARITY>
+    embedded_hal::digital::ErrorType for PwmPin<Channel<PWM, S, I, J>, PIN, POLARITY>
 {
     type Error = core::convert::Infallible;
 }
 
-impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN> embedded_hal::digital::OutputPin
-    for PwmPin<Channel<A1, S, I, J>, PIN, Positive>
+impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN>
+    embedded_hal::digital::OutputPin for PwmPin<Channel<PWM, S, I, J>, PIN, Positive>
 {
     #[inline]
     fn set_low(&mut self) -> Result<(), Self::Error> {
@@ -945,8 +950,8 @@ impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN> embedded_hal::digi
     }
 }
 
-impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN> embedded_hal::digital::OutputPin
-    for PwmPin<Channel<A1, S, I, J>, PIN, Negative>
+impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN>
+    embedded_hal::digital::OutputPin for PwmPin<Channel<PWM, S, I, J>, PIN, Negative>
 {
     #[inline]
     fn set_low(&mut self) -> Result<(), Self::Error> {
@@ -970,17 +975,17 @@ impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN> embedded_hal::digi
     }
 }
 
-impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN, POLARITY> Deref
-    for PwmPin<Channel<A1, S, I, J>, PIN, POLARITY>
+impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN, POLARITY> Deref
+    for PwmPin<Channel<PWM, S, I, J>, PIN, POLARITY>
 {
-    type Target = Channel<A1, S, I, J>;
+    type Target = Channel<PWM, S, I, J>;
     fn deref(&self) -> &Self::Target {
         &self.channel
     }
 }
 
-impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN, POLARITY> DerefMut
-    for PwmPin<Channel<A1, S, I, J>, PIN, POLARITY>
+impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN, POLARITY> DerefMut
+    for PwmPin<Channel<PWM, S, I, J>, PIN, POLARITY>
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.channel
@@ -991,193 +996,193 @@ impl<A1: BaseAddress, S, const I: usize, const J: usize, PIN, POLARITY> DerefMut
 mod gpio_impls {
     use super::*;
 
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<A, 0, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<A, 1, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<A, 2, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<A, 3, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<A, 4, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<A, 5, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<A, 6, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<A, 7, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<A, 8, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<A, 9, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<A, 10, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<A, 11, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<A, 12, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<A, 13, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<A, 14, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<A, 15, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<A, 16, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<A, 17, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<A, 18, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<A, 19, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<A, 20, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<A, 21, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<A, 22, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<A, 23, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<A, 24, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<A, 25, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<A, 26, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<A, 27, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<A, 28, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<A, 29, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<A, 30, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<A, 31, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<A, 32, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<A, 33, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<A, 34, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<A, 35, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<A, 36, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<A, 37, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<A, 38, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<A, 39, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<A, 40, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<A, 41, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<A, 42, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<A, 43, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<A, 44, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<A, 45, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<GLB, 0, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<GLB, 1, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<GLB, 2, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<GLB, 3, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<GLB, 4, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<GLB, 5, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<GLB, 6, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<GLB, 7, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<GLB, 8, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<GLB, 9, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<GLB, 10, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<GLB, 11, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<GLB, 12, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<GLB, 13, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<GLB, 14, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<GLB, 15, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<GLB, 16, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<GLB, 17, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<GLB, 18, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<GLB, 19, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<GLB, 20, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<GLB, 21, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<GLB, 22, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<GLB, 23, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<GLB, 24, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<GLB, 25, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<GLB, 26, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<GLB, 27, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<GLB, 28, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<GLB, 29, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<GLB, 30, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<GLB, 31, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<GLB, 32, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<GLB, 33, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<GLB, 34, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<GLB, 35, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<GLB, 36, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<GLB, 37, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<GLB, 38, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<GLB, 39, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<GLB, 40, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<GLB, 41, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 2, Positive> for Pad<GLB, 42, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 3, Positive> for Pad<GLB, 43, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 0, Positive> for Pad<GLB, 44, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(SingleEnd, S2), 0, 1, Positive> for Pad<GLB, 45, gpio::Pwm<0>> {}
 
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pad<A, 0, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pad<A, 1, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pad<A, 2, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pad<A, 3, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pad<A, 4, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pad<A, 5, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pad<A, 6, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pad<A, 7, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pad<A, 8, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pad<A, 9, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pad<A, 10, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pad<A, 11, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pad<A, 12, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pad<A, 13, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pad<A, 14, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pad<A, 15, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pad<A, 16, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pad<A, 17, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pad<A, 18, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pad<A, 19, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pad<A, 20, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pad<A, 21, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pad<A, 22, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pad<A, 23, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pad<A, 24, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pad<A, 25, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pad<A, 26, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pad<A, 27, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pad<A, 28, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pad<A, 29, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pad<A, 30, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pad<A, 31, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pad<A, 32, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pad<A, 33, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pad<A, 34, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pad<A, 35, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pad<A, 36, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pad<A, 37, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pad<A, 38, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pad<A, 39, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pad<A, 40, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pad<A, 41, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pad<A, 42, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pad<A, 43, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pad<A, 44, gpio::Pwm<0>> {}
-    impl<A: BaseAddress, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pad<A, 45, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pad<GLB, 0, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pad<GLB, 1, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pad<GLB, 2, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pad<GLB, 3, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pad<GLB, 4, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pad<GLB, 5, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pad<GLB, 6, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pad<GLB, 7, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pad<GLB, 8, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pad<GLB, 9, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pad<GLB, 10, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pad<GLB, 11, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pad<GLB, 12, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pad<GLB, 13, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pad<GLB, 14, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pad<GLB, 15, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pad<GLB, 16, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pad<GLB, 17, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pad<GLB, 18, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pad<GLB, 19, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pad<GLB, 20, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pad<GLB, 21, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pad<GLB, 22, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pad<GLB, 23, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pad<GLB, 24, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pad<GLB, 25, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pad<GLB, 26, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pad<GLB, 27, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pad<GLB, 28, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pad<GLB, 29, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pad<GLB, 30, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pad<GLB, 31, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pad<GLB, 32, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pad<GLB, 33, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pad<GLB, 34, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pad<GLB, 35, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pad<GLB, 36, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pad<GLB, 37, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Positive> for Pad<GLB, 38, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 3, Negative> for Pad<GLB, 39, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Positive> for Pad<GLB, 40, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 0, Negative> for Pad<GLB, 41, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Positive> for Pad<GLB, 42, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 1, Negative> for Pad<GLB, 43, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Positive> for Pad<GLB, 44, gpio::Pwm<0>> {}
+    impl<GLB, S2> HasPwmSignal<(DifferentialEnd, S2), 0, 2, Negative> for Pad<GLB, 45, gpio::Pwm<0>> {}
 
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<A, 0, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<A, 1, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<A, 2, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<A, 3, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<A, 4, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<A, 5, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<A, 6, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<A, 7, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<A, 8, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<A, 9, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<A, 10, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<A, 11, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<A, 12, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<A, 13, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<A, 14, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<A, 15, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<A, 16, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<A, 17, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<A, 18, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<A, 19, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<A, 20, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<A, 21, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<A, 22, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<A, 23, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<A, 24, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<A, 25, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<A, 26, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<A, 27, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<A, 28, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<A, 29, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<A, 30, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<A, 31, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<A, 32, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<A, 33, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<A, 34, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<A, 35, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<A, 36, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<A, 37, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<A, 38, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<A, 39, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<A, 40, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<A, 41, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<A, 42, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<A, 43, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<A, 44, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<A, 45, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<GLB, 0, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<GLB, 1, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<GLB, 2, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<GLB, 3, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<GLB, 4, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<GLB, 5, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<GLB, 6, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<GLB, 7, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<GLB, 8, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<GLB, 9, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<GLB, 10, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<GLB, 11, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<GLB, 12, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<GLB, 13, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<GLB, 14, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<GLB, 15, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<GLB, 16, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<GLB, 17, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<GLB, 18, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<GLB, 19, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<GLB, 20, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<GLB, 21, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<GLB, 22, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<GLB, 23, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<GLB, 24, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<GLB, 25, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<GLB, 26, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<GLB, 27, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<GLB, 28, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<GLB, 29, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<GLB, 30, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<GLB, 31, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<GLB, 32, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<GLB, 33, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<GLB, 34, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<GLB, 35, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<GLB, 36, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<GLB, 37, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<GLB, 38, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<GLB, 39, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<GLB, 40, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<GLB, 41, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 2, Positive> for Pad<GLB, 42, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 3, Positive> for Pad<GLB, 43, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 0, Positive> for Pad<GLB, 44, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, SingleEnd), 1, 1, Positive> for Pad<GLB, 45, gpio::Pwm<1>> {}
 
-    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pad<A, 0, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<A, 1, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<A, 2, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<A, 3, gpio::Pwm<1>> {}
-    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pad<A, 4, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<A, 5, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<A, 6, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<A, 7, gpio::Pwm<1>> {}
-    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pad<A, 8, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<A, 9, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<A, 10, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<A, 11, gpio::Pwm<1>> {}
-    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pad<A, 12, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<A, 13, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<A, 14, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<A, 15, gpio::Pwm<1>> {}
-    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pad<A, 16, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<A, 17, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<A, 18, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<A, 19, gpio::Pwm<1>> {}
-    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pad<A, 20, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<A, 21, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<A, 22, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<A, 23, gpio::Pwm<1>> {}
-    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pad<A, 24, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<A, 25, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<A, 26, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<A, 27, gpio::Pwm<1>> {}
-    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pad<A, 28, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<A, 29, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<A, 30, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<A, 31, gpio::Pwm<1>> {}
-    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pad<A, 32, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<A, 33, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<A, 34, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<A, 35, gpio::Pwm<1>> {}
-    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pad<A, 36, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<A, 37, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<A, 38, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<A, 39, gpio::Pwm<1>> {}
-    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pad<A, 40, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<A, 41, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<A, 42, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<A, 43, gpio::Pwm<1>> {}
-    impl<A: BaseAddress> HasPwmExternalBreak<0> for Pad<A, 44, gpio::Pwm<1>> {}
-    impl<A: BaseAddress, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<A, 45, gpio::Pwm<1>> {}    
+    impl<GLB> HasPwmExternalBreak<0> for Pad<GLB, 0, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<GLB, 1, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<GLB, 2, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<GLB, 3, gpio::Pwm<1>> {}
+    impl<GLB> HasPwmExternalBreak<0> for Pad<GLB, 4, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<GLB, 5, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<GLB, 6, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<GLB, 7, gpio::Pwm<1>> {}
+    impl<GLB> HasPwmExternalBreak<0> for Pad<GLB, 8, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<GLB, 9, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<GLB, 10, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<GLB, 11, gpio::Pwm<1>> {}
+    impl<GLB> HasPwmExternalBreak<0> for Pad<GLB, 12, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<GLB, 13, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<GLB, 14, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<GLB, 15, gpio::Pwm<1>> {}
+    impl<GLB> HasPwmExternalBreak<0> for Pad<GLB, 16, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<GLB, 17, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<GLB, 18, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<GLB, 19, gpio::Pwm<1>> {}
+    impl<GLB> HasPwmExternalBreak<0> for Pad<GLB, 20, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<GLB, 21, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<GLB, 22, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<GLB, 23, gpio::Pwm<1>> {}
+    impl<GLB> HasPwmExternalBreak<0> for Pad<GLB, 24, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<GLB, 25, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<GLB, 26, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<GLB, 27, gpio::Pwm<1>> {}
+    impl<GLB> HasPwmExternalBreak<0> for Pad<GLB, 28, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<GLB, 29, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<GLB, 30, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<GLB, 31, gpio::Pwm<1>> {}
+    impl<GLB> HasPwmExternalBreak<0> for Pad<GLB, 32, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<GLB, 33, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<GLB, 34, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<GLB, 35, gpio::Pwm<1>> {}
+    impl<GLB> HasPwmExternalBreak<0> for Pad<GLB, 36, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<GLB, 37, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<GLB, 38, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<GLB, 39, gpio::Pwm<1>> {}
+    impl<GLB> HasPwmExternalBreak<0> for Pad<GLB, 40, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<GLB, 41, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 1, Positive> for Pad<GLB, 42, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 2, Positive> for Pad<GLB, 43, gpio::Pwm<1>> {}
+    impl<GLB> HasPwmExternalBreak<0> for Pad<GLB, 44, gpio::Pwm<1>> {}
+    impl<GLB, S1> HasPwmSignal<(S1, BrushlessDcMotor), 0, 0, Positive> for Pad<GLB, 45, gpio::Pwm<1>> {}    
 }
 
 #[cfg(test)]

@@ -779,9 +779,9 @@ impl HalCpuCfg {
 /// Peripherals available on ROM start.
 pub struct Peripherals {
     /// Global configuration peripheral.
-    pub glb: bouffalo_hal::glb::GLBv2<Static<0x20000000>>, // TODO modify to GLBv2 in current package, remove base-address
+    pub glb: GLBv2,
     /// General Purpose Input/Output pads.
-    pub gpio: bouffalo_hal::gpio::Pads<Static<0x20000000>>,
+    pub gpio: bouffalo_hal::gpio::Pads<GLBv2>,
     /// UART signal multiplexers.
     pub uart_muxes: bouffalo_hal::uart::UartMuxes<GLBv2>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
@@ -861,13 +861,6 @@ impl Deref for UART0 {
     }
 }
 
-impl AsRef<bouffalo_hal::uart::RegisterBlock> for UART0 {
-    #[inline(always)]
-    fn as_ref(&self) -> &bouffalo_hal::uart::RegisterBlock {
-        self
-    }
-}
-
 impl Deref for UART1 {
     type Target = bouffalo_hal::uart::RegisterBlock;
 
@@ -906,13 +899,6 @@ impl Deref for SPI0 {
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
         unsafe { &*(0x2000A200 as *const _) }
-    }
-}
-
-impl AsRef<bouffalo_hal::spi::RegisterBlock> for SPI0 {
-    #[inline(always)]
-    fn as_ref(&self) -> &bouffalo_hal::spi::RegisterBlock {
-        self
     }
 }
 
@@ -956,13 +942,6 @@ impl Deref for I2C0 {
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
         unsafe { &*(0x2000A300 as *const _) }
-    }
-}
-
-impl AsRef<bouffalo_hal::i2c::RegisterBlock> for I2C0 {
-    #[inline(always)]
-    fn as_ref(&self) -> &bouffalo_hal::i2c::RegisterBlock {
-        self
     }
 }
 

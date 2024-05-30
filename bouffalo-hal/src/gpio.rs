@@ -1,21 +1,12 @@
-/*
- * @Descripttion:
- * @version:
- * @Author: zyx
- * @Date: 2023-10-26 16:20:46
- * @LastEditors: zyx
- * @LastEditTime: 2023-10-26 16:50:05
- */
 //! General Purpose Input/Output.
 #[cfg(feature = "glb-v1")]
-use crate::glb::v1;
+use crate::glb::v1::{self, RegisterBlock as GlbRegisterBlock};
 #[cfg(any(doc, feature = "glb-v2"))]
-use crate::glb::v2;
-#[cfg(any(feature = "glb-v1", feature = "glb-v2"))]
-use crate::GLB;
-use base_address::BaseAddress;
-use core::marker::PhantomData;
+use crate::glb::v2::{self, RegisterBlock as GlbRegisterBlock};
+use core::{marker::PhantomData, ops::Deref};
 use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
+#[cfg(not(any(doc, feature = "glb-v1", feature = "glb-v2")))]
+pub struct GlbRegisterBlock {}
 
 /// Individual GPIO pin.
 ///
@@ -44,7 +35,12 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// ```no_run
 /// # use base_address::Static;
 /// # use bouffalo_hal::gpio::Pads;
-/// # pub struct Peripherals { gpio: Pads<Static<0x20000000>> }
+/// # pub struct Peripherals { gpio: Pads<GLBv2> }
+/// # pub struct GLBv2;
+/// # impl core::ops::Deref for GLBv2 {
+/// #     type Target = bouffalo_hal::gpio::GlbRegisterBlock;
+/// #     fn deref(&self) -> &Self::Target { unimplemented!() }
+/// # }
 /// # fn main() -> ! {
 /// #   let p: Peripherals = unsafe { core::mem::transmute(()) };
 /// use embedded_hal::digital::{OutputPin, PinState};
@@ -73,30 +69,35 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// adjusted to the corresponding type before it can be used to create such structures.
 ///
 /// ```no_run
-/// # use base_address::{BaseAddress, Static};
 /// # use embedded_time::rate::*;
 /// # use bouffalo_hal::{
 /// #     clocks::Clocks,
 /// #     gpio::{Pads, Pad, Alternate},
 /// #     uart::{BitOrder, Config, Parity, StopBits, WordLength},
-/// #     UART,
 /// # };
 /// # use embedded_io::Write;
 /// # pub struct Serial<PADS> { pads: PADS }
 /// # impl<PADS> Serial<PADS> {
-/// #     pub fn new(_: UART<impl BaseAddress, 0>, _: Config, _: Baud,
-/// # #[cfg(feature = "glb-v2")] _: PADS, _: &Clocks, _: &GLB<impl BaseAddress>)
+/// #     pub fn new<UART>(_: UART, _: Config, _: Baud,
+/// # #[cfg(feature = "glb-v2")] _: PADS, _: &Clocks, _: &GLBv2)
 /// #     -> Self { unimplemented!() }
 /// #     pub fn write_fmt(&mut self, fmt: core::fmt::Arguments<'_>) -> Result<(), ()> { unimplemented!() }
 /// #     pub fn flush(&mut self) -> Result<(), ()> { unimplemented!() }
 /// # }
-/// # pub struct GLB<A: BaseAddress> {
-/// #     base: A,
-/// # }
 /// # pub struct Peripherals {
-/// #     gpio: Pads<Static<0x20000000>>,
-/// #     glb: GLB<Static<0x20000000>>,
-/// #     uart0: UART<Static<0x2000A000>, 0>,
+/// #     gpio: Pads<GLBv2>,
+/// #     glb: GLBv2,
+/// #     uart0: UART0,
+/// # }
+/// # pub struct GLBv2;
+/// # impl core::ops::Deref for GLBv2 {
+/// #     type Target = bouffalo_hal::gpio::GlbRegisterBlock;
+/// #     fn deref(&self) -> &Self::Target { unimplemented!() }
+/// # }
+/// # pub struct UART0;
+/// # impl core::ops::Deref for UART0 {
+/// #     type Target = bouffalo_hal::uart::RegisterBlock;
+/// #     fn deref(&self) -> &Self::Target { unimplemented!() }
 /// # }
 /// # fn main() {
 /// # let p: Peripherals = unsafe { core::mem::transmute(()) };
@@ -133,11 +134,11 @@ use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 /// serial.flush().ok();
 /// # }
 /// ```
-pub struct Pad<A: BaseAddress, const N: usize, M: Alternate> {
+pub struct Pad<GLB, const N: usize, M: Alternate> {
     #[cfg(any(feature = "glb-v1", feature = "glb-v2"))]
-    pub(crate) base: GLB<A>,
+    pub(crate) base: GLB,
     #[cfg(not(any(feature = "glb-v1", feature = "glb-v2")))]
-    pub(crate) _base_not_implemented: PhantomData<A>,
+    pub(crate) _base_not_implemented: PhantomData<GLB>,
     pub(crate) _mode: PhantomData<M>,
 }
 
@@ -185,15 +186,17 @@ impl Alternate for Disabled {
     const F: v2::Function = v2::Function::Gpio;
 }
 
-impl<A: BaseAddress, const N: usize, M> ErrorType for Pad<A, N, Input<M>> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> ErrorType for Pad<GLB, N, Input<M>> {
     type Error = core::convert::Infallible;
 }
 
-impl<A: BaseAddress, const N: usize, M> ErrorType for Pad<A, N, Output<M>> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> ErrorType
+    for Pad<GLB, N, Output<M>>
+{
     type Error = core::convert::Infallible;
 }
 
-impl<A: BaseAddress, const N: usize, M> InputPin for Pad<A, N, Input<M>> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> InputPin for Pad<GLB, N, Input<M>> {
     #[inline]
     fn is_high(&mut self) -> Result<bool, Self::Error> {
         cfg_if::cfg_if! {
@@ -220,7 +223,9 @@ impl<A: BaseAddress, const N: usize, M> InputPin for Pad<A, N, Input<M>> {
     }
 }
 
-impl<A: BaseAddress, const N: usize, M> OutputPin for Pad<A, N, Output<M>> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> OutputPin
+    for Pad<GLB, N, Output<M>>
+{
     #[inline]
     fn set_low(&mut self) -> Result<(), Self::Error> {
         cfg_if::cfg_if! {
@@ -257,8 +262,8 @@ impl<A: BaseAddress, const N: usize, M> OutputPin for Pad<A, N, Output<M>> {
 // ecosystem crates, as some of them depends on embedded-hal v0.2.7 traits.
 // We encourage ecosystem developers to use embedded-hal v1.0.0 traits; after that, this part of code
 // would be removed in the future.
-impl<A: BaseAddress, const N: usize, M> embedded_hal_027::digital::v2::OutputPin
-    for Pad<A, N, Output<M>>
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M>
+    embedded_hal_027::digital::v2::OutputPin for Pad<GLB, N, Output<M>>
 {
     type Error = core::convert::Infallible;
     #[inline]
@@ -275,7 +280,7 @@ impl<A: BaseAddress, const N: usize, M> embedded_hal_027::digital::v2::OutputPin
 // have such functionality to read back the previously set pin state.
 // It is recommended that users add a variable to store the pin state if necessary; see examples/gpio-demo.
 
-impl<A: BaseAddress, const N: usize, M> Pad<A, N, Input<M>> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Input<M>> {
     /// Enable schmitt trigger.
     #[inline]
     pub fn enable_schmitt(&mut self) {
@@ -366,7 +371,7 @@ impl<A: BaseAddress, const N: usize, M> Pad<A, N, Input<M>> {
 }
 
 #[cfg(feature = "glb-v1")]
-impl<A: BaseAddress, const N: usize, M> Pad<A, N, Input<M>> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Input<M>> {
     /// Get interrupt mode.
     #[inline]
     pub fn interrupt_mode(&self) -> v1::InterruptMode {
@@ -385,7 +390,7 @@ impl<A: BaseAddress, const N: usize, M> Pad<A, N, Input<M>> {
 }
 
 #[cfg(feature = "glb-v2")]
-impl<A: BaseAddress, const N: usize, M> Pad<A, N, Input<M>> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Input<M>> {
     /// Get interrupt mode.
     #[inline]
     pub fn interrupt_mode(&self) -> v2::InterruptMode {
@@ -400,7 +405,7 @@ impl<A: BaseAddress, const N: usize, M> Pad<A, N, Input<M>> {
 }
 
 #[cfg(feature = "glb-v1")]
-impl<A: BaseAddress, const N: usize, M> Pad<A, N, Output<M>> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Output<M>> {
     /// Get drive strength of this pin.
     #[inline]
     pub fn drive(&self) -> v1::Drive {
@@ -415,7 +420,7 @@ impl<A: BaseAddress, const N: usize, M> Pad<A, N, Output<M>> {
 }
 
 #[cfg(feature = "glb-v2")]
-impl<A: BaseAddress, const N: usize, M> Pad<A, N, Output<M>> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Output<M>> {
     /// Get drive strength of this pin.
     #[inline]
     pub fn drive(&self) -> v2::Drive {
@@ -430,10 +435,10 @@ impl<A: BaseAddress, const N: usize, M> Pad<A, N, Output<M>> {
 }
 
 #[cfg(feature = "glb-v2")]
-impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as a SPI pin.
     #[inline]
-    pub fn into_spi<const I: usize>(self) -> Pad<A, N, Spi<I>>
+    pub fn into_spi<const I: usize>(self) -> Pad<GLB, N, Spi<I>>
     where
         Spi<I>: Alternate,
     {
@@ -468,10 +473,10 @@ impl Alternate for Spi<1> {
     const F: v2::Function = v2::Function::Spi1;
 }
 
-impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as a pull up output pin.
     #[inline]
-    pub fn into_pull_up_output(self) -> Pad<A, N, Output<PullUp>> {
+    pub fn into_pull_up_output(self) -> Pad<GLB, N, Output<PullUp>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
@@ -506,7 +511,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     }
     /// Configures the pin to operate as a pull down output pin.
     #[inline]
-    pub fn into_pull_down_output(self) -> Pad<A, N, Output<PullDown>> {
+    pub fn into_pull_down_output(self) -> Pad<GLB, N, Output<PullDown>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
@@ -541,7 +546,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     }
     /// Configures the pin to operate as a floating output pin.
     #[inline]
-    pub fn into_floating_output(self) -> Pad<A, N, Output<Floating>> {
+    pub fn into_floating_output(self) -> Pad<GLB, N, Output<Floating>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
@@ -576,7 +581,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     }
     /// Configures the pin to operate as a pull up input pin.
     #[inline]
-    pub fn into_pull_up_input(self) -> Pad<A, N, Input<PullUp>> {
+    pub fn into_pull_up_input(self) -> Pad<GLB, N, Input<PullUp>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
@@ -611,7 +616,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     }
     /// Configures the pin to operate as a pull down input pin.
     #[inline]
-    pub fn into_pull_down_input(self) -> Pad<A, N, Input<PullDown>> {
+    pub fn into_pull_down_input(self) -> Pad<GLB, N, Input<PullDown>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
@@ -646,7 +651,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     }
     /// Configures the pin to operate as a floating input pin.
     #[inline]
-    pub fn into_floating_input(self) -> Pad<A, N, Input<Floating>> {
+    pub fn into_floating_input(self) -> Pad<GLB, N, Input<Floating>> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "glb-v1")] {
                 let config = self.base.gpio_config[N >> 1]
@@ -698,11 +703,11 @@ const UART_GPIO_CONFIG: v2::GpioConfig = v2::GpioConfig::RESET_VALUE
     .set_pull(v2::Pull::Up)
     .set_function(v2::Function::Uart);
 
-impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as UART signal.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_uart(self) -> Pad<A, N, Uart> {
+    pub fn into_uart(self) -> Pad<GLB, N, Uart> {
         unsafe { self.base.gpio_config[N].write(UART_GPIO_CONFIG) };
         Pad {
             base: self.base,
@@ -719,11 +724,11 @@ impl Alternate for MmUart {
     const F: v2::Function = v2::Function::MmUart;
 }
 
-impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as multi-media cluster UART signal.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_mm_uart(self) -> Pad<A, N, MmUart> {
+    pub fn into_mm_uart(self) -> Pad<GLB, N, MmUart> {
         unsafe {
             self.base.gpio_config[N].write(UART_GPIO_CONFIG.set_function(v2::Function::MmUart))
         };
@@ -747,11 +752,11 @@ impl Alternate for Pwm<1> {
     const F: v2::Function = v2::Function::Pwm1;
 }
 
-impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as a pull up Pulse Width Modulation signal pin.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_pull_up_pwm<const I: usize>(self) -> Pad<A, N, Pwm<I>>
+    pub fn into_pull_up_pwm<const I: usize>(self) -> Pad<GLB, N, Pwm<I>>
     where
         Pwm<I>: Alternate,
     {
@@ -771,7 +776,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     /// Configures the pin to operate as a pull down Pulse Width Modulation signal pin.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_pull_down_pwm<const I: usize>(self) -> Pad<A, N, Pwm<I>>
+    pub fn into_pull_down_pwm<const I: usize>(self) -> Pad<GLB, N, Pwm<I>>
     where
         Pwm<I>: Alternate,
     {
@@ -791,7 +796,7 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
     /// Configures the pin to operate as floating Pulse Width Modulation signal pin.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_floating_pwm<const I: usize>(self) -> Pad<A, N, Pwm<I>>
+    pub fn into_floating_pwm<const I: usize>(self) -> Pad<GLB, N, Pwm<I>>
     where
         Pwm<I>: Alternate,
     {
@@ -833,11 +838,11 @@ impl Alternate for I2c<3> {
     const F: v2::Function = v2::Function::I2c3;
 }
 
-impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as an Inter-Integrated Circuit signal pin.
     #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
-    pub fn into_i2c<const I: usize>(self) -> Pad<A, N, I2c<I>>
+    pub fn into_i2c<const I: usize>(self) -> Pad<GLB, N, I2c<I>>
     where
         I2c<I>: Alternate,
     {
@@ -859,97 +864,97 @@ impl<A: BaseAddress, const N: usize, M: Alternate> Pad<A, N, M> {
 }
 
 /// Available GPIO pads.
-pub struct Pads<A: BaseAddress> {
+pub struct Pads<GLB> {
     /// GPIO I/O 0.
-    pub io0: Pad<A, 0, Disabled>,
+    pub io0: Pad<GLB, 0, Disabled>,
     /// GPIO I/O 1.
-    pub io1: Pad<A, 1, Disabled>,
+    pub io1: Pad<GLB, 1, Disabled>,
     /// GPIO I/O 2.
-    pub io2: Pad<A, 2, Disabled>,
+    pub io2: Pad<GLB, 2, Disabled>,
     /// GPIO I/O 3.
-    pub io3: Pad<A, 3, Disabled>,
+    pub io3: Pad<GLB, 3, Disabled>,
     /// GPIO I/O 4.
-    pub io4: Pad<A, 4, Disabled>,
+    pub io4: Pad<GLB, 4, Disabled>,
     /// GPIO I/O 5.
-    pub io5: Pad<A, 5, Disabled>,
+    pub io5: Pad<GLB, 5, Disabled>,
     /// GPIO I/O 6.
-    pub io6: Pad<A, 6, Disabled>,
+    pub io6: Pad<GLB, 6, Disabled>,
     /// GPIO I/O 7.
-    pub io7: Pad<A, 7, Disabled>,
+    pub io7: Pad<GLB, 7, Disabled>,
     /// GPIO I/O 8.
-    pub io8: Pad<A, 8, Disabled>,
+    pub io8: Pad<GLB, 8, Disabled>,
     /// GPIO I/O 9.
-    pub io9: Pad<A, 9, Disabled>,
+    pub io9: Pad<GLB, 9, Disabled>,
     /// GPIO I/O 10.
-    pub io10: Pad<A, 10, Disabled>,
+    pub io10: Pad<GLB, 10, Disabled>,
     /// GPIO I/O 11.
-    pub io11: Pad<A, 11, Disabled>,
+    pub io11: Pad<GLB, 11, Disabled>,
     /// GPIO I/O 12.
-    pub io12: Pad<A, 12, Disabled>,
+    pub io12: Pad<GLB, 12, Disabled>,
     /// GPIO I/O 13.
-    pub io13: Pad<A, 13, Disabled>,
+    pub io13: Pad<GLB, 13, Disabled>,
     /// GPIO I/O 14.
-    pub io14: Pad<A, 14, Disabled>,
+    pub io14: Pad<GLB, 14, Disabled>,
     /// GPIO I/O 15.
-    pub io15: Pad<A, 15, Disabled>,
+    pub io15: Pad<GLB, 15, Disabled>,
     /// GPIO I/O 16.
-    pub io16: Pad<A, 16, Disabled>,
+    pub io16: Pad<GLB, 16, Disabled>,
     /// GPIO I/O 17.
-    pub io17: Pad<A, 17, Disabled>,
+    pub io17: Pad<GLB, 17, Disabled>,
     /// GPIO I/O 18.
-    pub io18: Pad<A, 18, Disabled>,
+    pub io18: Pad<GLB, 18, Disabled>,
     /// GPIO I/O 19.
-    pub io19: Pad<A, 19, Disabled>,
+    pub io19: Pad<GLB, 19, Disabled>,
     /// GPIO I/O 20.
-    pub io20: Pad<A, 20, Disabled>,
+    pub io20: Pad<GLB, 20, Disabled>,
     /// GPIO I/O 21.
-    pub io21: Pad<A, 21, Disabled>,
+    pub io21: Pad<GLB, 21, Disabled>,
     /// GPIO I/O 22.
-    pub io22: Pad<A, 22, Disabled>,
+    pub io22: Pad<GLB, 22, Disabled>,
     /// GPIO I/O 23.
-    pub io23: Pad<A, 23, Disabled>,
+    pub io23: Pad<GLB, 23, Disabled>,
     /// GPIO I/O 24.
-    pub io24: Pad<A, 24, Disabled>,
+    pub io24: Pad<GLB, 24, Disabled>,
     /// GPIO I/O 25.
-    pub io25: Pad<A, 25, Disabled>,
+    pub io25: Pad<GLB, 25, Disabled>,
     /// GPIO I/O 26.
-    pub io26: Pad<A, 26, Disabled>,
+    pub io26: Pad<GLB, 26, Disabled>,
     /// GPIO I/O 27.
-    pub io27: Pad<A, 27, Disabled>,
+    pub io27: Pad<GLB, 27, Disabled>,
     /// GPIO I/O 28.
-    pub io28: Pad<A, 28, Disabled>,
+    pub io28: Pad<GLB, 28, Disabled>,
     /// GPIO I/O 29.
-    pub io29: Pad<A, 29, Disabled>,
+    pub io29: Pad<GLB, 29, Disabled>,
     /// GPIO I/O 30.
-    pub io30: Pad<A, 30, Disabled>,
+    pub io30: Pad<GLB, 30, Disabled>,
     /// GPIO I/O 31.
-    pub io31: Pad<A, 31, Disabled>,
+    pub io31: Pad<GLB, 31, Disabled>,
     /// GPIO I/O 32.
-    pub io32: Pad<A, 32, Disabled>,
+    pub io32: Pad<GLB, 32, Disabled>,
     /// GPIO I/O 33.
-    pub io33: Pad<A, 33, Disabled>,
+    pub io33: Pad<GLB, 33, Disabled>,
     /// GPIO I/O 34.
-    pub io34: Pad<A, 34, Disabled>,
+    pub io34: Pad<GLB, 34, Disabled>,
     /// GPIO I/O 35.
-    pub io35: Pad<A, 35, Disabled>,
+    pub io35: Pad<GLB, 35, Disabled>,
     /// GPIO I/O 36.
-    pub io36: Pad<A, 36, Disabled>,
+    pub io36: Pad<GLB, 36, Disabled>,
     /// GPIO I/O 37.
-    pub io37: Pad<A, 37, Disabled>,
+    pub io37: Pad<GLB, 37, Disabled>,
     /// GPIO I/O 38.
-    pub io38: Pad<A, 38, Disabled>,
+    pub io38: Pad<GLB, 38, Disabled>,
     /// GPIO I/O 39.
-    pub io39: Pad<A, 39, Disabled>,
+    pub io39: Pad<GLB, 39, Disabled>,
     /// GPIO I/O 40.
-    pub io40: Pad<A, 40, Disabled>,
+    pub io40: Pad<GLB, 40, Disabled>,
     /// GPIO I/O 41.
-    pub io41: Pad<A, 41, Disabled>,
+    pub io41: Pad<GLB, 41, Disabled>,
     /// GPIO I/O 42.
-    pub io42: Pad<A, 42, Disabled>,
+    pub io42: Pad<GLB, 42, Disabled>,
     /// GPIO I/O 43.
-    pub io43: Pad<A, 43, Disabled>,
+    pub io43: Pad<GLB, 43, Disabled>,
     /// GPIO I/O 44.
-    pub io44: Pad<A, 44, Disabled>,
+    pub io44: Pad<GLB, 44, Disabled>,
     /// GPIO I/O 45.
-    pub io45: Pad<A, 45, Disabled>,
+    pub io45: Pad<GLB, 45, Disabled>,
 }

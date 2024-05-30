@@ -1,8 +1,8 @@
 //! Serial Peripheral Interface peripheral.
 
-use crate::glb::{v2::SpiMode, GLBv2};
+use crate::glb::{self, v2::SpiMode};
 use crate::gpio::{self, Pad};
-use base_address::BaseAddress;
+use core::ops::Deref;
 use embedded_hal::spi::Mode;
 use volatile_register::{RO, RW, WO};
 
@@ -624,12 +624,13 @@ pub struct Spi<SPI, PADS, const I: usize> {
     pads: PADS,
 }
 
-impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> Spi<SPI, PADS, I> {
+impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> Spi<SPI, PADS, I> {
     /// Create a new Serial Peripheral Interface instance.
     #[inline]
-    pub fn new(spi: SPI, pads: PADS, mode: Mode, glb: &GLBv2<impl BaseAddress>) -> Self
+    pub fn new<GLB>(spi: SPI, pads: PADS, mode: Mode, glb: &GLB) -> Self
     where
         PADS: Pads<I>,
+        GLB: Deref<Target = glb::v2::RegisterBlock>
     {
         let mut config = Config(0)
             .disable_deglitch()
@@ -656,7 +657,6 @@ impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> Spi<SPI, PADS, I> {
         };
 
         unsafe {
-            let spi = spi.as_ref();
             glb.param_config
                 .modify(|c| c.set_spi_mode::<I>(SpiMode::Master));
 
@@ -705,44 +705,42 @@ impl embedded_hal::spi::Error for Error {
     }
 }
 
-impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> embedded_hal::spi::ErrorType
+impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi::ErrorType
     for Spi<SPI, PADS, I>
 {
     type Error = Error;
 }
 
-impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> embedded_hal::spi::SpiBus
+impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi::SpiBus
     for Spi<SPI, PADS, I>
 {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<(), Self::Error> {
-        let spi = self.spi.as_ref();
-        unsafe { spi.config.modify(|config| config.enable_master()) };
+        unsafe { self.spi.config.modify(|config| config.enable_master()) };
 
         buf.iter_mut().for_each(|slot| {
-            while spi.fifo_config_1.read().receive_available_bytes() == 0 {
+            while self.spi.fifo_config_1.read().receive_available_bytes() == 0 {
                 core::hint::spin_loop();
             }
-            *slot = spi.data_read.read()
+            *slot = self.spi.data_read.read()
         });
 
-        unsafe { spi.config.modify(|config| config.disable_master()) };
+        unsafe { self.spi.config.modify(|config| config.disable_master()) };
         Ok(())
     }
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<(), Self::Error> {
-        let spi = self.spi.as_ref();
-        unsafe { spi.config.modify(|config| config.enable_master()) };
+        unsafe { self.spi.config.modify(|config| config.enable_master()) };
 
         buf.iter().for_each(|&word| {
-            while spi.fifo_config_1.read().transmit_available_bytes() == 0 {
+            while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
                 core::hint::spin_loop();
             }
-            unsafe { spi.data_write.write(word) }
-            _ = spi.data_read.read();
+            unsafe { self.spi.data_write.write(word) }
+            _ = self.spi.data_read.read();
         });
 
-        unsafe { spi.config.modify(|config| config.disable_master()) };
+        unsafe { self.spi.config.modify(|config| config.disable_master()) };
         Ok(())
     }
     #[inline]
@@ -751,66 +749,63 @@ impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> embedded_hal::spi::SpiBus
     }
     #[inline]
     fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
-        let spi = self.spi.as_ref();
-        unsafe { spi.config.modify(|config| config.enable_master()) };
+        unsafe { self.spi.config.modify(|config| config.enable_master()) };
 
         for word in words.iter_mut() {
-            while spi.fifo_config_1.read().transmit_available_bytes() == 0 {
+            while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
                 core::hint::spin_loop();
             }
-            unsafe { spi.data_write.write(*word) }
-            *word = spi.data_read.read();
+            unsafe { self.spi.data_write.write(*word) }
+            *word = self.spi.data_read.read();
         }
 
-        unsafe { spi.config.modify(|config| config.disable_master()) };
+        unsafe { self.spi.config.modify(|config| config.disable_master()) };
         Ok(())
     }
     #[inline]
     fn flush(&mut self) -> Result<(), Self::Error> {
-        let spi = self.spi.as_ref();
-        while spi.fifo_config_1.read().transmit_available_bytes() != 32 {
+        while self.spi.fifo_config_1.read().transmit_available_bytes() != 32 {
             core::hint::spin_loop();
         }
-        while spi.fifo_config_1.read().receive_available_bytes() != 32 {
+        while self.spi.fifo_config_1.read().receive_available_bytes() != 32 {
             core::hint::spin_loop();
         }
         Ok(())
     }
 }
 
-impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> embedded_hal::spi::SpiDevice
+impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi::SpiDevice
     for Spi<SPI, PADS, I>
 {
     fn transaction(
         &mut self,
         operations: &mut [embedded_hal::spi::Operation<'_, u8>],
     ) -> Result<(), Self::Error> {
-        let spi = self.spi.as_ref();
         for op in operations {
             match op {
                 embedded_hal::spi::Operation::Read(buf) => {
-                    unsafe { spi.config.modify(|config| config.enable_master()) };
+                    unsafe { self.spi.config.modify(|config| config.enable_master()) };
 
                     buf.iter_mut().for_each(|slot| {
-                        while spi.fifo_config_1.read().receive_available_bytes() == 0 {
+                        while self.spi.fifo_config_1.read().receive_available_bytes() == 0 {
                             core::hint::spin_loop();
                         }
-                        *slot = spi.data_read.read()
+                        *slot = self.spi.data_read.read()
                     });
 
-                    unsafe { spi.config.modify(|config| config.disable_master()) };
+                    unsafe { self.spi.config.modify(|config| config.disable_master()) };
                 }
                 embedded_hal::spi::Operation::Write(buf) => {
-                    unsafe { spi.config.modify(|config| config.enable_master()) };
+                    unsafe { self.spi.config.modify(|config| config.enable_master()) };
 
                     buf.iter().for_each(|&word| {
-                        while spi.fifo_config_1.read().transmit_available_bytes() == 0 {
+                        while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
                             core::hint::spin_loop();
                         }
-                        unsafe { spi.data_write.write(word) }
+                        unsafe { self.spi.data_write.write(word) }
                     });
 
-                    unsafe { spi.config.modify(|config| config.disable_master()) };
+                    unsafe { self.spi.config.modify(|config| config.disable_master()) };
                 }
                 embedded_hal::spi::Operation::Transfer(_read, _write) => {
                     todo!()
@@ -831,8 +826,8 @@ impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> embedded_hal::spi::SpiDevi
 // ecosystem crates, as some of them depends on embedded-hal v0.2.7 traits.
 // We encourage ecosystem developers to use embedded-hal v1.0.0 traits; after that, this part of code
 // would be removed in the future.
-impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> embedded_hal_027::blocking::spi::Write<u8>
-    for Spi<SPI, PADS, I>
+impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize>
+    embedded_hal_027::blocking::spi::Write<u8> for Spi<SPI, PADS, I>
 {
     type Error = Error;
     #[inline]
@@ -842,8 +837,8 @@ impl<SPI: AsRef<RegisterBlock>, PADS, const I: usize> embedded_hal_027::blocking
     }
 }
 
-impl<SPI: AsRef<RegisterBlock>, PINS, const I: usize> embedded_hal_027::blocking::spi::Transfer<u8>
-    for Spi<SPI, PINS, I>
+impl<SPI: Deref<Target = RegisterBlock>, PINS, const I: usize>
+    embedded_hal_027::blocking::spi::Transfer<u8> for Spi<SPI, PINS, I>
 {
     type Error = Error;
     #[inline]
@@ -863,9 +858,9 @@ impl<A1, A2, A3, const N1: usize, const N2: usize, const N3: usize> Pads<1>
         Pad<A3, N3, gpio::Spi<1>>,
     )
 where
-    A1: BaseAddress,
-    A2: BaseAddress,
-    A3: BaseAddress,
+    A1: Deref<Target = glb::v2::RegisterBlock>,
+    A2: Deref<Target = glb::v2::RegisterBlock>,
+    A3: Deref<Target = glb::v2::RegisterBlock>,
     Pad<A1, N1, gpio::Spi<1>>: HasClkSignal,
     Pad<A2, N2, gpio::Spi<1>>: HasMosiSignal,
     Pad<A3, N3, gpio::Spi<1>>: HasCsSignal,
@@ -880,10 +875,10 @@ impl<A1, A2, A3, A4, const N1: usize, const N2: usize, const N3: usize, const N4
         Pad<A4, N4, gpio::Spi<1>>,
     )
 where
-    A1: BaseAddress,
-    A2: BaseAddress,
-    A3: BaseAddress,
-    A4: BaseAddress,
+    A1: Deref<Target = glb::v2::RegisterBlock>,
+    A2: Deref<Target = glb::v2::RegisterBlock>,
+    A3: Deref<Target = glb::v2::RegisterBlock>,
+    A4: Deref<Target = glb::v2::RegisterBlock>,
     Pad<A1, N1, gpio::Spi<1>>: HasClkSignal,
     Pad<A2, N2, gpio::Spi<1>>: HasMosiSignal,
     Pad<A3, N3, gpio::Spi<1>>: HasMisoSignal,
@@ -894,64 +889,64 @@ where
 /// Check if target gpio `Pin` is internally connected to SPI clock signal.
 pub trait HasClkSignal {}
 
-impl<A: BaseAddress> HasClkSignal for Pad<A, 3, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasClkSignal for Pad<A, 7, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasClkSignal for Pad<A, 11, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasClkSignal for Pad<A, 15, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasClkSignal for Pad<A, 19, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasClkSignal for Pad<A, 23, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasClkSignal for Pad<A, 27, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasClkSignal for Pad<A, 31, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasClkSignal for Pad<A, 35, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasClkSignal for Pad<A, 39, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasClkSignal for Pad<A, 43, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Pad<GLB, 3, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Pad<GLB, 7, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Pad<GLB, 11, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Pad<GLB, 15, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Pad<GLB, 19, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Pad<GLB, 23, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Pad<GLB, 27, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Pad<GLB, 31, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Pad<GLB, 35, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Pad<GLB, 39, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Pad<GLB, 43, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI MISO signal.
 pub trait HasMisoSignal {}
 
-impl<A: BaseAddress> HasMisoSignal for Pad<A, 2, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMisoSignal for Pad<A, 6, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMisoSignal for Pad<A, 10, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMisoSignal for Pad<A, 14, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMisoSignal for Pad<A, 18, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMisoSignal for Pad<A, 22, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMisoSignal for Pad<A, 26, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMisoSignal for Pad<A, 30, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMisoSignal for Pad<A, 34, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMisoSignal for Pad<A, 38, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMisoSignal for Pad<A, 42, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Pad<GLB, 2, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Pad<GLB, 6, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Pad<GLB, 10, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Pad<GLB, 14, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Pad<GLB, 18, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Pad<GLB, 22, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Pad<GLB, 26, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Pad<GLB, 30, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Pad<GLB, 34, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Pad<GLB, 38, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Pad<GLB, 42, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI MOSI signal.
 pub trait HasMosiSignal {}
 
-impl<A: BaseAddress> HasMosiSignal for Pad<A, 1, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMosiSignal for Pad<A, 5, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMosiSignal for Pad<A, 9, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMosiSignal for Pad<A, 13, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMosiSignal for Pad<A, 17, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMosiSignal for Pad<A, 21, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMosiSignal for Pad<A, 25, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMosiSignal for Pad<A, 29, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMosiSignal for Pad<A, 33, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMosiSignal for Pad<A, 37, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMosiSignal for Pad<A, 41, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasMosiSignal for Pad<A, 45, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Pad<GLB, 1, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Pad<GLB, 5, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Pad<GLB, 9, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Pad<GLB, 13, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Pad<GLB, 17, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Pad<GLB, 21, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Pad<GLB, 25, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Pad<GLB, 29, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Pad<GLB, 33, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Pad<GLB, 37, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Pad<GLB, 41, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Pad<GLB, 45, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI CS signal.
 pub trait HasCsSignal {}
 
-impl<A: BaseAddress> HasCsSignal for Pad<A, 0, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasCsSignal for Pad<A, 4, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasCsSignal for Pad<A, 8, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasCsSignal for Pad<A, 12, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasCsSignal for Pad<A, 16, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasCsSignal for Pad<A, 20, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasCsSignal for Pad<A, 24, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasCsSignal for Pad<A, 28, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasCsSignal for Pad<A, 32, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasCsSignal for Pad<A, 36, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasCsSignal for Pad<A, 40, gpio::Spi<1>> {}
-impl<A: BaseAddress> HasCsSignal for Pad<A, 44, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Pad<GLB, 0, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Pad<GLB, 4, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Pad<GLB, 8, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Pad<GLB, 12, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Pad<GLB, 16, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Pad<GLB, 20, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Pad<GLB, 24, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Pad<GLB, 28, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Pad<GLB, 32, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Pad<GLB, 36, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Pad<GLB, 40, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Pad<GLB, 44, gpio::Spi<1>> {}
 
 #[cfg(test)]
 mod tests {

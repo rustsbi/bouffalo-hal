@@ -1,9 +1,10 @@
 //! Inter-Integrated Circuit bus.
+use core::ops::Deref;
+
 use crate::{
     glb::{self, v2::I2cClockSource},
     gpio::{self, Pad},
 };
-use base_address::BaseAddress;
 use volatile_register::{RO, RW, WO};
 
 /// Inter-integrated circuit registers.
@@ -499,7 +500,7 @@ pub struct I2c<I2C, PADS> {
     pads: PADS,
 }
 
-impl<I2C: AsRef<RegisterBlock>, SCL, SDA> I2c<I2C, (SCL, SDA)> {
+impl<I2C: Deref<Target = RegisterBlock>, SCL, SDA> I2c<I2C, (SCL, SDA)> {
     /// Create a new Inter-Integrated Circuit instance.
     #[inline]
     pub fn new<const I: usize>(i2c: I2C, pads: (SCL, SDA), glb: &glb::v2::RegisterBlock) -> Self
@@ -510,7 +511,6 @@ impl<I2C: AsRef<RegisterBlock>, SCL, SDA> I2c<I2C, (SCL, SDA)> {
         // TODO: support custom clock and frequency
         // Enable clock
         unsafe {
-            let i2c = i2c.as_ref();
             glb.i2c_config.modify(|config| {
                 config
                     .enable_clock()
@@ -563,24 +563,24 @@ impl<I2C: AsRef<RegisterBlock>, SCL, SDA> I2c<I2C, (SCL, SDA)> {
     /// Enable sub-address.
     #[inline]
     pub fn enable_sub_address(&mut self, sub_address: u8) {
-        let i2c = self.i2c.as_ref();
         // TODO: support sub-address with more than one byte
         unsafe {
-            i2c.config.modify(|config| {
+            self.i2c.config.modify(|config| {
                 config
                     .enable_sub_address()
                     .set_sub_address_byte_count(SubAddressByteCount::One)
             });
-            i2c.sub_address.write(sub_address as u32);
+            self.i2c.sub_address.write(sub_address as u32);
         }
     }
 
     /// Disable sub-address.
     #[inline]
     pub fn disable_sub_address(&mut self) {
-        let i2c = self.i2c.as_ref();
         unsafe {
-            i2c.config.modify(|config| config.disable_sub_address());
+            self.i2c
+                .config
+                .modify(|config| config.disable_sub_address());
         }
     }
 }
@@ -602,18 +602,17 @@ impl embedded_hal::i2c::Error for Error {
     }
 }
 
-impl<I2C: AsRef<RegisterBlock>, PADS> embedded_hal::i2c::ErrorType for I2c<I2C, PADS> {
+impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::ErrorType for I2c<I2C, PADS> {
     type Error = Error;
 }
 
-impl<I2C: AsRef<RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2C, PADS> {
+impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2C, PADS> {
     #[inline]
     fn transaction(
         &mut self,
         address: u8,
         operations: &mut [embedded_hal::i2c::Operation<'_>],
     ) -> Result<(), Self::Error> {
-        let i2c = self.i2c.as_ref();
         for op in operations {
             match op {
                 embedded_hal::i2c::Operation::Write(_bytes) => {
@@ -622,7 +621,7 @@ impl<I2C: AsRef<RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2C, PADS> 
                 embedded_hal::i2c::Operation::Read(bytes) => {
                     let len = bytes.len() as u8;
                     unsafe {
-                        i2c.config.modify(|config| {
+                        self.i2c.config.modify(|config| {
                             config
                                 .set_read_direction()
                                 .set_slave_address(address as u16)
@@ -633,10 +632,10 @@ impl<I2C: AsRef<RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2C, PADS> 
 
                     let mut i = 0;
                     while i < len {
-                        while i2c.fifo_config_1.read().receive_available_bytes() == 0 {
+                        while self.i2c.fifo_config_1.read().receive_available_bytes() == 0 {
                             core::hint::spin_loop();
                         }
-                        let word = i2c.data_read.read();
+                        let word = self.i2c.data_read.read();
                         let bytes_to_read = core::cmp::min(len - i, 4);
                         for j in 0..bytes_to_read {
                             bytes[i as usize] = (word >> (j * 8)) as u8;
@@ -644,7 +643,7 @@ impl<I2C: AsRef<RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2C, PADS> 
                         }
                     }
 
-                    unsafe { i2c.config.modify(|config| config.disable_master()) };
+                    unsafe { self.i2c.config.modify(|config| config.disable_master()) };
                 }
             }
         }
@@ -663,36 +662,36 @@ mod i2c_impls {
     // 0, 2, 4, ..., 2n: SCL
     // 1, 3, 5, ..., 2n+1: SDA
     // TODO: support other pads if needed
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 0, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 1, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 2, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 3, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 4, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 5, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 6, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 7, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 8, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 9, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 10, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 11, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 12, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 13, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 14, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 15, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 16, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 17, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 18, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 19, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 20, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 21, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 22, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 23, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 24, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 25, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 26, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 27, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SclPin<I> for Pad<A, 28, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<A: BaseAddress, const I: usize> SdaPin<I> for Pad<A, 29, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 0, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 1, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 2, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 3, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 4, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 5, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 6, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 7, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 8, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 9, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 10, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 11, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 12, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 13, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 14, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 15, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 16, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 17, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 18, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 19, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 20, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 21, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 22, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 23, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 24, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 25, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 26, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 27, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 28, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 29, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
 }
 
 #[cfg(test)]
