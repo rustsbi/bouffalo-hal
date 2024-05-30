@@ -947,6 +947,9 @@ pub trait HasMmUartSignal {}
 impl<GLB, const N: usize> HasMmUartSignal for Pad<GLB, N, MmUart> {}
 
 /// Valid UART pads.
+#[diagnostic::on_unimplemented(
+    message = "the I/O pad and signal multiplexer group {Self} is not connected to any UART peripherals on hardware"
+)]
 pub trait Pads<const U: usize> {
     /// Checks if this pin configuration includes Request-to-Send feature.
     const RTS: bool;

@@ -844,11 +844,17 @@ pub struct Negative;
 /// Check if target is internally connected to PWM signal, polarity under signal settings.
 ///
 /// It checks if it is connected to PWM group `I`, channel `J` and polarity `P` with signal settings `S`.
+#[diagnostic::on_unimplemented(
+    message = "this I/O pad has no hardware connection to '{P}' polarity signal of PWM group {I}, channel {J} with signal setting {S}"
+)]
 pub trait HasPwmSignal<S, const I: usize, const J: usize, P> {}
 
 /// Check if target is internally connected to PWM external break signal.
 ///
 /// It checks if it is connected to external break signal of PWM group `I`.
+#[diagnostic::on_unimplemented(
+    message = "this I/O pad has no hardware connection to external break signal of PWM group {I}"
+)]
 pub trait HasPwmExternalBreak<const I: usize> {}
 
 impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize>
