@@ -1,8 +1,8 @@
 #![no_std]
 #![no_main]
 
-use bl_rom_rt::{entry, Clocks, Peripherals};
 use bouffalo_hal::{prelude::*, spi::Spi};
+use bouffalo_rt::{entry, Clocks, Peripherals};
 use embedded_hal::spi::MODE_3;
 use embedded_sdmmc::*;
 use embedded_time::rate::*;
@@ -244,25 +244,25 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let my_sdcard: MySdCard<
         SdCard<
             Spi<
-                bl_rom_rt::soc::bl808::SPI0,
+                bouffalo_rt::soc::bl808::SPI0,
                 (
                     bouffalo_hal::gpio::Pad<
-                        bl_rom_rt::soc::bl808::GLBv2,
+                        bouffalo_rt::soc::bl808::GLBv2,
                         3,
                         bouffalo_hal::gpio::Spi<1>,
                     >,
                     bouffalo_hal::gpio::Pad<
-                        bl_rom_rt::soc::bl808::GLBv2,
+                        bouffalo_rt::soc::bl808::GLBv2,
                         1,
                         bouffalo_hal::gpio::Spi<1>,
                     >,
                     bouffalo_hal::gpio::Pad<
-                        bl_rom_rt::soc::bl808::GLBv2,
+                        bouffalo_rt::soc::bl808::GLBv2,
                         2,
                         bouffalo_hal::gpio::Spi<1>,
                     >,
                     bouffalo_hal::gpio::Pad<
-                        bl_rom_rt::soc::bl808::GLBv2,
+                        bouffalo_rt::soc::bl808::GLBv2,
                         0,
                         bouffalo_hal::gpio::Spi<1>,
                     >,
@@ -270,7 +270,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
                 1,
             >,
             bouffalo_hal::gpio::Pad<
-                bl_rom_rt::soc::bl808::GLBv2,
+                bouffalo_rt::soc::bl808::GLBv2,
                 12,
                 bouffalo_hal::gpio::Output<bouffalo_hal::gpio::Floating>,
             >,

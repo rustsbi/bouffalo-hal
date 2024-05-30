@@ -1,12 +1,12 @@
 [package]
-name = "bl-rom-rt"
+name = "bouffalo-rt"
 version = "0.0.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bl-rom-rt-macros = { path = "macros" }
+bouffalo-rt-macros = { path = "macros" }
 bouffalo-hal = { version = "0.0.0", path = "../bouffalo-hal" }
 crc = "3.0.1"
 cfg-if = "1.0.0"
@@ -19,10 +19,10 @@ memoffset = "0.8.0"
 [features]
 default = []
 # BL616 and BL618 chip series.
-bl616 = ["bouffalo-hal/bl616", "bl-rom-rt-macros/bl616"]
+bl616 = ["bouffalo-hal/bl616", "bouffalo-rt-macros/bl616"]
 # BL808 chip.
-bl808-mcu = ["bouffalo-hal/bl808", "bl-rom-rt-macros/bl808-mcu"]
-bl808-dsp = ["bouffalo-hal/bl808", "bl-rom-rt-macros/bl808-dsp"]
-bl808-lp = ["bouffalo-hal/bl808", "bl-rom-rt-macros/bl808-lp"]
+bl808-mcu = ["bouffalo-hal/bl808", "bouffalo-rt-macros/bl808-mcu"]
+bl808-dsp = ["bouffalo-hal/bl808", "bouffalo-rt-macros/bl808-dsp"]
+bl808-lp = ["bouffalo-hal/bl808", "bouffalo-rt-macros/bl808-lp"]
 # BL702, BL704 and BL706 chip series.
-bl702 = ["bouffalo-hal/bl702", "bl-rom-rt-macros/bl702"]
+bl702 = ["bouffalo-hal/bl702", "bouffalo-rt-macros/bl702"]

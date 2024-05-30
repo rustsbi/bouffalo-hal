@@ -5,8 +5,8 @@
 #![no_std]
 #![no_main]
 
-use bl_rom_rt::{entry, Peripherals};
 use bouffalo_hal::{clocks::Clocks, prelude::*};
+use bouffalo_rt::{entry, Peripherals};
 use core::pin::Pin;
 use embedded_time::rate::*;
 use panic_halt as _;

@@ -5,7 +5,7 @@
 #[macro_use]
 mod macros;
 
-pub use bl_rom_rt_macros::{entry, exception, interrupt};
+pub use bouffalo_rt_macros::{entry, exception, interrupt};
 
 pub mod soc;
 

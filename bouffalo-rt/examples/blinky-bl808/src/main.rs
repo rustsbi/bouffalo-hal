@@ -9,7 +9,7 @@
 #![no_std]
 #![no_main]
 
-use bl_rom_rt::{entry, exception, interrupt, soc::bl808::TrapFrame, Clocks, Peripherals};
+use bouffalo_rt::{entry, exception, interrupt, soc::bl808::TrapFrame, Clocks, Peripherals};
 use embedded_hal::digital::OutputPin;
 use panic_halt as _;
 

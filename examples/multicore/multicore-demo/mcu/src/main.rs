@@ -1,8 +1,8 @@
 #![no_std]
 #![no_main]
 
-use bl_rom_rt::{entry, Clocks, Peripherals};
 use bouffalo_hal::prelude::*;
+use bouffalo_rt::{entry, Clocks, Peripherals};
 use panic_halt as _;
 
 #[entry]

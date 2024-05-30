@@ -5,7 +5,7 @@
 #![no_std]
 #![no_main]
 
-use bl_rom_rt::{entry, Clocks, Peripherals};
+use bouffalo_rt::{entry, Clocks, Peripherals};
 use embedded_hal::digital::OutputPin;
 use panic_halt as _;
 

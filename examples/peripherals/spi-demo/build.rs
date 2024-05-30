@@ -1,3 +1,3 @@
 fn main() {
-    println!("cargo:rustc-link-arg=-Tbl-rom-rt.ld");
+    println!("cargo:rustc-link-arg=-Tbouffalo-rt.ld");
 }

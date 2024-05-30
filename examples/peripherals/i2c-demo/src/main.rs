@@ -1,8 +1,8 @@
 #![no_std]
 #![no_main]
 
-use bl_rom_rt::{entry, Clocks, Peripherals};
 use bouffalo_hal::{i2c::I2c, prelude::*};
+use bouffalo_rt::{entry, Clocks, Peripherals};
 use embedded_time::rate::*;
 use panic_halt as _;
 

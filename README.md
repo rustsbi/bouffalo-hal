@@ -1,6 +1,6 @@
 # Bouffalo chip Rust Hardware Abstraction Layer (HAL)
 
-This repository contains `bouffalo-hal` and `bl-rom-rt` packages.
+This repository contains `bouffalo-hal` and `bouffalo-rt` packages.
 
 ## License
 

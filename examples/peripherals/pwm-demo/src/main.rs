@@ -5,11 +5,11 @@
 #![no_std]
 #![no_main]
 
-use bl_rom_rt::{entry, Clocks, Peripherals};
 use bouffalo_hal::{
     prelude::*,
     pwm::{ClockSource::Xclk, Pwm, SingleEnd},
 };
+use bouffalo_rt::{entry, Clocks, Peripherals};
 use embedded_time::rate::units::Extensions;
 use panic_halt as _;
 

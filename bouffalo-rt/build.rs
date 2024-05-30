@@ -2,7 +2,7 @@ use std::{env, path::PathBuf};
 
 fn main() {
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
-    let ld = &out.join("bl-rom-rt.ld");
+    let ld = &out.join("bouffalo-rt.ld");
 
     #[cfg(feature = "bl616")]
     std::fs::write(ld, LINKER_SCRIPT_BL616).unwrap();

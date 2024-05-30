@@ -8,6 +8,6 @@ publish = false
 
 [dependencies]
 bouffalo-hal = { path = "../../../bouffalo-hal", features = ["bl808"] }
-bl-rom-rt = { path = "../../../bl-rom-rt", features = ["bl808-dsp"] }
+bouffalo-rt = { path = "../../../bouffalo-rt", features = ["bl808-dsp"] }
 panic-halt = "0.2.0"
 embedded-time = "0.12.1"

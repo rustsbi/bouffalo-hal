@@ -1,11 +1,11 @@
 [workspace]
 members = [
-    "bl-rom-rt",
-    "bl-rom-rt/macros",
+    "bouffalo-rt",
+    "bouffalo-rt/macros",
     "bouffalo-hal",
     "blri",
-    "bl-rom-rt/examples/blinky-bl808",
-    "bl-rom-rt/examples/blinky-bl616",
+    "bouffalo-rt/examples/blinky-bl808",
+    "bouffalo-rt/examples/blinky-bl616",
     "examples/multicore/multicore-demo/mcu",
     "examples/multicore/multicore-demo/dsp",
     "examples/peripherals/gpio-demo",

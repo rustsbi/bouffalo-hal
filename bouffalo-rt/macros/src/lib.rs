@@ -51,13 +51,13 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
         #[export_name = "main"]
         pub extern "C" fn main() -> ! {
             let p = unsafe { core::mem::transmute(()) };
-            let c = bl_rom_rt::__new_clocks(40_000_000);
-            unsafe { __bl_rom_rt_macros__main(p, c) }
+            let c = bouffalo_rt::__new_clocks(40_000_000);
+            unsafe { __bouffalo_rt_macros__main(p, c) }
         }
         #[allow(non_snake_case)]
         #[inline(always)]
         #(#attrs)*
-        #unsafety fn __bl_rom_rt_macros__main(#inputs) -> ! {
+        #unsafety fn __bouffalo_rt_macros__main(#inputs) -> ! {
             #(#stmts)*
         }
     )

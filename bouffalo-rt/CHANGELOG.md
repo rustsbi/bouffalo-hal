@@ -15,5 +15,5 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.0.0] 
 
-[Unreleased]: https://gitee.com/rustsbi/bl-rom-rt/compare/v0.0.0...HEAD
-[0.0.0]: https://gitee.com/rustsbi/bl-rom-rt/releases/tag/v0.0.0
+[Unreleased]: https://gitee.com/rustsbi/bouffalo-rt/compare/v0.0.0...HEAD
+[0.0.0]: https://gitee.com/rustsbi/bouffalo-rt/releases/tag/v0.0.0
