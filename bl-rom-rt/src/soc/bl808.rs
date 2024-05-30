@@ -465,8 +465,10 @@ impl plic::HartContext for D0Machine {
     }
 }
 
+#[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
 struct PlicSource(core::num::NonZeroU32);
 
+#[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
 impl plic::InterruptSource for PlicSource {
     #[inline]
     fn id(self) -> core::num::NonZeroU32 {
