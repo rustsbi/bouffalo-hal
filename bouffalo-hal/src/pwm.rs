@@ -1,6 +1,9 @@
 //! Pulse Width Modulation peripheral.
 use crate::clocks::Clocks;
-use crate::glb::v2::{self, PwmSignal0, PwmSignal1};
+use crate::glb::{
+    self,
+    v2::{PwmSignal0, PwmSignal1},
+};
 use crate::gpio::{self, Alternate, Pad};
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
@@ -652,7 +655,7 @@ impl<PWM: Deref<Target = RegisterBlock>, S0: Signal0, S1: Signal1> Pwm<PWM, (S0,
     #[rustfmt::skip]
     #[inline]
     pub fn new<GLB>(pwm: PWM, signal_0: S0, signal_1: S1, glb: &GLB) -> Self
-    where GLB: Deref<Target = v2::RegisterBlock> {
+    where GLB: Deref<Target = glb::v2::RegisterBlock> {
         unsafe {
             glb.pwm_config
                 .modify(|config| config.set_signal_0(S0::VALUE).set_signal_1(S1::VALUE));
@@ -772,6 +775,7 @@ impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize> Chan
         pin: Pad<GLB, N, gpio::Pwm<F>>,
     ) -> PwmPin<Self, Pad<GLB, N, gpio::Pwm<F>>, Positive>
     where
+        GLB: Deref<Target = glb::v2::RegisterBlock>,
         gpio::Pwm<F>: Alternate,
         Pad<GLB, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Positive>,
     {
@@ -786,15 +790,12 @@ impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize> Chan
     /// This function statically checks if target GPIO pin mode matches current PWM channel.
     /// If won't match, it will raise compile error.
     #[inline]
-    pub fn negative_signal_pin<
-        GLB: Deref<Target = v2::RegisterBlock>,
-        const N: usize,
-        const F: usize,
-    >(
+    pub fn negative_signal_pin<GLB, const N: usize, const F: usize>(
         self,
         pin: Pad<GLB, N, gpio::Pwm<F>>,
     ) -> PwmPin<Self, Pad<GLB, N, gpio::Pwm<F>>, Negative>
     where
+        GLB: Deref<Target = glb::v2::RegisterBlock>,
         gpio::Pwm<F>: Alternate,
         Pad<GLB, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Negative>,
     {
@@ -817,15 +818,12 @@ impl<S, const I: usize> ExternalBreak<S, I> {
     /// This function statically checks if target GPIO pin mode matches the external
     /// break signal of current PWM group. If won't match, it will raise compile error.
     #[inline]
-    pub fn external_break_pin<
-        GLB: Deref<Target = v2::RegisterBlock>,
-        const N: usize,
-        const F: usize,
-    >(
+    pub fn external_break_pin<GLB, const N: usize, const F: usize>(
         self,
         pin: Pad<GLB, N, gpio::Pwm<F>>,
     ) -> PwmPin<Self, Pad<GLB, N, gpio::Pwm<F>>, ()>
     where
+        GLB: Deref<Target = glb::v2::RegisterBlock>,
         gpio::Pwm<F>: Alternate,
         Pad<GLB, N, gpio::Pwm<F>>: HasPwmExternalBreak<I>,
     {
