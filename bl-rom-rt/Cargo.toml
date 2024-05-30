@@ -10,7 +10,6 @@ bl-rom-rt-macros = { path = "macros" }
 bouffalo-hal = { version = "0.0.0", path = "../bouffalo-hal" }
 crc = "3.0.1"
 cfg-if = "1.0.0"
-base-address = "0.0.0"
 embedded-time = "0.12.1"
 plic = "0.0.2"
 

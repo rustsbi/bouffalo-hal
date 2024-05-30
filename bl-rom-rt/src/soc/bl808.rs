@@ -1,7 +1,6 @@
 //! BL808 tri-core heterogeneous Wi-Fi 802.11b/g/n, Bluetooth 5, Zigbee AIoT system-on-chip.
 
 use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
-use base_address::Static;
 #[cfg(any(
     all(feature = "bl808-mcu", target_arch = "riscv32"),
     all(feature = "bl808-dsp", target_arch = "riscv64")
@@ -813,7 +812,7 @@ pub struct Peripherals {
     /// Serial Peripheral Interface peripheral 1.
     pub spi1: SPI1,
     /// Platform-local Interrupt Controller.
-    pub plic: PLIC<Static<0xE0000000>>,
+    pub plic: PLIC,
     /// Multi-media subsystem global peripheral.
     pub mmglb: MMGLB,
 }
@@ -851,22 +850,9 @@ soc! {
     pub struct MMGLB => 0x30007000, bouffalo_hal::glb::mm::RegisterBlock;
     /// Serial Peripheral Interface peripheral 1.
     pub struct SPI1 => 0x30008000, bouffalo_hal::spi::RegisterBlock;
-}
 
-/// Platform-local Interrupt Controller.
-pub struct PLIC<A: base_address::BaseAddress> {
-    base: A,
-}
-
-unsafe impl<A: base_address::BaseAddress> Send for PLIC<A> {}
-
-impl<A: base_address::BaseAddress> Deref for PLIC<A> {
-    type Target = plic::Plic;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(self.base.ptr() as *const _) }
-    }
+    /// Platform-local Interrupt Controller.
+    pub struct PLIC => 0xE0000000, plic::Plic;
 }
 
 pub use bouffalo_hal::clocks::Clocks;
