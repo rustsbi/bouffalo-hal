@@ -33,7 +33,6 @@ pub struct GlbRegisterBlock {}
 /// A simple usage of GPIO pin is digital signal output.
 ///
 /// ```no_run
-/// # use base_address::Static;
 /// # use bouffalo_hal::gpio::Pads;
 /// # pub struct Peripherals { gpio: Pads<GLBv2> }
 /// # pub struct GLBv2;

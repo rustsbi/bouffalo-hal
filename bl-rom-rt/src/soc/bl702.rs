@@ -3,7 +3,6 @@
 // TODO: this module is not verified yet.
 
 use crate::HalFlashConfig;
-use base_address::Static;
 
 #[cfg(feature = "bl702")]
 use crate::Stack;
@@ -173,7 +172,7 @@ struct HalBasicConfig {
 /// Peripherals available on ROM start.
 pub struct Peripherals {
     /// Global configuration peripheral.
-    pub glb: bouffalo_hal::glb::GLBv1<Static<0x40000000>>,
+    pub glb: GLBv1,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
     pub uart0: UART0,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
@@ -183,69 +182,34 @@ pub struct Peripherals {
     /// Inter-Integrated Circuit bus peripheral.
     pub i2c: I2C,
     /// Pulse Width Modulation peripheral.
-    pub pwn: bouffalo_hal::PWM<Static<0x4000A400>>,
+    pub pwm: PWM,
     /// Ethernet Media Access Control peripheral.
-    pub emac: bouffalo_hal::EMAC<Static<0x4000D000>>,
+    pub emac: EMAC,
     /// Hibernation control peripheral.
-    pub hbn: bouffalo_hal::HBN<Static<0x4000F000>>,
+    pub hbn: HBN,
     /// Universal Serial Bus peripheral.
-    pub usb: bouffalo_hal::usb::USBv1<Static<0x4000D800>>,
+    pub usb: USBv1,
 }
 
-/// Universal Asynchronous Receiver/Transmitter 0 with fixed base address.
-pub struct UART0 {
-    _private: (),
-}
-
-/// Universal Asynchronous Receiver/Transmitter 1 with fixed base address.
-pub struct UART1 {
-    _private: (),
-}
-
-impl Deref for UART0 {
-    type Target = bouffalo_hal::uart::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x4000A000 as *const _) }
-    }
-}
-
-impl Deref for UART1 {
-    type Target = bouffalo_hal::uart::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x4000A100 as *const _) }
-    }
-}
-
-/// Serial Peripheral Interface peripheral.
-pub struct SPI {
-    _private: (),
-}
-
-impl Deref for SPI {
-    type Target = bouffalo_hal::spi::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x4000A200 as *const _) }
-    }
-}
-
-/// Inter-Integrated Circuit bus with fixed base address.
-pub struct I2C {
-    _private: (),
-}
-
-impl Deref for I2C {
-    type Target = bouffalo_hal::i2c::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x4000A300 as *const _) }
-    }
+soc! {
+    /// Global configuration peripheral.
+    pub struct GLBv1 => 0x40000000, bouffalo_hal::glb::v1::RegisterBlock;
+    /// Universal Asynchronous Receiver/Transmitter 0 with fixed base address.
+    pub struct UART0 => 0x4000A000, bouffalo_hal::uart::RegisterBlock;
+    /// Universal Asynchronous Receiver/Transmitter 1 with fixed base address.
+    pub struct UART1 => 0x4000A100, bouffalo_hal::uart::RegisterBlock;
+    /// Serial Peripheral Interface peripheral.
+    pub struct SPI => 0x4000A200, bouffalo_hal::spi::RegisterBlock;
+    /// Inter-Integrated Circuit bus with fixed base address.
+    pub struct I2C => 0x4000A300, bouffalo_hal::i2c::RegisterBlock;
+    /// Pulse Width Modulation peripheral.
+    pub struct PWM => 0x4000A400, bouffalo_hal::pwm::RegisterBlock;
+    /// Ethernet Media Access Control peripheral.
+    pub struct EMAC => 0x4000D000, bouffalo_hal::emac::RegisterBlock;
+    /// Hibernation control peripheral.
+    pub struct HBN => 0x4000F000, bouffalo_hal::hbn::RegisterBlock;
+    /// Universal Serial Bus peripheral.
+    pub struct USBv1 => 0x4000D800, bouffalo_hal::usb::v1::RegisterBlock;
 }
 
 pub use bouffalo_hal::clocks::Clocks;

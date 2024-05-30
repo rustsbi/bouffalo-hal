@@ -207,12 +207,12 @@ pub enum Interrupt {
 }
 
 /// Progress on an ongoing decompression procedure.
-pub struct Decompress<LZ4D, R, W> {
-    lz4d: LZ4D,
+pub struct Decompress<'a, LZ4D, R, W> {
+    lz4d: &'a LZ4D,
     resource: Resources<R, W>,
 }
 
-impl<LZ4D: Deref<Target = RegisterBlock>, R, W> Decompress<LZ4D, R, W> {
+impl<'a, LZ4D: Deref<Target = RegisterBlock>, R, W> Decompress<'a, LZ4D, R, W> {
     /// Checks whether the decompression is still ongoing.
     #[inline]
     pub fn is_ongoing(&self) -> bool {
@@ -231,16 +231,16 @@ impl<LZ4D: Deref<Target = RegisterBlock>, R, W> Decompress<LZ4D, R, W> {
     }
     /// Waits for the decompression to end.
     #[inline]
-    pub fn wait(self) -> Result<(Resources<R, W>, usize, LZ4D), (Resources<R, W>, Error, LZ4D)> {
+    pub fn wait(self) -> Result<(Resources<R, W>, usize), (Resources<R, W>, Error)> {
         loop {
             let state = self.lz4d.interrupt_state.read();
             if state.has_interrupt(Interrupt::Done) {
                 let len = self.lz4d.destination_end.read().end()
                     - self.lz4d.destination_start.read().start();
-                return Ok((self.resource, len as usize, self.lz4d));
+                return Ok((self.resource, len as usize));
             }
             if state.has_interrupt(Interrupt::Error) {
-                return Err((self.resource, Error, self.lz4d));
+                return Err((self.resource, Error));
             }
             core::hint::spin_loop();
         }
@@ -263,7 +263,7 @@ pub struct Resources<R, W> {
 /// Extend constructor to owned LZ4D register blocks.
 pub trait Lz4dExt: Sized {
     /// Create and start an LZ4D decompression request.
-    fn decompress<R, W>(self, input: Pin<R>, output: Pin<W>) -> Decompress<Self, R, W>
+    fn decompress<R, W>(&self, input: Pin<R>, output: Pin<W>) -> Decompress<Self, R, W>
     where
         R: Deref + 'static,
         R::Target: AsSlice<Element = u8>,
@@ -274,7 +274,7 @@ pub trait Lz4dExt: Sized {
 impl<T: Deref<Target = RegisterBlock>> Lz4dExt for T {
     /// Create and start an LZ4D decompression request.
     #[inline]
-    fn decompress<R, W>(self, input: Pin<R>, output: Pin<W>) -> Decompress<Self, R, W>
+    fn decompress<R, W>(&self, input: Pin<R>, output: Pin<W>) -> Decompress<Self, R, W>
     where
         R: Deref + 'static,
         R::Target: AsSlice<Element = u8>,

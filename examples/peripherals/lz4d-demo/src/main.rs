@@ -39,7 +39,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
             writeln!(serial, "Decompression is in progress...").ok();
             riscv::asm::delay(100_000)
         } else {
-            let (resource, len, _lz4d) = decompress.wait().unwrap();
+            let (resource, len) = decompress.wait().unwrap();
             writeln!(serial, "Decompression finished, output {} bytes.", len).ok();
             writeln!(serial, "The decompressed text is:").ok();
             serial

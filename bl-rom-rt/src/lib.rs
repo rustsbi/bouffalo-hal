@@ -2,6 +2,9 @@
 #![feature(naked_functions, asm_const)]
 #![no_std]
 
+#[macro_use]
+mod macros;
+
 pub use bl_rom_rt_macros::{entry, exception, interrupt};
 
 pub mod soc;

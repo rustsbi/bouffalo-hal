@@ -793,17 +793,17 @@ pub struct Peripherals {
     /// Inter-Integrated Circuit bus peripheral 0.
     pub i2c0: I2C0,
     /// Pulse Width Modulation peripheral.
-    pub pwm: bouffalo_hal::PWM<Static<0x2000A400>>,
+    pub pwm: PWM,
     /// Inter-Integrated Circuit bus peripheral 1.
     pub i2c1: I2C1,
     /// Universal Asynchronous Receiver/Transmitter peripheral 2.
     pub uart2: UART2,
     /// Hardware LZ4 Decompressor.
-    pub lz4d: bouffalo_hal::LZ4D<Static<0x2000AD00>>,
+    pub lz4d: LZ4D,
     /// Hibernation control peripheral.
-    pub hbn: bouffalo_hal::HBN<Static<0x2000F000>>,
+    pub hbn: HBN,
     /// Ethernet Media Access Control peripheral.
-    pub emac: bouffalo_hal::EMAC<Static<0x20070000>>,
+    pub emac: EMAC,
     /// Universal Asynchronous Receiver/Transmitter peripheral 3.
     pub uart3: UART3,
     /// Inter-Integrated Circuit bus peripheral 2.
@@ -815,161 +815,42 @@ pub struct Peripherals {
     /// Platform-local Interrupt Controller.
     pub plic: PLIC<Static<0xE0000000>>,
     /// Multi-media subsystem global peripheral.
-    pub mmglb: bouffalo_hal::glb::MMGLB<Static<0x30007000>>,
+    pub mmglb: MMGLB,
 }
 
-/// Global configuration peripheral.
-pub struct GLBv2 {
-    _private: (),
-}
-
-impl Deref for GLBv2 {
-    type Target = bouffalo_hal::glb::v2::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x20000000 as *const _) }
-    }
-}
-
-/// Universal Asynchronous Receiver/Transmitter 0 with fixed base address.
-pub struct UART0 {
-    _private: (),
-}
-
-/// Universal Asynchronous Receiver/Transmitter 1 with fixed base address.
-pub struct UART1 {
-    _private: (),
-}
-
-/// Universal Asynchronous Receiver/Transmitter 2 with fixed base address.
-pub struct UART2 {
-    _private: (),
-}
-
-/// Universal Asynchronous Receiver/Transmitter 3 with fixed base address.
-pub struct UART3 {
-    _private: (),
-}
-
-impl Deref for UART0 {
-    type Target = bouffalo_hal::uart::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x2000A000 as *const _) }
-    }
-}
-
-impl Deref for UART1 {
-    type Target = bouffalo_hal::uart::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x2000A100 as *const _) }
-    }
-}
-
-impl Deref for UART2 {
-    type Target = bouffalo_hal::uart::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x2000AA00 as *const _) }
-    }
-}
-
-impl Deref for UART3 {
-    type Target = bouffalo_hal::uart::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x30002000 as *const _) }
-    }
-}
-
-/// Serial Peripheral Interface peripheral 0.
-pub struct SPI0 {
-    _private: (),
-}
-
-impl Deref for SPI0 {
-    type Target = bouffalo_hal::spi::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x2000A200 as *const _) }
-    }
-}
-
-/// Serial Peripheral Interface peripheral 1.
-pub struct SPI1 {
-    _private: (),
-}
-
-impl Deref for SPI1 {
-    type Target = bouffalo_hal::spi::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x30008000 as *const _) }
-    }
-}
-
-/// Inter-Integrated Circuit bus 0 with fixed base address.
-pub struct I2C0 {
-    _private: (),
-}
-
-/// Inter-Integrated Circuit bus 1 with fixed base address.
-pub struct I2C1 {
-    _private: (),
-}
-
-/// Inter-Integrated Circuit bus 2 with fixed base address.
-pub struct I2C2 {
-    _private: (),
-}
-
-/// Inter-Integrated Circuit bus 3 with fixed base address.
-pub struct I2C3 {
-    _private: (),
-}
-
-impl Deref for I2C0 {
-    type Target = bouffalo_hal::i2c::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x2000A300 as *const _) }
-    }
-}
-
-impl Deref for I2C1 {
-    type Target = bouffalo_hal::i2c::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x2000A900 as *const _) }
-    }
-}
-
-impl Deref for I2C2 {
-    type Target = bouffalo_hal::i2c::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x30003000 as *const _) }
-    }
-}
-
-impl Deref for I2C3 {
-    type Target = bouffalo_hal::i2c::RegisterBlock;
-
-    #[inline(always)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(0x30004000 as *const _) }
-    }
+soc! {
+    /// Global configuration peripheral.
+    pub struct GLBv2 => 0x20000000, bouffalo_hal::glb::v2::RegisterBlock;
+    /// Universal Asynchronous Receiver/Transmitter 0 with fixed base address.
+    pub struct UART0 => 0x2000A000, bouffalo_hal::uart::RegisterBlock;
+    /// Universal Asynchronous Receiver/Transmitter 1 with fixed base address.
+    pub struct UART1 => 0x2000A100, bouffalo_hal::uart::RegisterBlock;
+    /// Serial Peripheral Interface peripheral 0.
+    pub struct SPI0 => 0x2000A200, bouffalo_hal::spi::RegisterBlock;
+    /// Inter-Integrated Circuit bus 0 with fixed base address.
+    pub struct I2C0 => 0x2000A300, bouffalo_hal::i2c::RegisterBlock;
+    /// Pulse Width Modulation peripheral.
+    pub struct PWM => 0x2000A400, bouffalo_hal::pwm::RegisterBlock;
+    /// Inter-Integrated Circuit bus 1 with fixed base address.
+    pub struct I2C1 => 0x2000A900, bouffalo_hal::i2c::RegisterBlock;
+    /// Universal Asynchronous Receiver/Transmitter 2 with fixed base address.
+    pub struct UART2 => 0x2000AA00, bouffalo_hal::uart::RegisterBlock;
+    /// Hardware LZ4 Decompressor.
+    pub struct LZ4D => 0x2000AD00, bouffalo_hal::lz4d::RegisterBlock;
+    /// Hibernation control peripheral.
+    pub struct HBN => 0x2000F000, bouffalo_hal::hbn::RegisterBlock;
+    /// Ethernet Media Access Control peripheral.
+    pub struct EMAC => 0x20070000, bouffalo_hal::emac::RegisterBlock;
+    /// Universal Asynchronous Receiver/Transmitter 3 with fixed base address.
+    pub struct UART3 => 0x30002000, bouffalo_hal::uart::RegisterBlock;
+    /// Inter-Integrated Circuit bus 2 with fixed base address.
+    pub struct I2C2 => 0x30003000, bouffalo_hal::i2c::RegisterBlock;
+    /// Inter-Integrated Circuit bus 3 with fixed base address.
+    pub struct I2C3 => 0x30004000, bouffalo_hal::i2c::RegisterBlock;
+    /// Multi-media subsystem global peripheral.
+    pub struct MMGLB => 0x30007000, bouffalo_hal::glb::mm::RegisterBlock;
+    /// Serial Peripheral Interface peripheral 1.
+    pub struct SPI1 => 0x30008000, bouffalo_hal::spi::RegisterBlock;
 }
 
 /// Platform-local Interrupt Controller.
