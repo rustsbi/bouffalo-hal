@@ -630,7 +630,7 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> Spi<SPI, PADS, I>
     pub fn new<GLB>(spi: SPI, pads: PADS, mode: Mode, glb: &GLB) -> Self
     where
         PADS: Pads<I>,
-        GLB: Deref<Target = glb::v2::RegisterBlock>
+        GLB: Deref<Target = glb::v2::RegisterBlock>,
     {
         let mut config = Config(0)
             .disable_deglitch()
