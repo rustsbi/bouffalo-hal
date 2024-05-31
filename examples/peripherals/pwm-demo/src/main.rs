@@ -1,7 +1,3 @@
-// Build this example with:
-// rustup target install riscv64imac-unknown-none-elf
-// cargo build --target riscv64imac-unknown-none-elf --release -p pwm-demo
-
 #![no_std]
 #![no_main]
 
