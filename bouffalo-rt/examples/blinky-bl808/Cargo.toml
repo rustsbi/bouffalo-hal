@@ -16,3 +16,7 @@ riscv = "0.11.1"
 default = ["bl808-dsp"]
 bl808-dsp = ["bouffalo-rt/bl808-dsp"]
 bl808-mcu = ["bouffalo-rt/bl808-mcu"]
+
+[[bin]]
+name = "blinky-bl808"
+test = false

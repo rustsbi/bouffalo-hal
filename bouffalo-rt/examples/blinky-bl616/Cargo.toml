@@ -11,3 +11,7 @@ bouffalo-rt = { path = "../..", features = ["bl616"]}
 embedded-hal = "1.0.0"
 panic-halt = "0.2.0"
 riscv = "0.11.1"
+
+[[bin]]
+name = "blinky-bl616"
+test = false

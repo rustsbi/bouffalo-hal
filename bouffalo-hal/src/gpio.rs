@@ -1,10 +1,15 @@
 //! General Purpose Input/Output.
 #[cfg(feature = "glb-v1")]
-use crate::glb::v1::{self, RegisterBlock as GlbRegisterBlock};
+use crate::glb::v1;
 #[cfg(any(doc, feature = "glb-v2"))]
-use crate::glb::v2::{self, RegisterBlock as GlbRegisterBlock};
+use crate::glb::v2;
 use core::{marker::PhantomData, ops::Deref};
 use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
+
+#[cfg(feature = "glb-v1")]
+pub use crate::glb::v1::RegisterBlock as GlbRegisterBlock;
+#[cfg(any(doc, feature = "glb-v2"))]
+pub use crate::glb::v2::RegisterBlock as GlbRegisterBlock;
 #[cfg(not(any(doc, feature = "glb-v1", feature = "glb-v2")))]
 pub struct GlbRegisterBlock {}
 

@@ -11,3 +11,7 @@ bouffalo-hal = { path = "../../../bouffalo-hal", features = ["bl808"] }
 bouffalo-rt = { path = "../../../bouffalo-rt", features = ["bl808-dsp"] }
 panic-halt = "0.2.0"
 riscv = "0.11.1"
+
+[[bin]]
+name = "jtag-demo"
+test = false

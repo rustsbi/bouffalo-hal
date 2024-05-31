@@ -13,3 +13,7 @@ panic-halt = "0.2.0"
 embedded-hal = "1.0.0"
 embedded-time = "0.12.1"
 riscv = "0.11.1"
+
+[[bin]]
+name = "lz4d-demo"
+test = false

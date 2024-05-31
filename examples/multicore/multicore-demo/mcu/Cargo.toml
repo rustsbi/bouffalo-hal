@@ -14,3 +14,7 @@ riscv = "0.11.1"
 path = "../../../../bouffalo-rt"
 default-features = false
 features = ["bl808-mcu"]
+
+[[bin]]
+name = "multicore-demo-mcu"
+test = false

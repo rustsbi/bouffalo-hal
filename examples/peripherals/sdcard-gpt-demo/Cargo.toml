@@ -18,3 +18,7 @@ embedded-sdmmc = "0.7.0"
 gpt_disk_io = "0.15.0"
 gpt_disk_types = "0.15.0"
 fatfs = { default-features = false, git = "https://github.com/rafalh/rust-fatfs" }
+
+[[bin]]
+name = "sdcard-gpt-demo"
+test = false
