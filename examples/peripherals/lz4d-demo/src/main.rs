@@ -16,11 +16,10 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let rx = p.gpio.io15.into_uart();
     let sig2 = p.uart_muxes.sig2.into_transmit::<0>();
     let sig3 = p.uart_muxes.sig3.into_receive::<0>();
+    let pads = ((tx, sig2), (rx, sig3));
 
     let config = Default::default();
-    let mut serial = p
-        .uart0
-        .freerun(config, 2000000.Bd(), ((tx, sig2), (rx, sig3)), &c);
+    let mut serial = p.uart0.freerun(config, 2000000.Bd(), pads, &c);
 
     writeln!(serial, "Hardware accelerated LZ4 decompression example.").ok();
     unsafe { p.glb.clock_config_1.modify(|v| v.enable_lz4d()) };
@@ -41,9 +40,10 @@ fn main(p: Peripherals, c: Clocks) -> ! {
             serial
                 .write_all(&Pin::into_inner(resource.output)[..len])
                 .unwrap();
-            loop {
-                riscv::asm::wfi()
-            }
+            break;
         }
+    }
+    loop {
+        riscv::asm::wfi()
     }
 }
