@@ -28,11 +28,11 @@ pub struct RegisterBlock {
     pub adc_converation_sequence_2: RW<AdcConverationSequence2>,
     pub adc_converation_sequence_3: RW<AdcConverationSequence3>,
     pub adc_converation_sequence_4: RW<AdcConverationSequence4>,
-    pub gpadc_reg_status: RW<GpadcRegStatus>,
-    pub gpadc_reg_isr: RW<GpadcRegIsr>,
-    pub gpadc_reg_result: RW<GpadcRegResult>,
-    pub gpadc_reg_raw_result: RW<GpadcRegRawResult>,
-    pub gpadc_reg_define: RW<GpadcRegDefine>,
+    pub gpadc_status: RW<GpadcStatus>,
+    pub gpadc_interrupt_state: RW<GpadcInterruptState>,
+    pub gpadc_result: RW<GpadcResult>,
+    pub gpadc_raw_result: RW<GpadcRawResult>,
+    pub gpadc_define: RW<GpadcDefine>,
 }
 
 /// Generic Analog-to-Digital Converter configuration register.
@@ -78,23 +78,23 @@ pub struct AdcConverationSequence4(u32);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct GpadcRegStatus(u32);
+pub struct GpadcStatus(u32);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct GpadcRegIsr(u32);
+pub struct GpadcInterruptState(u32);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct GpadcRegResult(u32);
+pub struct GpadcResult(u32);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct GpadcRegRawResult(u32);
+pub struct GpadcRawResult(u32);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct GpadcRegDefine(u32);
+pub struct GpadcDefine(u32);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -153,10 +153,10 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, adc_converation_sequence_2), 0x91C);
         assert_eq!(offset_of!(RegisterBlock, adc_converation_sequence_3), 0x920);
         assert_eq!(offset_of!(RegisterBlock, adc_converation_sequence_4), 0x924);
-        assert_eq!(offset_of!(RegisterBlock, gpadc_reg_status), 0x928);
-        assert_eq!(offset_of!(RegisterBlock, gpadc_reg_isr), 0x92C);
-        assert_eq!(offset_of!(RegisterBlock, gpadc_reg_result), 0x930);
-        assert_eq!(offset_of!(RegisterBlock, gpadc_reg_raw_result), 0x934);
-        assert_eq!(offset_of!(RegisterBlock, gpadc_reg_define), 0x938);
+        assert_eq!(offset_of!(RegisterBlock, gpadc_status), 0x928);
+        assert_eq!(offset_of!(RegisterBlock, gpadc_interrupt_state), 0x92C);
+        assert_eq!(offset_of!(RegisterBlock, gpadc_result), 0x930);
+        assert_eq!(offset_of!(RegisterBlock, gpadc_raw_result), 0x934);
+        assert_eq!(offset_of!(RegisterBlock, gpadc_define), 0x938);
     }
 }
