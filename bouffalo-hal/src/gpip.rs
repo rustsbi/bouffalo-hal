@@ -1,5 +1,7 @@
 //! Generic DAC, ADC and ACOMP interface control peripheral.
 
+use core::ops::Deref;
+
 use volatile_register::RW;
 
 /// Generic DAC, ADC and ACOMP interface control peripheral registers.
@@ -21,9 +23,9 @@ pub struct RegisterBlock {
     pub gpdac_bctrl: RW<GpdacBctrl>,
     pub gpdac_data: RW<GpdacData>,
     _reserved3: [u8; 1524],
-    pub gpadc_reg_cmd: RW<GpadcRegCmd>,
-    pub gpadc_reg_config_1: RW<GpadcRegConfig1>,
-    pub gpadc_reg_config_2: RW<GpadcRegConfig2>,
+    pub gpadc_command: RW<GpadcCommand>,
+    pub gpadc_config_1: RW<GpadcConfig1>,
+    pub gpadc_config_2: RW<GpadcConfig2>,
     pub adc_converation_sequence_1: RW<AdcConverationSequence1>,
     pub adc_converation_sequence_2: RW<AdcConverationSequence2>,
     pub adc_converation_sequence_3: RW<AdcConverationSequence3>,
@@ -50,15 +52,51 @@ pub struct GpadcPirTrain(u32);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct GpadcRegCmd(u32);
+pub struct GpadcCommand(u32);
+
+impl GpadcCommand {
+    const GLOBAL_ENABLE: u32 = 1 << 0;
+    const SOFTWARE_RESET: u32 = 1 << 2;
+
+    /// Enable the Analog-to-Digital Converter.
+    #[inline]
+    pub const fn enable_global(self) -> Self {
+        Self(self.0 | Self::GLOBAL_ENABLE)
+    }
+    /// Disable the Analog-to-Digital Converter.
+    #[inline]
+    pub const fn disable_global(self) -> Self {
+        Self(self.0 & !Self::GLOBAL_ENABLE)
+    }
+    /// Check if the Analog-to-Digital Converter is enabled.
+    #[inline]
+    pub const fn is_global_enabled(self) -> bool {
+        self.0 & Self::GLOBAL_ENABLE != 0
+    }
+    /// Enable the ADC software reset signal.
+    #[inline]
+    pub const fn enable_software_reset(self) -> Self {
+        Self(self.0 | Self::SOFTWARE_RESET)
+    }
+    /// Disable the ADC software reset signal.
+    #[inline]
+    pub const fn disable_software_reset(self) -> Self {
+        Self(self.0 & !Self::SOFTWARE_RESET)
+    }
+    /// Check if the ADC software reset signal is enabled.
+    #[inline]
+    pub const fn is_software_reset_enabled(self) -> bool {
+        self.0 & Self::SOFTWARE_RESET != 0
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct GpadcRegConfig1(u32);
+pub struct GpadcConfig1(u32);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct GpadcRegConfig2(u32);
+pub struct GpadcConfig2(u32);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -128,6 +166,30 @@ pub struct GpdacBctrl(u32);
 #[repr(transparent)]
 pub struct GpdacData(u32);
 
+pub struct Adc<ADC> {
+    adc: ADC,
+}
+
+impl<ADC: Deref<Target = RegisterBlock>> Adc<ADC> {
+    #[inline]
+    pub fn new(adc: ADC) -> Self {
+        unsafe {
+            adc.gpadc_command.modify(|v| v.enable_global());
+            adc.gpadc_command.modify(|v| v.enable_software_reset());
+            adc.gpadc_command.modify(|v| v.disable_software_reset());
+        }
+        Self { adc }
+    }
+
+    #[inline]
+    pub fn free(self) -> ADC {
+        unsafe {
+            self.adc.gpadc_command.modify(|v| v.disable_global());
+        }
+        self.adc
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::RegisterBlock;
@@ -146,9 +208,9 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, gpdac_actrl), 0x30c);
         assert_eq!(offset_of!(RegisterBlock, gpdac_bctrl), 0x310);
         assert_eq!(offset_of!(RegisterBlock, gpdac_data), 0x314);
-        assert_eq!(offset_of!(RegisterBlock, gpadc_reg_cmd), 0x90C);
-        assert_eq!(offset_of!(RegisterBlock, gpadc_reg_config_1), 0x910);
-        assert_eq!(offset_of!(RegisterBlock, gpadc_reg_config_2), 0x914);
+        assert_eq!(offset_of!(RegisterBlock, gpadc_command), 0x90C);
+        assert_eq!(offset_of!(RegisterBlock, gpadc_config_1), 0x910);
+        assert_eq!(offset_of!(RegisterBlock, gpadc_config_2), 0x914);
         assert_eq!(offset_of!(RegisterBlock, adc_converation_sequence_1), 0x918);
         assert_eq!(offset_of!(RegisterBlock, adc_converation_sequence_2), 0x91C);
         assert_eq!(offset_of!(RegisterBlock, adc_converation_sequence_3), 0x920);
