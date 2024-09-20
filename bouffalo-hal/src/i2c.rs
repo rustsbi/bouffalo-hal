@@ -36,9 +36,9 @@ pub struct RegisterBlock {
     /// First-in first-out queue configuration 1.
     pub fifo_config_1: RW<FifoConfig1>,
     /// Write data into first-in first-out queue.
-    pub data_write: WO<u32>,
+    pub fifo_write: WO<u32>,
     /// Read data from first-in first-out queue.
-    pub data_read: RO<u32>,
+    pub fifo_read: RO<u32>,
 }
 
 /// Function configuration register.
@@ -635,7 +635,7 @@ impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2
                         while self.i2c.fifo_config_1.read().receive_available_bytes() == 0 {
                             core::hint::spin_loop();
                         }
-                        let word = self.i2c.data_read.read();
+                        let word = self.i2c.fifo_read.read();
                         let bytes_to_read = core::cmp::min(len - i, 4);
                         for j in 0..bytes_to_read {
                             bytes[i as usize] = (word >> (j * 8)) as u8;
@@ -717,8 +717,8 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, period_data), 0x18);
         assert_eq!(offset_of!(RegisterBlock, fifo_config_0), 0x80);
         assert_eq!(offset_of!(RegisterBlock, fifo_config_1), 0x84);
-        assert_eq!(offset_of!(RegisterBlock, data_write), 0x88);
-        assert_eq!(offset_of!(RegisterBlock, data_read), 0x8c);
+        assert_eq!(offset_of!(RegisterBlock, fifo_write), 0x88);
+        assert_eq!(offset_of!(RegisterBlock, fifo_read), 0x8c);
     }
 
     #[test]

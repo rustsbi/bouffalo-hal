@@ -30,10 +30,10 @@ pub struct RegisterBlock {
     /// First-in first-out queue configuration register 1.
     pub fifo_config_1: RW<FifoConfig1>,
     /// First-in first-out queue write data register.
-    pub data_write: WO<u8>,
+    pub fifo_write: WO<u8>,
     _reserved2: [u8; 0x3],
     /// First-in first-out queue read data register.
-    pub data_read: RO<u8>,
+    pub fifo_read: RO<u8>,
 }
 
 /// Peripheral configuration register.
@@ -722,7 +722,7 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi
             while self.spi.fifo_config_1.read().receive_available_bytes() == 0 {
                 core::hint::spin_loop();
             }
-            *slot = self.spi.data_read.read()
+            *slot = self.spi.fifo_read.read()
         });
 
         unsafe { self.spi.config.modify(|config| config.disable_master()) };
@@ -736,8 +736,8 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi
             while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
                 core::hint::spin_loop();
             }
-            unsafe { self.spi.data_write.write(word) }
-            _ = self.spi.data_read.read();
+            unsafe { self.spi.fifo_write.write(word) }
+            _ = self.spi.fifo_read.read();
         });
 
         unsafe { self.spi.config.modify(|config| config.disable_master()) };
@@ -755,8 +755,8 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi
             while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
                 core::hint::spin_loop();
             }
-            unsafe { self.spi.data_write.write(*word) }
-            *word = self.spi.data_read.read();
+            unsafe { self.spi.fifo_write.write(*word) }
+            *word = self.spi.fifo_read.read();
         }
 
         unsafe { self.spi.config.modify(|config| config.disable_master()) };
@@ -790,7 +790,7 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi
                         while self.spi.fifo_config_1.read().receive_available_bytes() == 0 {
                             core::hint::spin_loop();
                         }
-                        *slot = self.spi.data_read.read()
+                        *slot = self.spi.fifo_read.read()
                     });
 
                     unsafe { self.spi.config.modify(|config| config.disable_master()) };
@@ -802,7 +802,7 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi
                         while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
                             core::hint::spin_loop();
                         }
-                        unsafe { self.spi.data_write.write(word) }
+                        unsafe { self.spi.fifo_write.write(word) }
                     });
 
                     unsafe { self.spi.config.modify(|config| config.disable_master()) };
@@ -967,8 +967,8 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, slave_timeout), 0x1c);
         assert_eq!(offset_of!(RegisterBlock, fifo_config_0), 0x80);
         assert_eq!(offset_of!(RegisterBlock, fifo_config_1), 0x84);
-        assert_eq!(offset_of!(RegisterBlock, data_write), 0x88);
-        assert_eq!(offset_of!(RegisterBlock, data_read), 0x8c);
+        assert_eq!(offset_of!(RegisterBlock, fifo_write), 0x88);
+        assert_eq!(offset_of!(RegisterBlock, fifo_read), 0x8c);
     }
 
     #[test]

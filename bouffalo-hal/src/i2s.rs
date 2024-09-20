@@ -17,9 +17,9 @@ pub struct RegisterBlock {
     /// First-in first-out queue configuration register 1.
     pub fifo_config_1: RW<FifoConfig1>,
     /// First-in first-out queue write data register.
-    pub data_write: WO<u32>,
+    pub fifo_write: WO<u32>,
     /// First-in first-out queue read data register.
-    pub data_read: RO<u32>,
+    pub fifo_read: RO<u32>,
     _reserved1: [u8; 0x6c],
     /// Input/output signal configuration register.
     pub io_config: RO<u32>,
@@ -67,8 +67,8 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, bclk_config), 0x08);
         assert_eq!(offset_of!(RegisterBlock, fifo_config_0), 0x80);
         assert_eq!(offset_of!(RegisterBlock, fifo_config_1), 0x84);
-        assert_eq!(offset_of!(RegisterBlock, data_write), 0x88);
-        assert_eq!(offset_of!(RegisterBlock, data_read), 0x8c);
+        assert_eq!(offset_of!(RegisterBlock, fifo_write), 0x88);
+        assert_eq!(offset_of!(RegisterBlock, fifo_read), 0x8c);
         assert_eq!(offset_of!(RegisterBlock, io_config), 0xfc);
     }
 }

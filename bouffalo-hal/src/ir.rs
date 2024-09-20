@@ -27,7 +27,7 @@ pub struct RegisterBlock {
     pub fifo_config_1: RW<FifoConfig1>,
     _reserved4: [u8; 0x4],
     /// First-in first-out queue read data register.
-    pub data_read: RO<u32>,
+    pub fifo_read: RO<u32>,
 }
 
 /// Receive configuration register.
@@ -70,6 +70,6 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, receive_word_1), 0x58);
         assert_eq!(offset_of!(RegisterBlock, fifo_config_0), 0x80);
         assert_eq!(offset_of!(RegisterBlock, fifo_config_1), 0x84);
-        assert_eq!(offset_of!(RegisterBlock, data_read), 0x8c);
+        assert_eq!(offset_of!(RegisterBlock, fifo_read), 0x8c);
     }
 }

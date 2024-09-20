@@ -35,10 +35,10 @@ pub struct RegisterBlock {
     /// First-in first-out queue configuration 1.
     pub fifo_config_1: RW<FifoConfig1>,
     /// Write data into first-in first-out queue.
-    pub data_write: WO<u8>,
+    pub fifo_write: WO<u8>,
     _reserved3: [u8; 0x3],
     /// Read data from first-in first-out queue.
-    pub data_read: RO<u8>,
+    pub fifo_read: RO<u8>,
 }
 
 /// Transmit configuration register.
@@ -1268,7 +1268,7 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Write for Serial<UA
         );
         buf.iter()
             .take(len)
-            .for_each(|&word| unsafe { self.uart.data_write.write(word) });
+            .for_each(|&word| unsafe { self.uart.fifo_write.write(word) });
         Ok(len)
     }
     #[inline]
@@ -1294,7 +1294,7 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Read for Serial<UAR
         );
         buf.iter_mut()
             .take(len)
-            .for_each(|slot| *slot = self.uart.data_read.read());
+            .for_each(|slot| *slot = self.uart.fifo_read.read());
         Ok(len)
     }
 }
@@ -1405,8 +1405,8 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, bus_state), 0x30);
         assert_eq!(offset_of!(RegisterBlock, fifo_config_0), 0x80);
         assert_eq!(offset_of!(RegisterBlock, fifo_config_1), 0x84);
-        assert_eq!(offset_of!(RegisterBlock, data_write), 0x88);
-        assert_eq!(offset_of!(RegisterBlock, data_read), 0x8c);
+        assert_eq!(offset_of!(RegisterBlock, fifo_write), 0x88);
+        assert_eq!(offset_of!(RegisterBlock, fifo_read), 0x8c);
     }
 
     #[test]

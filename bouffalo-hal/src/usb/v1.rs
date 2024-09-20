@@ -93,9 +93,9 @@ pub struct EndpointFifo {
     /// Endpoint FIFO state register.
     pub fifo_status: RW<FifoStatus>,
     /// Write data into first-in first-out queue.
-    pub data_write: WO<u32>,
+    pub fifo_write: WO<u32>,
     /// Read data from first-in first-out queue.
-    pub data_read: RO<u32>,
+    pub fifo_read: RO<u32>,
 }
 
 /// Endpoint FIFO configuration register.
@@ -153,7 +153,7 @@ mod tests {
     fn struct_endpoint_fifo_offset() {
         assert_eq!(offset_of!(EndpointFifo, fifo_config), 0x00);
         assert_eq!(offset_of!(EndpointFifo, fifo_status), 0x04);
-        assert_eq!(offset_of!(EndpointFifo, data_write), 0x08);
-        assert_eq!(offset_of!(EndpointFifo, data_read), 0x0c);
+        assert_eq!(offset_of!(EndpointFifo, fifo_write), 0x08);
+        assert_eq!(offset_of!(EndpointFifo, fifo_read), 0x0c);
     }
 }
