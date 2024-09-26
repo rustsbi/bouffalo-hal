@@ -14,7 +14,7 @@ embedded-time = "0.12.1"
 embedded-hal = "1.0.0"
 riscv = "0.11.1"
 embedded-graphics = "0.8.1"
-embedded-sdmmc = "0.7.0"
+embedded-sdmmc = "0.8.0"
 
 [[bin]]
 name = "sdcard-demo"

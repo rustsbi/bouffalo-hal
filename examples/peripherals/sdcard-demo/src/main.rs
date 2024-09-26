@@ -45,8 +45,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
 
     let delay = riscv::delay::McycleDelay::new(40_000_000);
     // TODO: let embedded_sdmmc::SdCard control cs pin
-    let fake_cs = p.gpio.io12.into_floating_output();
-    let sdcard = SdCard::new(spi_sd, fake_cs, delay);
+    let sdcard = SdCard::new(spi_sd, delay);
     writeln!(serial, "Card size: {}", sdcard.num_bytes().unwrap()).ok();
 
     let time_source = MyTimeSource {};
