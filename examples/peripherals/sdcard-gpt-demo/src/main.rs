@@ -206,7 +206,6 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let spi_mosi = p.gpio.io1.into_spi::<1>();
     let spi_miso = p.gpio.io2.into_spi::<1>();
     let spi_cs = p.gpio.io0.into_spi::<1>();
-    let fake_cs = p.gpio.io12.into_floating_output();
 
     let spi_sd = Spi::new(
         p.spi0,
@@ -216,7 +215,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     );
 
     let delay = riscv::delay::McycleDelay::new(40_000_000);
-    let sdcard = SdCard::new(spi_sd, fake_cs, delay);
+    let sdcard = SdCard::new(spi_sd, delay);
     writeln!(serial, "Card size: {}", sdcard.num_bytes().unwrap()).ok();
     writeln!(serial, "").ok();
 
@@ -268,11 +267,6 @@ fn main(p: Peripherals, c: Clocks) -> ! {
                     >,
                 ),
                 1,
-            >,
-            bouffalo_hal::gpio::Pad<
-                bouffalo_rt::soc::bl808::GLBv2,
-                12,
-                bouffalo_hal::gpio::Output<bouffalo_hal::gpio::Floating>,
             >,
             riscv::delay::McycleDelay,
         >,
