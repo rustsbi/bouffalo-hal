@@ -8,11 +8,11 @@ use core::ops::Deref;
 #[link_section = ".text.entry"]
 #[export_name = "_start"]
 unsafe extern "C" fn start() -> ! {
-    use {crate::Stack, core::arch::asm};
+    use {crate::Stack, core::arch::naked_asm};
     const LEN_STACK: usize = 1 * 1024;
     #[link_section = ".bss.uninit"]
     static mut STACK: Stack<LEN_STACK> = Stack([0; LEN_STACK]);
-    asm!(
+    naked_asm!(
         "   la      sp, {stack}
             li      t0, {hart_stack_size}
             add     sp, sp, t0",
@@ -37,7 +37,6 @@ unsafe extern "C" fn start() -> ! {
         stack = sym STACK,
         hart_stack_size = const LEN_STACK,
         main = sym main,
-        options(noreturn)
     )
 }
 

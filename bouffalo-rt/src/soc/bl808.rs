@@ -5,7 +5,7 @@ use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
     all(feature = "bl808-mcu", target_arch = "riscv32"),
     all(feature = "bl808-dsp", target_arch = "riscv64")
 ))]
-use core::arch::asm;
+use core::arch::naked_asm;
 use core::ops::Deref;
 
 #[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
@@ -17,7 +17,7 @@ unsafe extern "C" fn start() -> ! {
     const LEN_STACK_MCU: usize = 1 * 1024;
     #[link_section = ".bss.uninit"]
     static mut STACK: Stack<LEN_STACK_MCU> = Stack([0; LEN_STACK_MCU]);
-    asm!(
+    naked_asm!(
         "   la      sp, {stack}
             li      t0, {hart_stack_size}
             add     sp, sp, t0",
@@ -57,7 +57,6 @@ unsafe extern "C" fn start() -> ! {
         stack_protect_pmp_address_end = const {0x62030000},
         stack_protect_pmp_flags = const 0b00001000, // -r, -w, -x, tor, not locked
         main = sym main,
-        options(noreturn)
     )
 }
 
@@ -70,7 +69,7 @@ unsafe extern "C" fn start() -> ! {
     const LEN_STACK_DSP: usize = 4 * 1024;
     #[link_section = ".bss.uninit"]
     static mut STACK: Stack<LEN_STACK_DSP> = Stack([0; LEN_STACK_DSP]);
-    asm!(
+    naked_asm!(
         "   la      sp, {stack}
             li      t0, {hart_stack_size}
             add     sp, sp, t0",
@@ -106,7 +105,6 @@ unsafe extern "C" fn start() -> ! {
         stack_protect_pmp_address = const {(0x3E000000 >> 2) + (16 * 1024 * 1024 >> 3) - 1},
         stack_protect_pmp_flags = const 0b00011000, // -r, -w, -x, napot, not locked
         main = sym main,
-        options(noreturn)
     )
 }
 
@@ -127,7 +125,7 @@ extern "Rust" {
 #[link_section = ".trap.trap-entry"]
 #[naked]
 unsafe extern "C" fn trap_vectored() -> ! {
-    asm!(
+    naked_asm!(
         ".p2align 2",
         "j {exceptions}",
         "j {supervisor_software}",
@@ -156,7 +154,6 @@ unsafe extern "C" fn trap_vectored() -> ! {
         supervisor_external = sym reserved,
         thead_hpm_overflow = sym reserved,
         reserved = sym reserved,
-        options(noreturn)
     )
 }
 
@@ -166,7 +163,7 @@ unsafe extern "C" fn trap_vectored() -> ! {
 ))]
 #[naked]
 unsafe extern "C" fn reserved() -> ! {
-    asm!("1: j   1b", options(noreturn))
+    naked_asm!("1: j   1b")
 }
 
 #[cfg(any(
@@ -183,7 +180,7 @@ extern "C" {
 ))]
 #[naked]
 unsafe extern "C" fn exceptions_trampoline() -> ! {
-    asm!(
+    naked_asm!(
         "addi   sp, sp, -19*8",
         "sd     ra, 0*8(sp)",
         "sd     t0, 1*8(sp)",
@@ -235,7 +232,6 @@ unsafe extern "C" fn exceptions_trampoline() -> ! {
         "addi   sp, sp, 19*8",
         "mret",
         rust_exceptions = sym exceptions,
-        options(noreturn)
     )
 }
 
@@ -245,7 +241,7 @@ unsafe extern "C" fn exceptions_trampoline() -> ! {
 ))]
 #[naked]
 unsafe extern "C" fn machine_external_trampoline() -> ! {
-    asm!(
+    naked_asm!(
         "addi   sp, sp, -19*8",
         "sd     ra, 0*8(sp)",
         "sd     t0, 1*8(sp)",
@@ -297,7 +293,6 @@ unsafe extern "C" fn machine_external_trampoline() -> ! {
         "addi   sp, sp, 19*8",
         "mret",
         rust_all_traps = sym rust_bl808_dsp_machine_external,
-        options(noreturn)
     )
 }
 

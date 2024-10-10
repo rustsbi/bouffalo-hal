@@ -8,7 +8,7 @@ use crate::HalFlashConfig;
 use crate::Stack;
 
 #[cfg(feature = "bl702")]
-use core::arch::asm;
+use core::arch::naked_asm;
 use core::ops::Deref;
 
 #[cfg(feature = "bl702")]
@@ -21,7 +21,7 @@ const LEN_STACK: usize = 1 * 1024;
 unsafe extern "C" fn start() -> ! {
     #[link_section = ".bss.uninit"]
     static mut STACK: Stack<LEN_STACK> = Stack([0; LEN_STACK]);
-    asm!(
+    naked_asm!(
         "   la      sp, {stack}
             li      t0, {hart_stack_size}
             add     sp, sp, t0",
@@ -46,7 +46,6 @@ unsafe extern "C" fn start() -> ! {
         stack = sym STACK,
         hart_stack_size = const LEN_STACK,
         main = sym main,
-        options(noreturn)
     )
 }
 

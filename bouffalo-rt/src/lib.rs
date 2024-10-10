@@ -1,5 +1,5 @@
 //! Bouffalo chip ROM runtime library.
-#![feature(naked_functions, asm_const)]
+#![feature(naked_functions)]
 #![no_std]
 
 #[macro_use]
