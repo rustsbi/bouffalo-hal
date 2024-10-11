@@ -1,0 +1,16 @@
+[package]
+name = "bouffaloader"
+version = "0.0.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bouffalo-hal = { git = "https://github.com/rustsbi/bouffalo-hal", features = ["bl808"] }
+bouffalo-rt = { git = "https://github.com/rustsbi/bouffalo-hal", features = ["bl808-dsp"] }
+panic-halt = "0.2.0"
+embedded-time = "0.12.1"
+
+[[bin]]
+name = "bouffaloader"
+test = false
