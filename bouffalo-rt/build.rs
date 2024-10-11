@@ -13,8 +13,16 @@ fn main() {
     #[cfg(feature = "bl702")]
     std::fs::write(ld, LINKER_SCRIPT_BL702).unwrap();
 
-    println!("cargo:rustc-link-arg=-T{}", ld.display());
-    println!("cargo:rustc-link-search={}", out.display());
+    #[cfg(any(
+        feature = "bl616",
+        feature = "bl808-mcu",
+        feature = "bl808-dsp",
+        feature = "bl702"
+    ))]
+    {
+        println!("cargo:rustc-link-arg=-T{}", ld.display());
+        println!("cargo:rustc-link-search={}", out.display());
+    }
 }
 
 #[cfg(feature = "bl616")]
