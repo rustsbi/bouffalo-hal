@@ -45,7 +45,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
             writeln!(
                 serial,
                 "  write progress: {}%",
-                ((i + 1) * 100) / (MEMORY_SIZE / 4)
+                ((i + 1) * 100) / (MEMORY_SIZE / 4) + 1
             )
             .ok();
         }

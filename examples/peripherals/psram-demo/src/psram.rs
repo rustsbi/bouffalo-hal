@@ -10,6 +10,89 @@ const PLL_BASE_ADDRESS: u32 = GLB_BASE + 0x7D0;
 pub(crate) fn uhs_psram_init() {
     glb_config_uhs_pll();
     psram_uhs_x16_init();
+    fix_psram_register();
+}
+
+fn fix_psram_register() {
+    write_memory(0x2000E300, 0x1B08201B);
+    write_memory(0x2000E500, 0x00000023);
+    write_memory(0x2000E504, 0x00000041);
+
+    write_memory(0x3000F000, 0xB03F0403);
+    write_memory(0x3000F004, 0x81003F00);
+    write_memory(0x3000F020, 0x00000023);
+    write_memory(0x3000F024, 0x00000023);
+    write_memory(0x3000F100, 0x60290200);
+    write_memory(0x3000F104, 0x50205020);
+    write_memory(0x3000F108, 0x50025002);
+    write_memory(0x3000F10C, 0x50025002);
+    write_memory(0x3000F110, 0x50025002);
+    write_memory(0x3000F114, 0x50025002);
+    write_memory(0x3000F118, 0x50025002);
+    write_memory(0x3000F11C, 0x50025002);
+    write_memory(0x3000F120, 0x50025002);
+    write_memory(0x3000F124, 0x50025002);
+    write_memory(0x3000F128, 0x34000000);
+    write_memory(0x3000F12C, 0x34000006);
+    // write_memory(0x3000F130, 0x0F391323);
+    // write_memory(0x3000F134, 0x0B030404);
+    write_memory(0x3000F138, 0x050E0418);
+    write_memory(0x3000F13C, 0x0A6A1C1C);
+    write_memory(0x3000F144, 0x07110710);
+
+    write_memory(0x20000050, 0x10240408);
+    write_memory(0x20000154, 0xFFFF98FF);
+    write_memory(0x20000158, 0x0000FF32);
+    write_memory(0x20000180, 0x03000000);
+    write_memory(0x2000032C, 0x00010000);
+    write_memory(0x20000330, 0x00000001);
+    write_memory(0x20000334, 0x220024D0);
+    write_memory(0x20000420, 0xD8000000);
+    write_memory(0x20000510, 0x08000928);
+    write_memory(0x20000530, 0x0000004D);
+    write_memory(0x20000548, 0x01000098);
+    write_memory(0x20000584, 0x9111EFF1);
+    write_memory(0x20000588, 0x0FB70001);
+    write_memory(0x200005C4, 0x801840EF);
+    write_memory(0x2000060C, 0x000000FF);
+    write_memory(0x200006C8, 0x084AB321);
+    write_memory(0x200007A4, 0x00000515);
+    write_memory(0x200007A8, 0x00021000);
+    write_memory(0x200007D0, 0x00000725);
+    write_memory(0x20000838, 0x31300434);
+    write_memory(0x200008C4, 0x80401B03);
+    write_memory(0x200008C8, 0x80401B03);
+    write_memory(0x200008CC, 0x80401B03);
+    write_memory(0x200008D0, 0x80401B03);
+    write_memory(0x200008DC, 0x40401313);
+    write_memory(0x200008E0, 0x40401313);
+    write_memory(0x200008E4, 0x00401062);
+    write_memory(0x200008F0, 0x01400B42);
+    write_memory(0x200008F4, 0x00401203);
+    write_memory(0x200008F8, 0x01400B42);
+    write_memory(0x200008FC, 0x80400713);
+    write_memory(0x20000900, 0x80400713);
+    write_memory(0x20000904, 0x00401517);
+    write_memory(0x20000908, 0x00401517);
+    write_memory(0x20000910, 0x00401217);
+    write_memory(0x2000091C, 0x10400B13);
+    write_memory(0x20000920, 0x10400B13);
+    write_memory(0x20000924, 0x01400B42);
+    write_memory(0x20000928, 0x00401217);
+    write_memory(0x20000948, 0x00401F03);
+    write_memory(0x2000094C, 0xC040025A);
+    write_memory(0x20000950, 0xC040025A);
+    write_memory(0x20000954, 0xC040021B);
+    write_memory(0x20000958, 0xC040021B);
+    write_memory(0x2000095C, 0xC040021B);
+    write_memory(0x20000960, 0xC040021B);
+    write_memory(0x20000964, 0x01400B52);
+    write_memory(0x20000968, 0x01400B52);
+    write_memory(0x20000984, 0x00000003);
+    write_memory(0x20000988, 0x00000003);
+    write_memory(0x2000098C, 0x00000003);
+    write_memory(0x20000990, 0x00000003);
+    write_memory(0x20000AC4, 0x00C00000);
 }
 
 // -------------glb_config_uhs_pll
