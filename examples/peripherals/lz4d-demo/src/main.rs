@@ -7,7 +7,7 @@ use core::pin::Pin;
 use embedded_time::rate::*;
 use panic_halt as _;
 
-static LZ4_INPUT: &[u8; 1182] = include_bytes!("text.lz4");
+static LZ4_INPUT: &'static [u8] = include_bytes!("text.lz4");
 static mut LZ4_OUTPUT: [u8; 2048] = [0u8; 2048];
 
 #[entry]
