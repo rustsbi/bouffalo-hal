@@ -15,6 +15,7 @@ members = [
     "examples/peripherals/pwm-demo",
     "examples/peripherals/spi-demo",
     "examples/peripherals/uart-demo",
+    "examples/peripherals/uart-cli-demo",
     "examples/peripherals/sdcard-demo",
     "examples/peripherals/sdcard-gpt-demo",
 ]

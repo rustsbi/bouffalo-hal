@@ -959,6 +959,21 @@ pub trait Pads<const U: usize> {
     const TXD: bool;
     /// Checks if this pin configuration includes Receive feature.
     const RXD: bool;
+    /// Valid split configuration type for current pads and multiplexers.
+    type Split<T>;
+
+    fn split<T>(self, uart: T) -> Self::Split<T>;
+}
+
+#[inline]
+fn from_pads<T, TX, RX>(uart: T, tx: TX, rx: RX) -> (TransmitHalf<T, TX>, ReceiveHalf<T, RX>) {
+    (
+        TransmitHalf {
+            uart: unsafe { core::ptr::read_volatile(&uart) },
+            _pads: tx,
+        },
+        ReceiveHalf { uart, _pads: rx },
+    )
 }
 
 impl<A1, GLB2, const I: usize, const U: usize, const N: usize> Pads<U>
@@ -971,6 +986,14 @@ where
     const CTS: bool = false;
     const TXD: bool = true;
     const RXD: bool = false;
+    type Split<T> = (
+        TransmitHalf<T, (Pad<A1, N, Uart>, UartMux<GLB2, I, MuxTxd<U>>)>,
+        ReceiveHalf<T, ()>,
+    );
+    #[inline]
+    fn split<T>(self, uart: T) -> Self::Split<T> {
+        from_pads(uart, self, ())
+    }
 }
 
 impl<
@@ -998,6 +1021,14 @@ where
     const CTS: bool = false;
     const TXD: bool = true;
     const RXD: bool = true;
+    type Split<T> = (
+        TransmitHalf<T, (Pad<A1, N1, Uart>, UartMux<GLB2, I1, MuxTxd<U>>)>,
+        ReceiveHalf<T, (Pad<A3, N2, Uart>, UartMux<GLB4, I2, MuxRxd<U>>)>,
+    );
+    #[inline]
+    fn split<T>(self, uart: T) -> Self::Split<T> {
+        from_pads(uart, self.0, self.1)
+    }
 }
 
 impl<
@@ -1025,6 +1056,17 @@ where
     const CTS: bool = true;
     const TXD: bool = true;
     const RXD: bool = false;
+    type Split<T> = TransmitHalf<
+        T,
+        (
+            (Pad<A1, N1, Uart>, UartMux<GLB2, I1, MuxTxd<U>>),
+            (Pad<A3, N2, Uart>, UartMux<GLB4, I2, MuxCts<U>>),
+        ),
+    >;
+    #[inline]
+    fn split<T>(self, uart: T) -> Self::Split<T> {
+        TransmitHalf { uart, _pads: self }
+    }
 }
 
 impl<
@@ -1066,7 +1108,29 @@ where
     const CTS: bool = true;
     const TXD: bool = true;
     const RXD: bool = false;
+    type Split<T> = (
+        TransmitHalf<
+            T,
+            (
+                (Pad<A1, N1, Uart>, UartMux<GLB2, I1, MuxTxd<U>>),
+                (Pad<A7, N4, Uart>, UartMux<GLB8, I4, MuxCts<U>>),
+            ),
+        >,
+        ReceiveHalf<
+            T,
+            (
+                (Pad<A3, N2, Uart>, UartMux<GLB4, I2, MuxRxd<U>>),
+                (Pad<A5, N3, Uart>, UartMux<GLB6, I3, MuxRts<U>>),
+            ),
+        >,
+    );
+    #[inline]
+    fn split<T>(self, uart: T) -> Self::Split<T> {
+        from_pads(uart, (self.0, self.3), (self.1, self.2))
+    }
 }
+
+// TODO: support split for MmUart pads.
 
 impl<A1, const U: usize, const N: usize> Pads<U> for Pad<A1, N, MmUart>
 where
@@ -1077,6 +1141,12 @@ where
     const CTS: bool = { N % 4 == 3 };
     const TXD: bool = { N % 4 == 0 };
     const RXD: bool = { N % 4 == 1 };
+    type Split<T> = ();
+    #[inline]
+    fn split<T>(self, uart: T) -> Self::Split<T> {
+        let _ = uart;
+        ()
+    }
 }
 
 impl<A1, A2, const U: usize, const N1: usize, const N2: usize> Pads<U>
@@ -1091,6 +1161,12 @@ where
     const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 };
     const TXD: bool = { N1 % 4 == 0 || N2 % 4 == 0 };
     const RXD: bool = { N1 % 4 == 1 || N2 % 4 == 1 };
+    type Split<T> = ();
+    #[inline]
+    fn split<T>(self, uart: T) -> Self::Split<T> {
+        let _ = uart;
+        ()
+    }
 }
 
 impl<A1, A2, A3, const U: usize, const N1: usize, const N2: usize, const N3: usize> Pads<U>
@@ -1111,6 +1187,12 @@ where
     const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 || N3 % 4 == 3 };
     const TXD: bool = { N1 % 4 == 0 || N2 % 4 == 0 || N3 % 4 == 0 };
     const RXD: bool = { N1 % 4 == 1 || N2 % 4 == 1 || N3 % 4 == 1 };
+    type Split<T> = ();
+    #[inline]
+    fn split<T>(self, uart: T) -> Self::Split<T> {
+        let _ = uart;
+        ()
+    }
 }
 
 impl<
@@ -1144,6 +1226,12 @@ where
     const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 || N3 % 4 == 3 || N4 % 4 == 3 };
     const TXD: bool = { N1 % 4 == 0 || N2 % 4 == 0 || N3 % 4 == 0 || N4 % 4 == 0 };
     const RXD: bool = { N1 % 4 == 1 || N2 % 4 == 1 || N3 % 4 == 1 || N4 % 4 == 1 };
+    type Split<T> = ();
+    #[inline]
+    fn split<T>(self, uart: T) -> Self::Split<T> {
+        let _ = uart;
+        ()
+    }
 }
 
 /// Managed serial peripheral.
@@ -1213,6 +1301,67 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> Serial<UART, PADS> {
     pub fn free(self) -> (UART, PADS) {
         (self.uart, self.pads)
     }
+
+    /// Split serial instance into transmit and receive halves.
+    #[inline]
+    pub fn split<const I: usize>(self) -> <PADS as Pads<I>>::Split<UART>
+    where
+        PADS: Pads<I>,
+    {
+        self.pads.split(self.uart)
+    }
+}
+
+#[inline]
+fn uart_write(uart: &RegisterBlock, buf: &[u8]) -> Result<usize, Error> {
+    while uart.fifo_config_1.read().transmit_available_bytes() == 0 {
+        core::hint::spin_loop();
+    }
+    let len = core::cmp::min(
+        uart.fifo_config_1.read().transmit_available_bytes() as usize,
+        buf.len(),
+    );
+    buf.iter()
+        .take(len)
+        .for_each(|&word| unsafe { uart.fifo_write.write(word) });
+    Ok(len)
+}
+
+#[inline]
+fn uart_flush(uart: &RegisterBlock) -> Result<(), Error> {
+    // There are maximum 32 bytes in transmit FIFO queue, wait until all bytes are available,
+    // meaning that all data in queue has been sent into UART bus.
+    while uart.fifo_config_1.read().transmit_available_bytes() != 32 {
+        core::hint::spin_loop();
+    }
+    Ok(())
+}
+
+#[inline]
+fn uart_read(uart: &RegisterBlock, buf: &mut [u8]) -> Result<usize, Error> {
+    while uart.fifo_config_1.read().receive_available_bytes() == 0 {
+        core::hint::spin_loop();
+    }
+    let len = core::cmp::min(
+        uart.fifo_config_1.read().receive_available_bytes() as usize,
+        buf.len(),
+    );
+    buf.iter_mut()
+        .take(len)
+        .for_each(|slot| *slot = uart.fifo_read.read());
+    Ok(len)
+}
+
+/// Transmit half from splitted serial structure.
+pub struct TransmitHalf<UART, PADS> {
+    uart: UART,
+    _pads: PADS,
+}
+
+/// Receive half from splitted serial structure.
+pub struct ReceiveHalf<UART, PADS> {
+    uart: UART,
+    _pads: PADS,
 }
 
 /// Extend constructor to owned UART register blocks.
@@ -1256,46 +1405,47 @@ impl<UART, PADS> embedded_io::ErrorType for Serial<UART, PADS> {
     type Error = Error;
 }
 
+impl<UART, PADS> embedded_io::ErrorType for TransmitHalf<UART, PADS> {
+    type Error = Error;
+}
+
+impl<UART, PADS> embedded_io::ErrorType for ReceiveHalf<UART, PADS> {
+    type Error = Error;
+}
+
 impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Write for Serial<UART, PADS> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        while self.uart.fifo_config_1.read().transmit_available_bytes() == 0 {
-            core::hint::spin_loop();
-        }
-        let len = core::cmp::min(
-            self.uart.fifo_config_1.read().transmit_available_bytes() as usize,
-            buf.len(),
-        );
-        buf.iter()
-            .take(len)
-            .for_each(|&word| unsafe { self.uart.fifo_write.write(word) });
-        Ok(len)
+        uart_write(&self.uart, buf)
     }
     #[inline]
     fn flush(&mut self) -> Result<(), Self::Error> {
-        // There are maximum 32 bytes in transmit FIFO queue, wait until all bytes are available,
-        // meaning that all data in queue has been sent into UART bus.
-        while self.uart.fifo_config_1.read().transmit_available_bytes() != 32 {
-            core::hint::spin_loop();
-        }
-        Ok(())
+        uart_flush(&self.uart)
     }
 }
 
 impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Read for Serial<UART, PADS> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
-        while self.uart.fifo_config_1.read().receive_available_bytes() == 0 {
-            core::hint::spin_loop();
-        }
-        let len = core::cmp::min(
-            self.uart.fifo_config_1.read().receive_available_bytes() as usize,
-            buf.len(),
-        );
-        buf.iter_mut()
-            .take(len)
-            .for_each(|slot| *slot = self.uart.fifo_read.read());
-        Ok(len)
+        uart_read(&self.uart, buf)
+    }
+}
+
+impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Write for TransmitHalf<UART, PADS> {
+    #[inline]
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        uart_write(&self.uart, buf)
+    }
+    #[inline]
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        uart_flush(&self.uart)
+    }
+}
+
+impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Read for ReceiveHalf<UART, PADS> {
+    #[inline]
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        uart_read(&self.uart, buf)
     }
 }
 
