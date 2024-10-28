@@ -28,6 +28,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let mut serial = p
         .uart0
         .freerun(config, 2000000.Bd(), ((tx, sig2), (rx, sig3)), &c);
+    writeln!(serial, "Hello world!").ok();
 
     let mut led = p.gpio.io8.into_floating_output();
     let mut led_state = PinState::High;
@@ -37,7 +38,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let spi_miso = p.gpio.io2.into_spi::<1>();
     let spi_cs = p.gpio.io0.into_spi::<1>();
     let spi_sd = Spi::new(
-        p.spi0,
+        p.spi1,
         (spi_clk, spi_mosi, spi_miso, spi_cs),
         MODE_3,
         &p.glb,
@@ -45,14 +46,15 @@ fn main(p: Peripherals, c: Clocks) -> ! {
 
     let delay = riscv::delay::McycleDelay::new(40_000_000);
     // TODO: let embedded_sdmmc::SdCard control cs pin
-    let sdcard = SdCard::new(spi_sd, delay);
+    let fake_cs = p.gpio.io12.into_floating_output();
+    let sdcard = SdCard::new(spi_sd, fake_cs, delay);
     writeln!(serial, "Card size: {}", sdcard.num_bytes().unwrap()).ok();
 
     let time_source = MyTimeSource {};
     let mut volume_mgr = VolumeManager::new(sdcard, time_source);
 
     let volume0 = volume_mgr
-        .open_raw_volume(embedded_sdmmc::VolumeIdx(0))
+        .open_volume(embedded_sdmmc::VolumeIdx(0))
         .unwrap();
     let root_dir = volume_mgr.open_root_dir(volume0).unwrap();
 
@@ -67,6 +69,6 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     loop {
         led.set_state(led_state).ok();
         led_state = !led_state;
-        riscv::asm::delay(100_000)
+        unsafe { riscv::asm::delay(100_000) }
     }
 }

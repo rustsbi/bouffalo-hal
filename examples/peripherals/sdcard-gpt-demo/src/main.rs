@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use bouffalo_hal::{prelude::*, spi::Spi};
+use bouffalo_hal::{gpio::Floating, prelude::*, spi::Spi};
 use bouffalo_rt::{entry, Clocks, Peripherals};
 use embedded_hal::spi::MODE_3;
 use embedded_sdmmc::*;
@@ -198,6 +198,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let mut serial = p
         .uart0
         .freerun(config, 2000000.Bd(), ((tx, sig2), (rx, sig3)), &c);
+    writeln!(serial, "Hello world!").ok();
 
     let mut led = p.gpio.io8.into_floating_output();
     let mut led_state = PinState::High;
@@ -208,14 +209,16 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let spi_cs = p.gpio.io0.into_spi::<1>();
 
     let spi_sd = Spi::new(
-        p.spi0,
+        p.spi1,
         (spi_clk, spi_mosi, spi_miso, spi_cs),
         MODE_3,
         &p.glb,
     );
 
     let delay = riscv::delay::McycleDelay::new(40_000_000);
-    let sdcard = SdCard::new(spi_sd, delay);
+    // TODO: let embedded_sdmmc::SdCard control cs pin
+    let fake_cs = p.gpio.io12.into_floating_output();
+    let sdcard = SdCard::new(spi_sd, fake_cs, delay);
     writeln!(serial, "Card size: {}", sdcard.num_bytes().unwrap()).ok();
     writeln!(serial, "").ok();
 
@@ -268,6 +271,11 @@ fn main(p: Peripherals, c: Clocks) -> ! {
                 ),
                 1,
             >,
+            bouffalo_hal::gpio::Pad<
+                bouffalo_rt::soc::bl808::GLBv2,
+                12,
+                bouffalo_hal::gpio::Output<Floating>,
+            >,
             riscv::delay::McycleDelay,
         >,
     > = unsafe { core::mem::transmute(disk) };
@@ -304,6 +312,6 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     loop {
         led.set_state(led_state).ok();
         led_state = !led_state;
-        riscv::asm::delay(100_000)
+        unsafe { riscv::asm::delay(100_000) }
     }
 }

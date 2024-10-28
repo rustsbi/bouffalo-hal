@@ -7,7 +7,7 @@
 | `jtag-demo`       | √     |
 | `lz4d-demo`       | √     |
 | `pwm-demo`        | √     |
-| `sdcard-demo`     | TODO   |
-| `sdcard-gpt-demo` | TODO   |
-| `spi-demo`        | X      |
+| `sdcard-demo`     | √     |
+| `sdcard-gpt-demo` | √     |
+| `spi-demo`        | √     |
 | `uart-demo`       | √     |
