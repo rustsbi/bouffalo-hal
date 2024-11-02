@@ -10,6 +10,7 @@ bouffalo-hal = { git = "https://github.com/rustsbi/bouffalo-hal", features = ["b
 bouffalo-rt = { git = "https://github.com/rustsbi/bouffalo-hal", features = ["bl808-dsp"] }
 panic-halt = "0.2.0"
 embedded-time = "0.12.1"
+embedded-cli = "0.2.1"
 
 [[bin]]
 name = "bouffaloader"
