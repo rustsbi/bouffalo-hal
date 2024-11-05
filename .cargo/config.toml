@@ -1,0 +1,2 @@
+[alias]
+blri = "run --package blri --release --"
