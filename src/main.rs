@@ -102,7 +102,17 @@ fn load_from_sdcard<W: Write, R: Read, L: OutputPin, SPI, PADS, const I: usize>(
 }
 
 fn run_payload() -> ! {
-    // TODO
+    const ZIMAGE_ADDRESS: usize = 0x5000_0000; // Load address of Linux zImage
+    const DTB_ADDRESS: usize = 0x51FF_8000; // Address of the device tree blob
+    const HART_ID: usize = 0; // Hartid of the current core
+
+    type KernelEntry = unsafe extern "C" fn(hart_id: usize, dtb_addr: usize);
+
+    let kernel_entry: KernelEntry = unsafe { core::mem::transmute(ZIMAGE_ADDRESS) };
+    unsafe {
+        kernel_entry(HART_ID, DTB_ADDRESS);
+    }
+
     loop {}
 }
 
