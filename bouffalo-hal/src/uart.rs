@@ -1290,16 +1290,14 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> Serial<UART, PADS> {
             .set_receive_time_interval(receive_interval as u16);
         unsafe { uart.bit_period.write(val) };
 
-        // Write the bit-order.
-        let val = DataConfig::default().set_bit_order(config.bit_order);
-        unsafe { uart.data_config.write(val) };
+        let (data_config, transmit_config, receive_config) = config.into_registers();
 
-        // Configure transmit feature.
-        let mut val = TransmitConfig::default()
-            .enable_freerun()
-            .set_parity(config.parity)
-            .set_stop_bits(config.stop_bits)
-            .set_word_length(config.word_length);
+        // Write the bit-order.
+        unsafe { uart.data_config.write(data_config) };
+
+        // Configure freerun transmit feature.
+        let mut val = transmit_config;
+        val = val.enable_freerun();
         if PADS::TXD {
             val = val.enable_txd();
         }
@@ -1309,9 +1307,7 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> Serial<UART, PADS> {
         unsafe { uart.transmit_config.write(val) };
 
         // Configure receive feature.
-        let mut val = ReceiveConfig::default()
-            .set_parity(config.parity)
-            .set_word_length(config.word_length);
+        let mut val = receive_config;
         if PADS::RXD {
             val = val.enable_rxd();
         }
@@ -1574,12 +1570,16 @@ pub struct Config {
     pub receive_baudrate: Baud,
     /// Data bit order.
     pub bit_order: BitOrder,
-    /// Parity settings.
-    pub parity: Parity,
+    /// Parity settings on the transmit half.
+    pub transmit_parity: Parity,
+    /// Parity settings on the receive half.
+    pub receive_parity: Parity,
     /// Serial stop bits.
     pub stop_bits: StopBits,
-    /// Data word length.
-    pub word_length: WordLength,
+    /// Data word length on the transmit half.
+    pub transmit_word_length: WordLength,
+    /// Data word length on the receive half.
+    pub receive_word_length: WordLength,
 }
 
 impl Config {
@@ -1594,6 +1594,36 @@ impl Config {
             ..self
         }
     }
+    /// Set parity for both the transmit and receive halves.
+    #[inline]
+    pub const fn set_parity(self, parity: Parity) -> Self {
+        Self {
+            transmit_parity: parity,
+            receive_parity: parity,
+            ..self
+        }
+    }
+    /// Set word length for both the transmit and receive halves.
+    #[inline]
+    pub const fn set_word_length(self, word_length: WordLength) -> Self {
+        Self {
+            transmit_word_length: word_length,
+            receive_word_length: word_length,
+            ..self
+        }
+    }
+    #[inline]
+    fn into_registers(self) -> (DataConfig, TransmitConfig, ReceiveConfig) {
+        let data_config = DataConfig::default().set_bit_order(self.bit_order);
+        let transmit_config = TransmitConfig::default()
+            .set_parity(self.transmit_parity)
+            .set_stop_bits(self.stop_bits)
+            .set_word_length(self.transmit_word_length);
+        let receive_config = ReceiveConfig::default()
+            .set_parity(self.receive_parity)
+            .set_word_length(self.receive_word_length);
+        (data_config, transmit_config, receive_config)
+    }
 }
 
 impl Default for Config {
@@ -1604,9 +1634,11 @@ impl Default for Config {
             transmit_baudrate: 115_200.Bd(),
             receive_baudrate: 115_200.Bd(),
             bit_order: BitOrder::LsbFirst,
-            parity: Parity::None,
+            transmit_parity: Parity::None,
+            receive_parity: Parity::None,
             stop_bits: StopBits::One,
-            word_length: WordLength::Eight,
+            transmit_word_length: WordLength::Eight,
+            receive_word_length: WordLength::Eight,
         }
     }
 }
