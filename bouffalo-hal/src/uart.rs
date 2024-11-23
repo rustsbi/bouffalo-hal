@@ -42,7 +42,7 @@ pub struct RegisterBlock {
 }
 
 /// Transmit configuration register.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct TransmitConfig(u32);
 
@@ -265,8 +265,15 @@ impl TransmitConfig {
     }
 }
 
+impl Default for TransmitConfig {
+    #[inline]
+    fn default() -> Self {
+        Self(0x0000_8f00)
+    }
+}
+
 /// Receive configuration register.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct ReceiveConfig(u32);
 
@@ -455,8 +462,15 @@ impl ReceiveConfig {
     }
 }
 
+impl Default for ReceiveConfig {
+    #[inline]
+    fn default() -> Self {
+        Self(0x0000_0700)
+    }
+}
+
 /// Bit period configuration register.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct BitPeriod(u32);
 
@@ -486,8 +500,15 @@ impl BitPeriod {
     }
 }
 
+impl Default for BitPeriod {
+    #[inline]
+    fn default() -> Self {
+        Self(0x00ff_00ff)
+    }
+}
+
 /// Data configuration register.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct DataConfig(u32);
 
@@ -510,6 +531,13 @@ impl DataConfig {
         } else {
             BitOrder::MsbFirst
         }
+    }
+}
+
+impl Default for DataConfig {
+    #[inline]
+    fn default() -> Self {
+        Self(0x0000_0000)
     }
 }
 
@@ -1257,17 +1285,17 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> Serial<UART, PADS> {
         if !(1..=65535).contains(&receive_interval) {
             panic!("Impossible receive baudrate!");
         }
-        let val = BitPeriod(0)
+        let val = BitPeriod::default()
             .set_transmit_time_interval(transmit_interval as u16)
             .set_receive_time_interval(receive_interval as u16);
         unsafe { uart.bit_period.write(val) };
 
         // Write the bit-order.
-        let val = DataConfig(0).set_bit_order(config.bit_order);
+        let val = DataConfig::default().set_bit_order(config.bit_order);
         unsafe { uart.data_config.write(val) };
 
         // Configure transmit feature.
-        let mut val = TransmitConfig(0)
+        let mut val = TransmitConfig::default()
             .enable_freerun()
             .set_parity(config.parity)
             .set_stop_bits(config.stop_bits)
@@ -1281,7 +1309,7 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> Serial<UART, PADS> {
         unsafe { uart.transmit_config.write(val) };
 
         // Configure receive feature.
-        let mut val = ReceiveConfig(0)
+        let mut val = ReceiveConfig::default()
             .set_parity(config.parity)
             .set_word_length(config.word_length);
         if PADS::RXD {
@@ -1672,6 +1700,19 @@ mod tests {
             assert_eq!(val.0, (length as u32) << 16);
             assert_eq!(val.transfer_length(), length);
         }
+
+        let default = TransmitConfig::default();
+        assert_eq!(default.transfer_length(), 0);
+        assert_eq!(default.lin_break_bits(), 4);
+        assert_eq!(default.stop_bits(), StopBits::One);
+        assert_eq!(default.word_length(), WordLength::Eight);
+        assert!(!default.is_ir_inverse_enabled());
+        assert!(!default.is_ir_transmit_enabled());
+        assert_eq!(default.parity(), Parity::None);
+        assert!(!default.is_lin_transmit_enabled());
+        assert!(!default.is_freerun_enabled());
+        assert!(!default.is_cts_enabled());
+        assert!(!default.is_txd_enabled());
     }
 
     #[test]
@@ -1691,6 +1732,8 @@ mod tests {
             assert_eq!(val.0, (recv as u32) << 16);
             assert_eq!(val.receive_time_interval(), recv);
         }
+
+        // TODO: use getter functions to check default value for BitPeriod
     }
 
     #[test]
@@ -1780,4 +1823,6 @@ mod tests {
             assert_eq!(val.transfer_length(), length);
         }
     }
+
+    // TODO: use getter functions to check default value for ReceiveConfig
 }
