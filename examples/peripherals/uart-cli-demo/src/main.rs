@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use bouffalo_hal::prelude::*;
+use bouffalo_hal::{prelude::*, uart::Config};
 use bouffalo_rt::{entry, Clocks, Peripherals};
 use embedded_cli::{cli::CliBuilder, Command};
 use embedded_time::rate::*;
@@ -35,10 +35,8 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let sig2 = p.uart_muxes.sig2.into_transmit::<0>();
     let sig3 = p.uart_muxes.sig3.into_receive::<0>();
 
-    let config = Default::default();
-    let serial = p
-        .uart0
-        .freerun(config, 2000000.Bd(), ((tx, sig2), (rx, sig3)), &c);
+    let config = Config::default().set_baudrate(2000000.Bd());
+    let serial = p.uart0.freerun(config, ((tx, sig2), (rx, sig3)), &c);
 
     let (mut tx, mut rx) = serial.split();
 

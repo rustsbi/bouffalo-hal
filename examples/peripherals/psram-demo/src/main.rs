@@ -3,7 +3,7 @@
 
 use core::{arch::asm, ptr};
 
-use bouffalo_hal::prelude::*;
+use bouffalo_hal::{prelude::*, uart::Config};
 use bouffalo_rt::{entry, Clocks, Peripherals};
 use embedded_time::rate::*;
 use panic_halt as _;
@@ -23,12 +23,8 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let rx = p.gpio.io15.into_uart();
     let sig2 = p.uart_muxes.sig2.into_transmit::<0>();
     let sig3 = p.uart_muxes.sig3.into_receive::<0>();
-    let mut serial = p.uart0.freerun(
-        Default::default(),
-        2000000.Bd(),
-        ((tx, sig2), (rx, sig3)),
-        &c,
-    );
+    let config = Config::default().set_baudrate(2000000.Bd());
+    let mut serial = p.uart0.freerun(config, ((tx, sig2), (rx, sig3)), &c);
     writeln!(serial, "Welcome to psram-demo🦀!").ok();
 
     uhs_psram_init();

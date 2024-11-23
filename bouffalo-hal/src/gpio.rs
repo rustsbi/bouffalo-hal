@@ -114,12 +114,7 @@ pub struct GlbRegisterBlock {}
 /// let rx = p.gpio.io15.into_uart();
 /// # let sig2 = ();
 /// # let sig3 = ();
-/// # let config = Config {
-/// #     bit_order: BitOrder::LsbFirst,
-/// #     parity: Parity::None,
-/// #     stop_bits: StopBits::One,
-/// #     word_length: WordLength::Eight,
-/// # };
+/// # let config = Config::default();
 /// // Create the serial structure. Note that if we don't have tx and rx GPIO
 /// // alternate mode set correctly, code here won't compile for type mismatch.
 /// # #[cfg(feature = "glb-v2")]

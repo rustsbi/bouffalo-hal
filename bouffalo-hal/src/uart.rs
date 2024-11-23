@@ -4,7 +4,7 @@ use crate::glb::{self, v2::UartSignal};
 use crate::gpio::{MmUart, Pad, Uart};
 use core::marker::PhantomData;
 use core::ops::Deref;
-use embedded_time::rate::Baud;
+use embedded_time::rate::{Baud, Extensions};
 use volatile_register::{RO, RW, WO};
 
 /// Universal Asynchronous Receiver/Transmitter registers.
@@ -1242,28 +1242,24 @@ pub struct Serial<UART, PADS> {
 
 impl<UART: Deref<Target = RegisterBlock>, PADS> Serial<UART, PADS> {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
-    ///
-    /// This structure sets the same baudrate for transmit and receive halves.
     #[inline]
-    pub fn freerun<const I: usize>(
-        uart: UART,
-        config: Config,
-        baudrate: Baud,
-        pads: PADS,
-        clocks: &Clocks,
-    ) -> Self
+    pub fn freerun<const I: usize>(uart: UART, config: Config, pads: PADS, clocks: &Clocks) -> Self
     where
         PADS: Pads<I>,
     {
         // Calculate transmit interval.
         let uart_clock = clocks.uart_clock::<I>().expect("a valid UART clock source");
-        let interval = uart_clock.0 / baudrate.0;
-        if !(1..=65535).contains(&interval) {
-            panic!("Impossible baudrate!");
+        let transmit_interval = uart_clock.0 / config.transmit_baudrate.0;
+        let receive_interval = uart_clock.0 / config.receive_baudrate.0;
+        if !(1..=65535).contains(&transmit_interval) {
+            panic!("Impossible transmit baudrate!");
+        }
+        if !(1..=65535).contains(&receive_interval) {
+            panic!("Impossible receive baudrate!");
         }
         let val = BitPeriod(0)
-            .set_transmit_time_interval(interval as u16)
-            .set_receive_time_interval(interval as u16);
+            .set_transmit_time_interval(transmit_interval as u16)
+            .set_receive_time_interval(receive_interval as u16);
         unsafe { uart.bit_period.write(val) };
 
         // Write the bit-order.
@@ -1370,7 +1366,6 @@ pub trait UartExt<PADS>: Sized {
     fn freerun<const I: usize>(
         self,
         config: Config,
-        baudrate: Baud,
         pads: PADS,
         clocks: &Clocks,
     ) -> Serial<Self, PADS>
@@ -1383,14 +1378,13 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> UartExt<PADS> for UART {
     fn freerun<const I: usize>(
         self,
         config: Config,
-        baudrate: Baud,
         pads: PADS,
         clocks: &Clocks,
     ) -> Serial<Self, PADS>
     where
         PADS: Pads<I>,
     {
-        Serial::freerun(self, config, baudrate, pads, clocks)
+        Serial::freerun(self, config, pads, clocks)
     }
 }
 
@@ -1452,6 +1446,10 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Read for ReceiveHal
 /// Serial configuration.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Config {
+    /// Baudrate on the transmit half.
+    pub transmit_baudrate: Baud,
+    /// Baudrate on the receive half.
+    pub receive_baudrate: Baud,
     /// Data bit order.
     pub bit_order: BitOrder,
     /// Parity settings.
@@ -1462,11 +1460,27 @@ pub struct Config {
     pub word_length: WordLength,
 }
 
+impl Config {
+    /// Set baudrate for both the transmit and receive halves.
+    ///
+    /// This function sets the same baudrate for the transmit and receive halves.
+    #[inline]
+    pub const fn set_baudrate(self, baudrate: Baud) -> Self {
+        Self {
+            transmit_baudrate: baudrate,
+            receive_baudrate: baudrate,
+            ..self
+        }
+    }
+}
+
 impl Default for Config {
     /// Serial configuration defaults to 8-bit word, no parity check, 1 stop bit, LSB first.
     #[inline]
     fn default() -> Self {
         Config {
+            transmit_baudrate: 115_200.Bd(),
+            receive_baudrate: 115_200.Bd(),
             bit_order: BitOrder::LsbFirst,
             parity: Parity::None,
             stop_bits: StopBits::One,

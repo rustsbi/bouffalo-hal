@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use bouffalo_hal::{clocks::Clocks, prelude::*};
+use bouffalo_hal::{clocks::Clocks, prelude::*, uart::Config};
 use bouffalo_rt::{entry, Peripherals};
 use core::pin::Pin;
 use embedded_time::rate::*;
@@ -18,8 +18,8 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let sig3 = p.uart_muxes.sig3.into_receive::<0>();
     let pads = ((tx, sig2), (rx, sig3));
 
-    let config = Default::default();
-    let mut serial = p.uart0.freerun(config, 2000000.Bd(), pads, &c);
+    let config = Config::default().set_baudrate(2000000.Bd());
+    let mut serial = p.uart0.freerun(config, pads, &c);
 
     writeln!(serial, "Hardware accelerated LZ4 decompression example.").ok();
     unsafe { p.glb.clock_config_1.modify(|v| v.enable_lz4d()) };
