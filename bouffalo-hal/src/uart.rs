@@ -1352,11 +1352,28 @@ fn uart_write(uart: &RegisterBlock, buf: &[u8]) -> Result<usize, Error> {
 }
 
 #[inline]
+fn uart_write_nb(uart: &RegisterBlock, word: u8) -> nb::Result<(), Error> {
+    if uart.fifo_config_1.read().transmit_available_bytes() == 0 {
+        return Err(nb::Error::WouldBlock);
+    }
+    unsafe { uart.fifo_write.write(word) };
+    Ok(())
+}
+
+#[inline]
 fn uart_flush(uart: &RegisterBlock) -> Result<(), Error> {
     // There are maximum 32 bytes in transmit FIFO queue, wait until all bytes are available,
     // meaning that all data in queue has been sent into UART bus.
     while uart.fifo_config_1.read().transmit_available_bytes() != 32 {
         core::hint::spin_loop();
+    }
+    Ok(())
+}
+
+#[inline]
+fn uart_flush_nb(uart: &RegisterBlock) -> nb::Result<(), Error> {
+    if uart.fifo_config_1.read().transmit_available_bytes() != 32 {
+        return Err(nb::Error::WouldBlock);
     }
     Ok(())
 }
@@ -1374,6 +1391,15 @@ fn uart_read(uart: &RegisterBlock, buf: &mut [u8]) -> Result<usize, Error> {
         .take(len)
         .for_each(|slot| *slot = uart.fifo_read.read());
     Ok(len)
+}
+
+#[inline]
+fn uart_read_nb(uart: &RegisterBlock) -> nb::Result<u8, Error> {
+    if uart.fifo_config_1.read().receive_available_bytes() == 0 {
+        return Err(nb::Error::WouldBlock);
+    }
+    let ans = uart.fifo_read.read();
+    Ok(ans)
 }
 
 /// Transmit half from splitted serial structure.
@@ -1423,7 +1449,23 @@ impl embedded_io::Error for Error {
     }
 }
 
+impl embedded_hal_nb::serial::Error for Error {
+    #[inline(always)]
+    fn kind(&self) -> embedded_hal_nb::serial::ErrorKind {
+        match self {
+            Error::Framing => embedded_hal_nb::serial::ErrorKind::FrameFormat,
+            Error::Noise => embedded_hal_nb::serial::ErrorKind::Noise,
+            Error::Overrun => embedded_hal_nb::serial::ErrorKind::Overrun,
+            Error::Parity => embedded_hal_nb::serial::ErrorKind::Parity,
+        }
+    }
+}
+
 impl<UART, PADS> embedded_io::ErrorType for Serial<UART, PADS> {
+    type Error = Error;
+}
+
+impl<UART, PADS> embedded_hal_nb::serial::ErrorType for Serial<UART, PADS> {
     type Error = Error;
 }
 
@@ -1431,7 +1473,15 @@ impl<UART, PADS> embedded_io::ErrorType for TransmitHalf<UART, PADS> {
     type Error = Error;
 }
 
+impl<UART, PADS> embedded_hal_nb::serial::ErrorType for TransmitHalf<UART, PADS> {
+    type Error = Error;
+}
+
 impl<UART, PADS> embedded_io::ErrorType for ReceiveHalf<UART, PADS> {
+    type Error = Error;
+}
+
+impl<UART, PADS> embedded_hal_nb::serial::ErrorType for ReceiveHalf<UART, PADS> {
     type Error = Error;
 }
 
@@ -1446,10 +1496,32 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Write for Serial<UA
     }
 }
 
+impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_hal_nb::serial::Write
+    for Serial<UART, PADS>
+{
+    #[inline]
+    fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
+        uart_write_nb(&self.uart, word)
+    }
+    #[inline]
+    fn flush(&mut self) -> nb::Result<(), Self::Error> {
+        uart_flush_nb(&self.uart)
+    }
+}
+
 impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Read for Serial<UART, PADS> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         uart_read(&self.uart, buf)
+    }
+}
+
+impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_hal_nb::serial::Read
+    for Serial<UART, PADS>
+{
+    #[inline]
+    fn read(&mut self) -> nb::Result<u8, Self::Error> {
+        uart_read_nb(&self.uart)
     }
 }
 
@@ -1464,10 +1536,32 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Write for TransmitH
     }
 }
 
+impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_hal_nb::serial::Write
+    for TransmitHalf<UART, PADS>
+{
+    #[inline]
+    fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
+        uart_write_nb(&self.uart, word)
+    }
+    #[inline]
+    fn flush(&mut self) -> nb::Result<(), Self::Error> {
+        uart_flush_nb(&self.uart)
+    }
+}
+
 impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io::Read for ReceiveHalf<UART, PADS> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         uart_read(&self.uart, buf)
+    }
+}
+
+impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_hal_nb::serial::Read
+    for ReceiveHalf<UART, PADS>
+{
+    #[inline]
+    fn read(&mut self) -> nb::Result<u8, Self::Error> {
+        uart_read_nb(&self.uart)
     }
 }
 
