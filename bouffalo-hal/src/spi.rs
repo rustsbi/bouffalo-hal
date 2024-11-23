@@ -2,6 +2,7 @@
 
 use crate::glb::{self, v2::SpiMode};
 use crate::gpio::{self, Pad};
+use core::cmp::max;
 use core::ops::Deref;
 use embedded_hal::spi::Mode;
 use volatile_register::{RO, RW, WO};
@@ -744,19 +745,62 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi
         Ok(())
     }
     #[inline]
-    fn transfer(&mut self, _read: &mut [u8], _write: &[u8]) -> Result<(), Self::Error> {
-        todo!()
+    fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Self::Error> {
+        const MAX_RETRY: usize = 1000;
+        unsafe { self.spi.config.modify(|config| config.enable_master()) };
+
+        let (mut tx, mut rx) = (0, 0);
+        let mut fifo_config = self.spi.fifo_config_1.read();
+        let mut retry = 0;
+        while tx < write.len() || rx < read.len() {
+            while fifo_config.receive_available_bytes() == 0
+                && fifo_config.transmit_available_bytes() == 0
+            {
+                fifo_config = self.spi.fifo_config_1.read();
+            }
+            if fifo_config.transmit_available_bytes() != 0 && tx < write.len() {
+                unsafe { self.spi.fifo_write.write(write[tx]) }
+                tx += 1;
+            }
+            if fifo_config.receive_available_bytes() != 0 && rx < read.len() {
+                read[rx] = self.spi.fifo_read.read();
+                rx += 1;
+            }
+            retry += 1;
+            if retry > MAX_RETRY * max(write.len(), read.len()) {
+                return Err(Error::Other);
+            }
+        }
+
+        unsafe { self.spi.config.modify(|config| config.disable_master()) };
+        Ok(())
     }
     #[inline]
     fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
+        const MAX_RETRY: usize = 1000;
         unsafe { self.spi.config.modify(|config| config.enable_master()) };
 
-        for word in words.iter_mut() {
-            while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
-                core::hint::spin_loop();
+        let (mut tx, mut rx) = (0, 0);
+        let mut fifo_config = self.spi.fifo_config_1.read();
+        let mut retry = 0;
+        while tx < words.len() || rx < words.len() {
+            while fifo_config.receive_available_bytes() == 0
+                && fifo_config.transmit_available_bytes() == 0
+            {
+                fifo_config = self.spi.fifo_config_1.read();
             }
-            unsafe { self.spi.fifo_write.write(*word) }
-            *word = self.spi.fifo_read.read();
+            if fifo_config.transmit_available_bytes() != 0 && tx < words.len() {
+                unsafe { self.spi.fifo_write.write(words[tx]) }
+                tx += 1;
+            }
+            if fifo_config.receive_available_bytes() != 0 && rx < tx {
+                words[rx] = self.spi.fifo_read.read();
+                rx += 1;
+            }
+            retry += 1;
+            if retry > MAX_RETRY * words.len() {
+                return Err(Error::Other);
+            }
         }
 
         unsafe { self.spi.config.modify(|config| config.disable_master()) };
@@ -784,37 +828,22 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> embedded_hal::spi
         for op in operations {
             match op {
                 embedded_hal::spi::Operation::Read(buf) => {
-                    unsafe { self.spi.config.modify(|config| config.enable_master()) };
-
-                    buf.iter_mut().for_each(|slot| {
-                        while self.spi.fifo_config_1.read().receive_available_bytes() == 0 {
-                            core::hint::spin_loop();
-                        }
-                        *slot = self.spi.fifo_read.read()
-                    });
-
-                    unsafe { self.spi.config.modify(|config| config.disable_master()) };
+                    embedded_hal::spi::SpiBus::read(self, buf)?
                 }
                 embedded_hal::spi::Operation::Write(buf) => {
-                    unsafe { self.spi.config.modify(|config| config.enable_master()) };
-
-                    buf.iter().for_each(|&word| {
-                        while self.spi.fifo_config_1.read().transmit_available_bytes() == 0 {
-                            core::hint::spin_loop();
-                        }
-                        unsafe { self.spi.fifo_write.write(word) }
-                    });
-
-                    unsafe { self.spi.config.modify(|config| config.disable_master()) };
+                    embedded_hal::spi::SpiBus::write(self, buf)?
                 }
-                embedded_hal::spi::Operation::Transfer(_read, _write) => {
-                    todo!()
+                embedded_hal::spi::Operation::Transfer(read, write) => {
+                    embedded_hal::spi::SpiBus::transfer(self, read, write)?
                 }
-                embedded_hal::spi::Operation::TransferInPlace(_buf) => {
-                    todo!()
+                embedded_hal::spi::Operation::TransferInPlace(buf) => {
+                    embedded_hal::spi::SpiBus::transfer_in_place(self, buf)?
                 }
                 embedded_hal::spi::Operation::DelayNs(_delay) => {
-                    todo!()
+                    for _ in 0..*_delay {
+                        // TODO: more accurate delay
+                        core::hint::spin_loop();
+                    }
                 }
             }
         }
