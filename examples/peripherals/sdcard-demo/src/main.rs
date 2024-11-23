@@ -43,16 +43,15 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     );
 
     let delay = riscv::delay::McycleDelay::new(40_000_000);
-    // TODO: let embedded_sdmmc::SdCard control cs pin
-    let fake_cs = p.gpio.io12.into_floating_output();
-    let sdcard = SdCard::new(spi_sd, fake_cs, delay);
-    writeln!(serial, "Card size: {}", sdcard.num_bytes().unwrap()).ok();
+    let sdcard = SdCard::new(spi_sd, delay);
+    while sdcard.get_card_type().is_none() {
+        core::hint::spin_loop();
+    }
 
     let time_source = MyTimeSource {};
     let mut volume_mgr = VolumeManager::new(sdcard, time_source);
-
     let volume0 = volume_mgr
-        .open_volume(embedded_sdmmc::VolumeIdx(0))
+        .open_raw_volume(embedded_sdmmc::VolumeIdx(0))
         .unwrap();
     let root_dir = volume_mgr.open_root_dir(volume0).unwrap();
 
@@ -67,6 +66,6 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     loop {
         led.set_state(led_state).ok();
         led_state = !led_state;
-        unsafe { riscv::asm::delay(100_000) }
+        riscv::asm::delay(100_000);
     }
 }
