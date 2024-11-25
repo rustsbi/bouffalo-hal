@@ -40,7 +40,10 @@ pub mod prelude {
     };
     pub use embedded_hal::i2c::I2c as _embedded_hal_i2c_I2c;
     pub use embedded_hal::pwm::SetDutyCycle as _embedded_hal_pwm_SetDutyCycle;
-    pub use embedded_io::{Read, Write};
+    pub use embedded_io::{Read as _embedded_io_Read, Write as _embedded_io_Write};
+    pub use embedded_io_async::{
+        Read as _embedded_io_async_Read, Write as _embedded_io_async_Write,
+    };
 }
 
 /// Wrapper type for manipulations of a field in a register.
