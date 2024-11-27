@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 bouffalo-hal = { path = "../../../../bouffalo-hal", features = ["bl808"] }
-panic-halt = "0.2.0"
-riscv = "0.11.1"
+panic-halt = "1.0.0"
+riscv = "0.12.1"
 
 [dependencies.bouffalo-rt]
 path = "../../../../bouffalo-rt"
