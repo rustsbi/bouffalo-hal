@@ -32,15 +32,12 @@ pub mod usb;
 
 #[doc(hidden)]
 pub mod prelude {
-    pub use crate::lz4d::Lz4dExt as _bouffalo_hal_lz4d_Lz4dExt;
-    pub use crate::uart::UartExt as _bouffalo_hal_uart_UartExt;
-    pub use embedded_hal::digital::{
-        InputPin as _embedded_hal_digital_InputPin, OutputPin as _embedded_hal_digital_OutputPin,
-        PinState,
-    };
-    pub use embedded_hal::i2c::I2c as _embedded_hal_i2c_I2c;
-    pub use embedded_hal::pwm::SetDutyCycle as _embedded_hal_pwm_SetDutyCycle;
-    pub use embedded_io::{Read, Write};
+    pub use crate::lz4d::Lz4dExt as _;
+    pub use crate::uart::UartExt as _;
+    pub use embedded_hal::digital::{InputPin as _, OutputPin as _, PinState};
+    pub use embedded_hal::i2c::I2c as _;
+    pub use embedded_hal::pwm::SetDutyCycle as _;
+    pub use embedded_io::{Read as _, Write as _};
 }
 
 /// Wrapper type for manipulations of a field in a register.
