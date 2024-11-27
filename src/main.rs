@@ -141,6 +141,8 @@ fn run_cli<W: Write, R: Read, L: OutputPin, SPI, PADS, const I: usize>(
         Read { addr: &'a str },
         /// Write a value to a specified address.
         Write { addr: &'a str, val: &'a str },
+        /// Boot Linux kernel.
+        Boot,
     }
 
     #[derive(Command)]
@@ -212,6 +214,9 @@ fn run_cli<W: Write, R: Read, L: OutputPin, SPI, PADS, const I: usize>(
                             .write_str("Error: Invalid address or value!")
                             .unwrap(),
                     },
+                    Base::Boot => {
+                        run_payload();
+                    }
                 }
                 Ok(())
             }),
