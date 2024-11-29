@@ -6,7 +6,11 @@ use bouffalo_hal::{
     prelude::*,
     uart::{Config, SerialState},
 };
-use bouffalo_rt::{entry, interrupt, Clocks, Peripherals};
+use bouffalo_rt::{
+    entry, interrupt,
+    soc::bl808::{D0Machine, DspInterrupt},
+    Clocks, Peripherals,
+};
 use embedded_time::rate::*;
 use panic_halt as _;
 
@@ -19,10 +23,12 @@ async fn async_main(p: Peripherals, c: Clocks) {
         .uart3
         .with_interrupt(config, (tx, rx), &c, &UART3_STATE)
         .unwrap();
+    p.plic.enable(DspInterrupt::UART3, D0Machine);
 
     serial
         .write_all(b"Hello world from async/await uart demo!")
-        .await;
+        .await
+        .ok();
 }
 
 static UART3_STATE: SerialState = SerialState::new();
@@ -43,12 +49,17 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let mut fut = core::pin::pin!(async_main(p, c));
     let waker = Waker::noop();
     let mut ctx = Context::from_waker(waker);
+    unsafe {
+        riscv::register::mie::set_mext();
+        riscv::register::mstatus::set_mie();
+    }
     loop {
         match fut.as_mut().poll(&mut ctx) {
             Poll::Ready(_) => break,
             Poll::Pending => riscv::asm::wfi(),
         }
     }
+    unsafe { riscv::register::mstatus::clear_mie() };
     loop {
         riscv::asm::wfi();
     }

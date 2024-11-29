@@ -304,7 +304,7 @@ fn rust_bl808_dsp_machine_external(_tf: &mut TrapFrame) {
         if idx >= 16 && idx < 16 + 67 {
             unsafe { (D0_INTERRUPT_HANDLERS[idx - 16])() };
         }
-        plic.complete(D0Machine, PlicSource(source));
+        plic.complete(D0Machine, RawPlicSource(source));
     }
 }
 
@@ -461,15 +461,36 @@ impl plic::HartContext for D0Machine {
 }
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
-struct PlicSource(core::num::NonZeroU32);
+struct RawPlicSource(core::num::NonZeroU32);
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
-impl plic::InterruptSource for PlicSource {
+impl plic::InterruptSource for RawPlicSource {
     #[inline]
     fn id(self) -> core::num::NonZeroU32 {
         self.0
     }
 }
+
+/// DSP core PLIC interrupt source.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum DspInterrupt {
+    /// UART3 interrupt.
+    UART3 = 16 + 4,
+    // TODO other interrupts.
+    // /// I2C2 interrupt.
+    // I2C2 = 16 + 5,
+    // ...
+}
+
+impl plic::InterruptSource for DspInterrupt {
+    #[inline]
+    fn id(self) -> core::num::NonZeroU32 {
+        core::num::NonZeroU32::new(self as u32).unwrap()
+    }
+}
+
+// TODO: MCU and Low-Power core interrupt source.
+// pub enum McuLpInterrupt { ... }
 
 /// Trap stack frame.
 #[repr(C)]
