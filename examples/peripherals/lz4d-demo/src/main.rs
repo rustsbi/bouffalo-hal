@@ -19,9 +19,8 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let pads = ((tx, sig2), (rx, sig3));
 
     let config = Config::default().set_baudrate(2000000.Bd());
-    let mut serial = p.uart0.freerun(config, pads, &c);
+    let mut serial = p.uart0.freerun(config, pads, &c).unwrap();
 
-    writeln!(serial, "Hardware accelerated LZ4 decompression example.").ok();
     unsafe { p.glb.clock_config_1.modify(|v| v.enable_lz4d()) };
 
     let decompress = p.lz4d.decompress(
