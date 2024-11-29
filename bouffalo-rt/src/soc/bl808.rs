@@ -812,6 +812,8 @@ pub struct Peripherals {
     pub plic: PLIC,
     /// Multi-media subsystem global peripheral.
     pub mmglb: MMGLB,
+    /// Pseudo Static Random Access Memory controller.
+    pub psram: PSRAM,
 }
 
 soc! {
@@ -847,7 +849,8 @@ soc! {
     pub struct MMGLB => 0x30007000, bouffalo_hal::glb::mm::RegisterBlock;
     /// Serial Peripheral Interface peripheral 1.
     pub struct SPI1 => 0x30008000, bouffalo_hal::spi::RegisterBlock;
-
+    /// Pseudo Static Random Access Memory controller.
+    pub struct PSRAM => 0x3000F000, bouffalo_hal::psram::RegisterBlock;
     /// Platform-local Interrupt Controller.
     pub struct PLIC => 0xE0000000, plic::Plic;
 }

@@ -6,6 +6,7 @@
 | `i2c-demo`        | √     |
 | `jtag-demo`       | √     |
 | `lz4d-demo`       | √     |
+| `psram-demo`       | √     |
 | `pwm-demo`        | √     |
 | `sdcard-demo`     | √     |
 | `sdcard-gpt-demo` | √     |

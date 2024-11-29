@@ -42,7 +42,7 @@ jobs:
       matrix:
         TARGET: [riscv64imac-unknown-none-elf]
         TOOLCHAIN: [nightly]
-        EXAMPLES: [gpio-demo, i2c-demo, jtag-demo, lz4d-demo, pwm-demo, 
+        EXAMPLES: [gpio-demo, i2c-demo, jtag-demo, lz4d-demo, psram-demo, pwm-demo, 
           sdcard-demo, sdcard-gpt-demo, spi-demo, uart-demo]
     steps:
       - uses: actions/checkout@v4
