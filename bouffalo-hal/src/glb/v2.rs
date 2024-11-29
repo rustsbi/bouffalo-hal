@@ -24,13 +24,16 @@ pub struct RegisterBlock {
     // TODO: clock_config_0, clock_config_2, clock_config_3 registers
     /// Clock generation configuration 1.
     pub clock_config_1: RW<ClockConfig1>,
-    _reserved6: [u8; 0x33c],
+    _reserved6: [u8; 0x148],
+    /// LDO12UHS config.
+    pub ldo12uhs_config: RW<Ldo12uhsConfig>,
+    _reserved7: [u8; 0x1f0],
     /// Generic Purpose Input/Output config.
     pub gpio_config: [RW<GpioConfig>; 46],
-    _reserved7: [u8; 0x148],
+    _reserved8: [u8; 0x148],
     /// Read value from Generic Purpose Input/Output pads.
     pub gpio_input: [RO<u32>; 2],
-    _reserved8: [u8; 0x18],
+    _reserved9: [u8; 0x18],
     /// Write value to Generic Purpose Input/Output pads.
     pub gpio_output: [RW<u32>; 2],
     /// Set pin output value to high.
@@ -778,6 +781,42 @@ pub enum Pull {
     Down = 2,
 }
 
+/// Ldo12uhs configuration register.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct Ldo12uhsConfig(u32);
+
+impl Ldo12uhsConfig {
+    const POWER: u32 = 0x1 << 0;
+    const VOUT_SEL: u32 = 0xf << 20;
+
+    /// Power up LDO12UHS.
+    #[inline]
+    pub const fn power_up(self) -> Self {
+        Self(self.0 | Self::POWER)
+    }
+    /// Power down LDO12UHS.
+    #[inline]
+    pub const fn power_down(self) -> Self {
+        Self(self.0 & !Self::POWER)
+    }
+    /// Check if LDO12UHS is powered up.
+    #[inline]
+    pub const fn is_powered_up(self) -> bool {
+        self.0 & Self::POWER != 0
+    }
+    /// Set output voltage of LDO12UHS.
+    #[inline]
+    pub const fn set_output_voltage(self, val: u8) -> Self {
+        Self((self.0 & !Self::VOUT_SEL) | ((val as u32) << 20))
+    }
+    /// Get output voltage of LDO12UHS.
+    #[inline]
+    pub const fn get_output_voltage(self) -> u8 {
+        ((self.0 & Self::VOUT_SEL) >> 20) as u8
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::glb::v2::SpiClockSource;
@@ -798,6 +837,7 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, pwm_config), 0x1d0);
         assert_eq!(offset_of!(RegisterBlock, param_config), 0x510);
         assert_eq!(offset_of!(RegisterBlock, clock_config_1), 0x584);
+        assert_eq!(offset_of!(RegisterBlock, ldo12uhs_config), 0x6d0);
         assert_eq!(offset_of!(RegisterBlock, gpio_config), 0x8c4);
         assert_eq!(offset_of!(RegisterBlock, gpio_input), 0xac4);
         assert_eq!(offset_of!(RegisterBlock, gpio_output), 0xae4);
