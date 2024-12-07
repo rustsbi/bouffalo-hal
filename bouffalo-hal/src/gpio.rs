@@ -472,6 +472,37 @@ impl Alternate for Spi<1> {
     const F: v2::Function = v2::Function::Spi1;
 }
 
+#[cfg(feature = "glb-v2")]
+impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
+    /// Configures the pin to operate as a SDH pin.
+    #[inline]
+    pub fn into_sdh(self) -> Pad<GLB, N, Sdh> {
+        let config = v2::GpioConfig::RESET_VALUE
+            .enable_input()
+            .disable_output()
+            .enable_schmitt()
+            .set_pull(v2::Pull::Up)
+            .set_drive(v2::Drive::Drive0)
+            .set_function(Sdh::F);
+        unsafe {
+            self.base.gpio_config[N].write(config);
+        }
+
+        Pad {
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+}
+
+/// SD Host mode (type state).
+pub struct Sdh;
+
+impl Alternate for Sdh {
+    #[cfg(feature = "glb-v2")]
+    const F: v2::Function = v2::Function::Sdh;
+}
+
 impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as a pull up output pin.
     #[inline]
