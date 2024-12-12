@@ -7,10 +7,11 @@ mod macros;
 
 pub use bouffalo_rt_macros::{entry, exception, interrupt};
 
+pub mod arch;
 pub mod soc;
 
 cfg_if::cfg_if! {
-    if #[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp"))] {
+    if #[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp", feature = "bl808-lp"))] {
         pub use soc::bl808::{Peripherals, Clocks};
         #[doc(hidden)]
         pub use soc::bl808::__new_clocks;
@@ -25,16 +26,17 @@ cfg_if::cfg_if! {
     }
 }
 
+cfg_if::cfg_if! {
+    if #[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp", feature = "bl702", feature = "bl616"))] {
+        pub use arch::rvi::TrapFrame;
+    } else if #[cfg(feature = "bl808-lp")] {
+        pub use arch::rve::TrapFrame;
+    }
+}
+
 #[doc(hidden)]
 #[no_mangle]
 pub extern "C" fn default_handler() {}
-
-/// RISC-V program stack.
-///
-/// In standard RISC-V ABI specification, the stack grows downward and
-/// the stack pointer is always kept 16-byte aligned.
-#[repr(align(16))]
-pub struct Stack<const N: usize>([u8; N]);
 
 /// Flash configuration in ROM header.
 #[repr(C)]
