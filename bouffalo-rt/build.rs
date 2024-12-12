@@ -1,30 +1,35 @@
 use std::{env, path::PathBuf};
 
 fn main() {
-    let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     #[cfg(any(
         feature = "bl616",
         feature = "bl808-mcu",
         feature = "bl808-dsp",
+        feature = "bl808-lp",
         feature = "bl702"
     ))]
-    let ld = &out.join("bouffalo-rt.ld");
+    let (out, ld) = {
+        let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+        let ld = out.join("bouffalo-rt.ld");
+        (out, ld)
+    };
 
     #[cfg(feature = "bl616")]
-    std::fs::write(ld, LINKER_SCRIPT_BL616).unwrap();
+    std::fs::write(&ld, LINKER_SCRIPT_BL616).unwrap();
     #[cfg(feature = "bl808-mcu")]
-    std::fs::write(ld, LINKER_SCRIPT_BL808_MCU).unwrap();
+    std::fs::write(&ld, LINKER_SCRIPT_BL808_MCU).unwrap();
     #[cfg(feature = "bl808-dsp")]
-    std::fs::write(ld, LINKER_SCRIPT_BL808_DSP).unwrap();
+    std::fs::write(&ld, LINKER_SCRIPT_BL808_DSP).unwrap();
     #[cfg(feature = "bl808-lp")]
-    std::fs::write(ld, LINKER_SCRIPT_BL808_LP).unwrap();
+    std::fs::write(&ld, LINKER_SCRIPT_BL808_LP).unwrap();
     #[cfg(feature = "bl702")]
-    std::fs::write(ld, LINKER_SCRIPT_BL702).unwrap();
+    std::fs::write(&ld, LINKER_SCRIPT_BL702).unwrap();
 
     #[cfg(any(
         feature = "bl616",
         feature = "bl808-mcu",
         feature = "bl808-dsp",
+        feature = "bl808-lp",
         feature = "bl702"
     ))]
     {
