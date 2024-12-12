@@ -2,6 +2,12 @@ use std::{env, path::PathBuf};
 
 fn main() {
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    #[cfg(any(
+        feature = "bl616",
+        feature = "bl808-mcu",
+        feature = "bl808-dsp",
+        feature = "bl702"
+    ))]
     let ld = &out.join("bouffalo-rt.ld");
 
     #[cfg(feature = "bl616")]
