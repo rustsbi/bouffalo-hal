@@ -15,6 +15,12 @@ use embedded_time::rate::*;
 use panic_halt as _;
 
 async fn async_main(p: Peripherals, c: Clocks) {
+    // enable jtag
+    p.gpio.io0.into_jtag_d0();
+    p.gpio.io1.into_jtag_d0();
+    p.gpio.io2.into_jtag_d0();
+    p.gpio.io3.into_jtag_d0();
+
     let tx = p.gpio.io16.into_mm_uart();
     let rx = p.gpio.io17.into_mm_uart();
 
@@ -23,6 +29,8 @@ async fn async_main(p: Peripherals, c: Clocks) {
         .uart3
         .with_interrupt(config, (tx, rx), &c, &UART3_STATE)
         .unwrap();
+    // TODO: is T-Head C906 PLIC different from standard PLIC?
+    p.plic.set_priority(DspInterrupt::UART3, 1);
     p.plic.enable(DspInterrupt::UART3, D0Machine);
 
     serial
@@ -46,6 +54,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
         future::Future,
         task::{Context, Poll, Waker},
     };
+    p.plic.set_threshold(D0Machine, 0);
     let mut fut = core::pin::pin!(async_main(p, c));
     let waker = Waker::noop();
     let mut ctx = Context::from_waker(waker);
