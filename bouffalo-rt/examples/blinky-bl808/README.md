@@ -13,3 +13,10 @@ cargo build -p blinky-bl808 --features bl808-mcu --no-default-features --target 
 rustup target install riscv64imac-unknown-none-elf
 cargo build -p blinky-bl808 --features bl808-dsp --target riscv64imac-unknown-none-elf --release
 ```
+
+'LP' cores:
+
+```
+rustup target install riscv32imac-unknown-none-elf
+cargo build -p blinky-bl808 --features bl808-lp --target riscv64imac-unknown-none-elf --release
+```

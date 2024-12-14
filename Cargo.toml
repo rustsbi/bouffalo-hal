@@ -20,5 +20,6 @@ members = [
     "examples/peripherals/sdcard-demo",
     "examples/peripherals/sdcard-gpt-demo",
     "examples/peripherals/psram-demo",
+    "examples/peripherals/sdh-demo",
 ]
 resolver = "2"

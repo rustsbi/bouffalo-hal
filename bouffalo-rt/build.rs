@@ -1,22 +1,35 @@
 use std::{env, path::PathBuf};
 
 fn main() {
-    let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
-    let ld = &out.join("bouffalo-rt.ld");
+    #[cfg(any(
+        feature = "bl616",
+        feature = "bl808-mcu",
+        feature = "bl808-dsp",
+        feature = "bl808-lp",
+        feature = "bl702"
+    ))]
+    let (out, ld) = {
+        let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+        let ld = out.join("bouffalo-rt.ld");
+        (out, ld)
+    };
 
     #[cfg(feature = "bl616")]
-    std::fs::write(ld, LINKER_SCRIPT_BL616).unwrap();
+    std::fs::write(&ld, LINKER_SCRIPT_BL616).unwrap();
     #[cfg(feature = "bl808-mcu")]
-    std::fs::write(ld, LINKER_SCRIPT_BL808_MCU).unwrap();
+    std::fs::write(&ld, LINKER_SCRIPT_BL808_MCU).unwrap();
     #[cfg(feature = "bl808-dsp")]
-    std::fs::write(ld, LINKER_SCRIPT_BL808_DSP).unwrap();
+    std::fs::write(&ld, LINKER_SCRIPT_BL808_DSP).unwrap();
+    #[cfg(feature = "bl808-lp")]
+    std::fs::write(&ld, LINKER_SCRIPT_BL808_LP).unwrap();
     #[cfg(feature = "bl702")]
-    std::fs::write(ld, LINKER_SCRIPT_BL702).unwrap();
+    std::fs::write(&ld, LINKER_SCRIPT_BL702).unwrap();
 
     #[cfg(any(
         feature = "bl616",
         feature = "bl808-mcu",
         feature = "bl808-dsp",
+        feature = "bl808-lp",
         feature = "bl702"
     ))]
     {
@@ -304,6 +317,76 @@ PROVIDE(audio = default_handler);
 PROVIDE(wl_all = default_handler);
 PROVIDE(pds = default_handler);
 ";
+
+#[cfg(feature = "bl808-lp")]
+const LINKER_SCRIPT_BL808_LP: &[u8] = b"
+OUTPUT_ARCH(riscv)
+ENTRY(_start)
+MEMORY {
+    PSEUDO_HEADER : ORIGIN = 0x58020000 - 0x1000, LENGTH = 4K
+    FLASH : ORIGIN = 0x58020000, LENGTH = 1M - 4K
+    RAM : ORIGIN = 0x22034000, LENGTH = 16K
+}
+SECTIONS {
+    .head : ALIGN(4) {
+        LONG(0x504E4642);
+        LONG(1);
+        KEEP(*(.head.flash));
+        KEEP(*(.head.clock));
+        KEEP(*(.head.base.flag));
+        LONG(ADDR(.text) - ORIGIN(PSEUDO_HEADER));
+        KEEP(*(.head.base.aes-region));
+        LONG(SIZEOF(.text) + SIZEOF(.rodata) + SIZEOF(.data));
+        KEEP(*(.head.base.hash));
+        KEEP(*(.head.cpu));
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        KEEP(*(.head.patch.on-read));
+        KEEP(*(.head.patch.on-jump));
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        LONG(0);
+        KEEP(*(.head.crc32));
+        FILL(0xFFFFFFFF);
+        . = ORIGIN(PSEUDO_HEADER) + LENGTH(PSEUDO_HEADER);
+    } > PSEUDO_HEADER
+    .text : ALIGN(4) {
+        stext = .;
+        KEEP(*(.text.entry))
+        *(.text .text.*)
+        . = ALIGN(4);
+        etext = .;
+    } > FLASH
+    .rodata : ALIGN(4) {
+        srodata = .;
+        *(.rodata .rodata.*)
+        *(.srodata .srodata.*)
+        . = ALIGN(4);
+        erodata = .;
+    } > FLASH
+    .data : ALIGN(4) {
+        sdata = .;
+        *(.data .data.*)
+        *(.sdata .sdata.*)
+        . = ALIGN(4);
+        edata = .;
+    } > RAM AT>FLASH
+    sidata = LOADADDR(.data);
+    .bss (NOLOAD) : ALIGN(4) {
+        *(.bss.uninit)
+        sbss = .;
+        *(.bss .bss.*)
+        *(.sbss .sbss.*)
+        ebss = .;
+    } > RAM
+    /DISCARD/ : {
+        *(.eh_frame)
+    }
+}";
 
 #[cfg(feature = "bl702")]
 const LINKER_SCRIPT_BL702: &[u8] = b"

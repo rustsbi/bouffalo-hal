@@ -3,13 +3,10 @@
 
 use core::{arch::asm, ptr};
 
-use bouffalo_hal::{prelude::*, uart::Config};
+use bouffalo_hal::{prelude::*, psram::init_psram, uart::Config};
 use bouffalo_rt::{entry, Clocks, Peripherals};
 use embedded_time::rate::*;
 use panic_halt as _;
-use psram::*;
-
-mod psram;
 
 #[entry]
 fn main(p: Peripherals, c: Clocks) -> ! {
@@ -30,8 +27,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
 
     writeln!(serial, "Welcome to psram-demo🦀!").ok();
 
-    uhs_psram_init();
-    writeln!(serial, "uhs_psram_init success").ok();
+    init_psram(&p.psram, &p.glb);
 
     const MEMORY_SIZE: usize = 64 * 1024 * 1024;
     const START_ADDRESS: u32 = 0x50000000;
@@ -98,29 +94,11 @@ fn main(p: Peripherals, c: Clocks) -> ! {
 }
 
 #[inline]
-pub(crate) fn read_memory(addr: u32) -> u32 {
+pub fn read_memory(addr: u32) -> u32 {
     unsafe { ptr::read_volatile(addr as *const u32) }
 }
 
 #[inline]
-pub(crate) fn write_memory(addr: u32, val: u32) {
+pub fn write_memory(addr: u32, val: u32) {
     unsafe { ptr::write_volatile(addr as *mut u32, val) }
-}
-
-#[inline]
-pub(crate) fn set_bits(val: u32, pos: u32, len: u32, val_in: u32) -> u32 {
-    let mask = ((1 << len) - 1) << pos;
-    (val & !mask) | ((val_in << pos) & mask)
-}
-
-#[inline]
-pub(crate) fn sleep_us(_: u32) {
-    for _ in 0..1000 {
-        unsafe { asm!("nop") }
-    }
-}
-
-#[inline]
-pub(crate) fn sleep_ms(n: u32) {
-    sleep_us(n);
 }

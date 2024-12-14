@@ -1,11 +1,6 @@
 //! BL808 tri-core heterogeneous Wi-Fi 802.11b/g/n, Bluetooth 5, Zigbee AIoT system-on-chip.
 
 use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
-#[cfg(any(
-    all(feature = "bl808-mcu", target_arch = "riscv32"),
-    all(feature = "bl808-dsp", target_arch = "riscv64")
-))]
-use core::arch::naked_asm;
 use core::ops::Deref;
 
 #[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
@@ -13,11 +8,11 @@ use core::ops::Deref;
 #[link_section = ".text.entry"]
 #[export_name = "_start"]
 unsafe extern "C" fn start() -> ! {
-    use crate::Stack;
+    use crate::arch::rvi::Stack;
     const LEN_STACK_MCU: usize = 1 * 1024;
     #[link_section = ".bss.uninit"]
     static mut STACK: Stack<LEN_STACK_MCU> = Stack([0; LEN_STACK_MCU]);
-    naked_asm!(
+    core::arch::naked_asm!(
         "   la      sp, {stack}
             li      t0, {hart_stack_size}
             add     sp, sp, t0",
@@ -65,11 +60,11 @@ unsafe extern "C" fn start() -> ! {
 #[link_section = ".text.entry"]
 #[export_name = "_start"]
 unsafe extern "C" fn start() -> ! {
-    use crate::Stack;
+    use crate::arch::rvi::Stack;
     const LEN_STACK_DSP: usize = 4 * 1024;
     #[link_section = ".bss.uninit"]
     static mut STACK: Stack<LEN_STACK_DSP> = Stack([0; LEN_STACK_DSP]);
-    naked_asm!(
+    core::arch::naked_asm!(
         "   la      sp, {stack}
             li      t0, {hart_stack_size}
             add     sp, sp, t0",
@@ -108,8 +103,48 @@ unsafe extern "C" fn start() -> ! {
     )
 }
 
+#[cfg(all(feature = "bl808-lp", target_arch = "riscv32"))]
+#[naked]
+#[link_section = ".text.entry"]
+#[export_name = "_start"]
+unsafe extern "C" fn start() -> ! {
+    use crate::arch::rve::Stack;
+    const LEN_STACK_LP: usize = 1 * 1024;
+    #[link_section = ".bss.uninit"]
+    static mut STACK: Stack<LEN_STACK_LP> = Stack([0; LEN_STACK_LP]);
+    core::arch::naked_asm!(
+        "   la      sp, {stack}
+            li      t0, {hart_stack_size}
+            add     sp, sp, t0",
+        "   la      t1, sbss
+            la      t2, ebss
+        1:  bgeu    t1, t2, 1f
+            sw      zero, 0(t1)
+            addi    t1, t1, 4
+            j       1b
+        1:",
+        "   la      t3, sidata
+            la      t4, sdata
+            la      t5, edata
+        1:  bgeu    t4, t5, 1f
+            lw      t6, 0(t3)
+            sw      t6, 0(t4)
+            addi    t3, t3, 4
+            addi    t4, t4, 4
+            j       1b
+        1:",
+        // TODO trap support
+        // TODO pmp support
+        "   call  {main}",
+        stack = sym STACK,
+        hart_stack_size = const LEN_STACK_LP,
+        main = sym main,
+    )
+}
+
 #[cfg(any(
     all(feature = "bl808-mcu", target_arch = "riscv32"),
+    all(feature = "bl808-lp", target_arch = "riscv32"),
     all(feature = "bl808-dsp", target_arch = "riscv64")
 ))]
 extern "Rust" {
@@ -125,7 +160,7 @@ extern "Rust" {
 #[link_section = ".trap.trap-entry"]
 #[naked]
 unsafe extern "C" fn trap_vectored() -> ! {
-    naked_asm!(
+    core::arch::naked_asm!(
         ".p2align 2",
         "j {exceptions}",
         "j {supervisor_software}",
@@ -163,7 +198,7 @@ unsafe extern "C" fn trap_vectored() -> ! {
 ))]
 #[naked]
 unsafe extern "C" fn reserved() -> ! {
-    naked_asm!("1: j   1b")
+    core::arch::naked_asm!("1: j   1b")
 }
 
 #[cfg(any(
@@ -171,16 +206,20 @@ unsafe extern "C" fn reserved() -> ! {
     all(feature = "bl808-dsp", target_arch = "riscv64")
 ))]
 extern "C" {
-    fn exceptions(tf: &mut TrapFrame);
+    fn exceptions(tf: &mut crate::arch::rvi::TrapFrame);
 }
 
-#[cfg(any(
-    all(feature = "bl808-mcu", target_arch = "riscv32"),
-    all(feature = "bl808-dsp", target_arch = "riscv64")
-))]
+// TODO exceptions_trampoline for bl808-mcu
+#[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
 #[naked]
 unsafe extern "C" fn exceptions_trampoline() -> ! {
-    naked_asm!(
+    core::arch::naked_asm!("")
+}
+
+#[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
+#[naked]
+unsafe extern "C" fn exceptions_trampoline() -> ! {
+    core::arch::naked_asm!(
         "addi   sp, sp, -19*8",
         "sd     ra, 0*8(sp)",
         "sd     t0, 1*8(sp)",
@@ -235,13 +274,17 @@ unsafe extern "C" fn exceptions_trampoline() -> ! {
     )
 }
 
-#[cfg(any(
-    all(feature = "bl808-mcu", target_arch = "riscv32"),
-    all(feature = "bl808-dsp", target_arch = "riscv64")
-))]
+// TODO machine_external_trampoline for bl808-mcu
+#[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
 #[naked]
 unsafe extern "C" fn machine_external_trampoline() -> ! {
-    naked_asm!(
+    core::arch::naked_asm!("")
+}
+
+#[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
+#[naked]
+unsafe extern "C" fn machine_external_trampoline() -> ! {
+    core::arch::naked_asm!(
         "addi   sp, sp, -19*8",
         "sd     ra, 0*8(sp)",
         "sd     t0, 1*8(sp)",
@@ -297,7 +340,7 @@ unsafe extern "C" fn machine_external_trampoline() -> ! {
 }
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
-fn rust_bl808_dsp_machine_external(_tf: &mut TrapFrame) {
+fn rust_bl808_dsp_machine_external(_tf: &mut crate::arch::rvi::TrapFrame) {
     let plic: PLIC = unsafe { core::mem::transmute(()) };
     if let Some(source) = plic.claim(D0Machine) {
         let idx = source.get() as usize;
@@ -491,49 +534,6 @@ impl plic::InterruptSource for DspInterrupt {
 
 // TODO: MCU and Low-Power core interrupt source.
 // pub enum McuLpInterrupt { ... }
-
-/// Trap stack frame.
-#[repr(C)]
-pub struct TrapFrame {
-    /// Return address register.
-    pub ra: usize,
-    /// Temporary register 0.
-    pub t0: usize,
-    /// Temporary register 1.
-    pub t1: usize,
-    /// Temporary register 2.
-    pub t2: usize,
-    /// Argument register 0.
-    pub a0: usize,
-    /// Argument register 1.
-    pub a1: usize,
-    /// Argument register 2.
-    pub a2: usize,
-    /// Argument register 3.
-    pub a3: usize,
-    /// Argument register 4.
-    pub a4: usize,
-    /// Argument register 5.
-    pub a5: usize,
-    /// Argument register 6.
-    pub a6: usize,
-    /// Argument register 7.
-    pub a7: usize,
-    /// Temporary register 3.
-    pub t3: usize,
-    /// Temporary register 4.
-    pub t4: usize,
-    /// Temporary register 5.
-    pub t5: usize,
-    /// Temporary register 6.
-    pub t6: usize,
-    /// Machine cause register.
-    pub mcause: usize,
-    /// Machine exception program counter register.
-    pub mepc: usize,
-    /// Machine status register.
-    pub mstatus: usize,
-}
 
 /// Clock configuration at boot-time.
 #[cfg(any(doc, feature = "bl808-mcu", feature = "bl808-dsp"))]
@@ -833,6 +833,8 @@ pub struct Peripherals {
     pub plic: PLIC,
     /// Multi-media subsystem global peripheral.
     pub mmglb: MMGLB,
+    /// Pseudo Static Random Access Memory controller.
+    pub psram: PSRAM,
 }
 
 soc! {
@@ -868,7 +870,8 @@ soc! {
     pub struct MMGLB => 0x30007000, bouffalo_hal::glb::mm::RegisterBlock;
     /// Serial Peripheral Interface peripheral 1.
     pub struct SPI1 => 0x30008000, bouffalo_hal::spi::RegisterBlock;
-
+    /// Pseudo Static Random Access Memory controller.
+    pub struct PSRAM => 0x3000F000, bouffalo_hal::psram::RegisterBlock;
     /// Platform-local Interrupt Controller.
     pub struct PLIC => 0xE0000000, plic::Plic;
 }
