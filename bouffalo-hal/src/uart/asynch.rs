@@ -39,8 +39,8 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> AsyncSerial<UART, PADS> {
         unsafe { uart.bit_period.write(bit_period) };
         // Write the bit-order.
         unsafe { uart.data_config.write(data_config) };
-        // Configure transmit feature without freerun.
-        unsafe { uart.transmit_config.write(transmit_config) };
+        // Configure transmit feature with freerun.
+        unsafe { uart.transmit_config.write(transmit_config.enable_freerun()) };
         // Configure receive feature.
         unsafe { uart.receive_config.write(receive_config) };
 

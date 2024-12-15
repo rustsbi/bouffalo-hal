@@ -873,7 +873,7 @@ soc! {
     /// Pseudo Static Random Access Memory controller.
     pub struct PSRAM => 0x3000F000, bouffalo_hal::psram::RegisterBlock;
     /// Platform-local Interrupt Controller.
-    pub struct PLIC => 0xE0000000, plic::Plic;
+    pub struct PLIC => 0xE0000000, xuantie_riscv::peripheral::plic::Plic;
 }
 
 pub use bouffalo_hal::clocks::Clocks;
