@@ -42,8 +42,8 @@ jobs:
       matrix:
         TARGET: [riscv64imac-unknown-none-elf]
         TOOLCHAIN: [nightly]
-        EXAMPLES: [gpio-demo, i2c-demo, jtag-demo, lz4d-demo, psram-demo, pwm-demo, 
-          sdcard-demo, sdcard-gpt-demo, spi-demo, uart-demo]
+        EXAMPLES: [gpio-demo, i2c-demo, jtag-demo, lz4d-demo, pwm-demo, 
+          sdcard-demo, sdcard-gpt-demo, spi-demo, uart-demo, uart-async-demo, uart-cli-demo]
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1

@@ -347,7 +347,7 @@ fn rust_bl808_dsp_machine_external(_tf: &mut crate::arch::rvi::TrapFrame) {
         if idx >= 16 && idx < 16 + 67 {
             unsafe { (D0_INTERRUPT_HANDLERS[idx - 16])() };
         }
-        plic.complete(D0Machine, PlicSource(source));
+        plic.complete(D0Machine, RawPlicSource(source));
     }
 }
 
@@ -504,15 +504,36 @@ impl plic::HartContext for D0Machine {
 }
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
-struct PlicSource(core::num::NonZeroU32);
+struct RawPlicSource(core::num::NonZeroU32);
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
-impl plic::InterruptSource for PlicSource {
+impl plic::InterruptSource for RawPlicSource {
     #[inline]
     fn id(self) -> core::num::NonZeroU32 {
         self.0
     }
 }
+
+/// DSP core PLIC interrupt source.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub enum DspInterrupt {
+    /// UART3 interrupt.
+    UART3 = 16 + 4,
+    // TODO other interrupts.
+    // /// I2C2 interrupt.
+    // I2C2 = 16 + 5,
+    // ...
+}
+
+impl plic::InterruptSource for DspInterrupt {
+    #[inline]
+    fn id(self) -> core::num::NonZeroU32 {
+        core::num::NonZeroU32::new(self as u32).unwrap()
+    }
+}
+
+// TODO: MCU and Low-Power core interrupt source.
+// pub enum McuLpInterrupt { ... }
 
 /// Clock configuration at boot-time.
 #[cfg(any(doc, feature = "bl808-mcu", feature = "bl808-dsp"))]
@@ -852,7 +873,7 @@ soc! {
     /// Pseudo Static Random Access Memory controller.
     pub struct PSRAM => 0x3000F000, bouffalo_hal::psram::RegisterBlock;
     /// Platform-local Interrupt Controller.
-    pub struct PLIC => 0xE0000000, plic::Plic;
+    pub struct PLIC => 0xE0000000, xuantie_riscv::peripheral::plic::Plic;
 }
 
 pub use bouffalo_hal::clocks::Clocks;

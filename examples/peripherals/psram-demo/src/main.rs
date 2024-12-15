@@ -20,8 +20,11 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let rx = p.gpio.io15.into_uart();
     let sig2 = p.uart_muxes.sig2.into_transmit::<0>();
     let sig3 = p.uart_muxes.sig3.into_receive::<0>();
+    let pads = ((tx, sig2), (rx, sig3));
+
     let config = Config::default().set_baudrate(2000000.Bd());
-    let mut serial = p.uart0.freerun(config, ((tx, sig2), (rx, sig3)), &c);
+    let mut serial = p.uart0.freerun(config, pads, &c).unwrap();
+
     writeln!(serial, "Welcome to psram-demo🦀!").ok();
 
     init_psram(&p.psram, &p.glb);
