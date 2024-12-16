@@ -380,7 +380,7 @@ impl Command {
     }
     /// Set this bit to 0 for the following:
     /// (1) Commands using only CMD line (ex.CMD52).
-    /// (2) Commands with no data transfer but using busy signal on DAT[0] line (R1b or R5b ex. CMD38).
+    /// (2) Commands with no data transfer but using busy signal on DAT\[0\] line (R1b or R5b ex. CMD38).
     /// (3) Resume command.
     #[inline]
     pub const fn unset_data_present(self) -> Self {

@@ -11,6 +11,7 @@ use core::{
 };
 
 /// Managed async/await serial peripheral.
+#[derive(Debug)]
 pub struct AsyncSerial<UART, PADS> {
     uart: UART,
     pads: PADS,
@@ -59,6 +60,7 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> AsyncSerial<UART, PADS> {
 }
 
 /// Set of wakers as the state for an async/await serial peripheral.
+#[derive(Debug)]
 pub struct SerialState {
     transmit_ready: atomic_waker::AtomicWaker,
     receive_ready: atomic_waker::AtomicWaker,

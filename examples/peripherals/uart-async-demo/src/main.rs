@@ -1,4 +1,3 @@
-#![feature(noop_waker)]
 #![no_std]
 #![no_main]
 
