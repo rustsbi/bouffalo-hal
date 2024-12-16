@@ -3,7 +3,8 @@
 #[cfg(any(doc, feature = "glb-v2"))]
 use crate::glb::{
     self,
-    v2::{Drive, Function, GpioConfig, Pull},
+    v2::{Function, GpioConfig},
+    Drive, Pull,
 };
 use crate::gpio::Alternate;
 #[cfg(any(doc, feature = "glb-v2"))]

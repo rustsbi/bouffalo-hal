@@ -1,8 +1,10 @@
 //! General Purpose Input/Output.
+
 #[cfg(feature = "glb-v1")]
 use crate::glb::v1;
 #[cfg(any(doc, feature = "glb-v2"))]
 use crate::glb::v2;
+use crate::glb::{Drive, Pull};
 use core::{marker::PhantomData, ops::Deref};
 use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 
@@ -407,12 +409,12 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Input
 impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Output<M>> {
     /// Get drive strength of this pin.
     #[inline]
-    pub fn drive(&self) -> v1::Drive {
+    pub fn drive(&self) -> Drive {
         self.base.gpio_config[N >> 1].read().drive(N & 0x1)
     }
     /// Set drive strength of this pin.
     #[inline]
-    pub fn set_drive(&mut self, val: v1::Drive) {
+    pub fn set_drive(&mut self, val: Drive) {
         let config = self.base.gpio_config[N >> 1].read().set_drive(N & 0x1, val);
         unsafe { self.base.gpio_config[N >> 1].write(config) };
     }
@@ -422,12 +424,12 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Outpu
 impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Output<M>> {
     /// Get drive strength of this pin.
     #[inline]
-    pub fn drive(&self) -> v2::Drive {
+    pub fn drive(&self) -> Drive {
         self.base.gpio_config[N].read().drive()
     }
     /// Set drive strength of this pin.
     #[inline]
-    pub fn set_drive(&mut self, val: v2::Drive) {
+    pub fn set_drive(&mut self, val: Drive) {
         let config = self.base.gpio_config[N].read().set_drive(val);
         unsafe { self.base.gpio_config[N].write(config) };
     }
@@ -445,8 +447,8 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
             .enable_input()
             .disable_output()
             .enable_schmitt()
-            .set_pull(v2::Pull::Up)
-            .set_drive(v2::Drive::Drive0)
+            .set_pull(Pull::Up)
+            .set_drive(Drive::Drive0)
             .set_function(Spi::<I>::F);
         unsafe {
             self.base.gpio_config[N].write(config);
@@ -481,8 +483,8 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
             .enable_input()
             .disable_output()
             .enable_schmitt()
-            .set_pull(v2::Pull::Up)
-            .set_drive(v2::Drive::Drive0)
+            .set_pull(Pull::Up)
+            .set_drive(Drive::Drive0)
             .set_function(Sdh::F);
         unsafe {
             self.base.gpio_config[N].write(config);
@@ -513,7 +515,7 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
                     .read()
                     .set_function(N & 0x1, v1::Function::Gpio)
                     .disable_input(N & 0x1)
-                    .set_pull(N & 0x1, v1::Pull::Up);
+                    .set_pull(N & 0x1, Pull::Up);
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
@@ -528,7 +530,7 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
                     .set_mode(v2::Mode::SetClear)
                     .disable_input()
                     .enable_output()
-                    .set_pull(v2::Pull::Up);
+                    .set_pull(Pull::Up);
                 unsafe { self.base.gpio_config[N].write(config) };
                 Pad {
                     base: self.base,
@@ -548,7 +550,7 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
                     .read()
                     .set_function(N & 0x1, v1::Function::Gpio)
                     .disable_input(N & 0x1)
-                    .set_pull(N & 0x1, v1::Pull::Down);
+                    .set_pull(N & 0x1, Pull::Down);
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
@@ -563,7 +565,7 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
                     .set_mode(v2::Mode::SetClear)
                     .disable_input()
                     .enable_output()
-                    .set_pull(v2::Pull::Down);
+                    .set_pull(Pull::Down);
                 unsafe { self.base.gpio_config[N].write(config) };
                 Pad {
                     base: self.base,
@@ -583,7 +585,7 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
                     .read()
                     .set_function(N & 0x1, v1::Function::Gpio)
                     .disable_input(N & 0x1)
-                    .set_pull(N & 0x1, v1::Pull::None);
+                    .set_pull(N & 0x1, Pull::None);
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
@@ -598,7 +600,7 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
                     .set_mode(v2::Mode::SetClear)
                     .disable_input()
                     .enable_output()
-                    .set_pull(v2::Pull::None);
+                    .set_pull(Pull::None);
                 unsafe { self.base.gpio_config[N].write(config) };
                 Pad {
                     base: self.base,
@@ -618,7 +620,7 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
                     .read()
                     .set_function(N & 0x1, v1::Function::Gpio)
                     .enable_input(N & 0x1)
-                    .set_pull(N & 0x1, v1::Pull::Up);
+                    .set_pull(N & 0x1, Pull::Up);
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
@@ -633,7 +635,7 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
                     .set_mode(v2::Mode::SetClear)
                     .enable_input()
                     .disable_output()
-                    .set_pull(v2::Pull::Up);
+                    .set_pull(Pull::Up);
                 unsafe { self.base.gpio_config[N].write(config) };
                 Pad {
                     base: self.base,
@@ -653,7 +655,7 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
                     .read()
                     .set_function(N & 0x1, v1::Function::Gpio)
                     .enable_input(N & 0x1)
-                    .set_pull(N & 0x1, v1::Pull::Down);
+                    .set_pull(N & 0x1, Pull::Down);
                 unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
@@ -668,7 +670,7 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
                     .set_mode(v2::Mode::SetClear)
                     .enable_input()
                     .disable_output()
-                    .set_pull(v2::Pull::Down);
+                    .set_pull(Pull::Down);
                 unsafe { self.base.gpio_config[N].write(config) };
                 Pad {
                     base: self.base,
@@ -688,7 +690,7 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
                     .read()
                     .set_function(N & 0x1, v1::Function::Gpio)
                     .enable_input(N & 0x1)
-                    .set_pull(N & 0x1, v1::Pull::None);
+                    .set_pull(N & 0x1, Pull::None);
                     unsafe { self.base.gpio_config[N >> 1].write(config) };
                 let val = self.base.gpio_output_enable.read();
                 unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
@@ -703,7 +705,7 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
                     .set_mode(v2::Mode::SetClear)
                     .enable_input()
                     .disable_output()
-                    .set_pull(v2::Pull::None);
+                    .set_pull(Pull::None);
                 unsafe { self.base.gpio_config[N].write(config) };
                 Pad {
                     base: self.base,
@@ -729,8 +731,8 @@ const UART_GPIO_CONFIG: v2::GpioConfig = v2::GpioConfig::RESET_VALUE
     .enable_input()
     .enable_output()
     .enable_schmitt()
-    .set_drive(v2::Drive::Drive0)
-    .set_pull(v2::Pull::Up)
+    .set_drive(Drive::Drive0)
+    .set_pull(Pull::Up)
     .set_function(v2::Function::Uart);
 
 impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
@@ -794,8 +796,8 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
             .disable_input()
             .enable_output()
             .enable_schmitt()
-            .set_drive(v2::Drive::Drive0)
-            .set_pull(v2::Pull::Up)
+            .set_drive(Drive::Drive0)
+            .set_pull(Pull::Up)
             .set_function(Pwm::<I>::F);
         unsafe { self.base.gpio_config[N].write(config) };
         Pad {
@@ -814,8 +816,8 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
             .disable_input()
             .enable_output()
             .enable_schmitt()
-            .set_drive(v2::Drive::Drive0)
-            .set_pull(v2::Pull::Down)
+            .set_drive(Drive::Drive0)
+            .set_pull(Pull::Down)
             .set_function(Pwm::<I>::F);
         unsafe { self.base.gpio_config[N].write(config) };
         Pad {
@@ -834,8 +836,8 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
             .disable_input()
             .enable_output()
             .enable_schmitt()
-            .set_drive(v2::Drive::Drive0)
-            .set_pull(v2::Pull::None)
+            .set_drive(Drive::Drive0)
+            .set_pull(Pull::None)
             .set_function(Pwm::<I>::F);
         unsafe { self.base.gpio_config[N].write(config) };
         Pad {
@@ -880,8 +882,8 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
             .enable_input()
             .enable_output()
             .enable_schmitt()
-            .set_drive(v2::Drive::Drive0)
-            .set_pull(v2::Pull::Up)
+            .set_drive(Drive::Drive0)
+            .set_pull(Pull::Up)
             .set_function(I2c::<I>::F);
         unsafe {
             self.base.gpio_config[N].write(config);

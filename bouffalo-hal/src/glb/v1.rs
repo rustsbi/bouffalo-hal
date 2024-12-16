@@ -1,5 +1,5 @@
 //! Global configurations on BL602 and BL702 series.
-
+use super::{Drive, Pull};
 use volatile_register::{RO, RW, WO};
 
 /// Global configuration registers.
@@ -167,32 +167,6 @@ impl GpioInterruptMode {
             _ => unreachable!(),
         }
     }
-}
-
-/// Pin drive strength.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[repr(u8)]
-pub enum Drive {
-    /// Drive strength 0.
-    Drive0 = 0,
-    /// Drive strength 1.
-    Drive1 = 1,
-    /// Drive strength 2.
-    Drive2 = 2,
-    /// Drive strength 3.
-    Drive3 = 3,
-}
-
-/// Pin pull direction.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[repr(u8)]
-pub enum Pull {
-    /// No internal pulls.
-    None = 0,
-    /// Internally pulled up.
-    Up = 1,
-    /// Internally pulled down.
-    Down = 2,
 }
 
 /// Pin alternate function.
