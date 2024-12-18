@@ -6,37 +6,13 @@ use crate::glb::{
     v2::{Function, GpioConfig},
     Drive, Pull,
 };
-use crate::gpio::Alternate;
 #[cfg(any(doc, feature = "glb-v2"))]
 use crate::gpio::Pad;
+use crate::gpio::{Alternate, JtagD0, JtagLp, JtagM0};
 #[cfg(any(doc, feature = "glb-v2"))]
 use core::marker::PhantomData;
 #[cfg(any(doc, feature = "glb-v2"))]
 use core::ops::Deref;
-
-/// D0 core JTAG mode (type state).
-pub struct JtagD0;
-
-/// M0 core JTAG mode (type state).
-pub struct JtagM0;
-
-/// LP core JTAG mode (type state).
-pub struct JtagLp;
-
-impl Alternate for JtagD0 {
-    #[cfg(feature = "glb-v2")]
-    const F: Function = Function::JtagD0;
-}
-
-impl Alternate for JtagM0 {
-    #[cfg(feature = "glb-v2")]
-    const F: Function = Function::JtagM0;
-}
-
-impl Alternate for JtagLp {
-    #[cfg(feature = "glb-v2")]
-    const F: Function = Function::JtagLp;
-}
 
 // requires to set `.set_function(Function::JtagXx)` before use.
 #[cfg(feature = "glb-v2")]

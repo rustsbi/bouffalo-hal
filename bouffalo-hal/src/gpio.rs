@@ -1,5 +1,7 @@
 //! General Purpose Input/Output.
 
+mod typestate;
+
 #[cfg(feature = "glb-v1")]
 use crate::glb::v1;
 #[cfg(any(doc, feature = "glb-v2"))]
@@ -7,6 +9,9 @@ use crate::glb::v2;
 use crate::glb::{Drive, Pull};
 use core::{marker::PhantomData, ops::Deref};
 use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
+pub use typestate::Alternate;
+use typestate::{Disabled, Floating, Input, Output, PullDown, PullUp, Sdh};
+pub use typestate::{I2c, JtagD0, JtagLp, JtagM0, MmUart, Pwm, Spi, Uart};
 
 #[cfg(feature = "glb-v1")]
 pub use crate::glb::v1::RegisterBlock as GlbRegisterBlock;
@@ -135,56 +140,12 @@ pub struct GlbRegisterBlock {}
 /// serial.flush().ok();
 /// # }
 /// ```
-pub struct Pad<GLB, const N: usize, M: Alternate> {
+pub struct Pad<GLB, const N: usize, M> {
     #[cfg(any(feature = "glb-v1", feature = "glb-v2"))]
     pub(crate) base: GLB,
     #[cfg(not(any(feature = "glb-v1", feature = "glb-v2")))]
     pub(crate) _base_not_implemented: PhantomData<GLB>,
     pub(crate) _mode: PhantomData<M>,
-}
-
-/// Alternate type state.
-pub trait Alternate {
-    /// Function number for this alternate type state.
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function;
-}
-
-/// Input mode (type state).
-pub struct Input<MODE> {
-    _mode: PhantomData<MODE>,
-}
-
-/// Output mode (type state).
-pub struct Output<MODE> {
-    _mode: PhantomData<MODE>,
-}
-
-/// Disabled (type state).
-pub struct Disabled;
-
-/// Pulled down (type state).
-pub struct PullDown;
-
-/// Pulled up (type state).
-pub struct PullUp;
-
-/// Floating (type state).
-pub struct Floating;
-
-impl<MODE> Alternate for Input<MODE> {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::Gpio;
-}
-
-impl<MODE> Alternate for Output<MODE> {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::Gpio;
-}
-
-impl Alternate for Disabled {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::Gpio;
 }
 
 impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> ErrorType for Pad<GLB, N, Input<M>> {
@@ -461,19 +422,6 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
     }
 }
 
-/// Serial Peripheral Interface mode (type state).
-pub struct Spi<const F: usize>;
-
-impl Alternate for Spi<0> {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::Spi0;
-}
-
-impl Alternate for Spi<1> {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::Spi1;
-}
-
 #[cfg(feature = "glb-v2")]
 impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as a SDH pin.
@@ -495,14 +443,6 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
             _mode: PhantomData,
         }
     }
-}
-
-/// SD Host mode (type state).
-pub struct Sdh;
-
-impl Alternate for Sdh {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::Sdh;
 }
 
 impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
@@ -718,14 +658,6 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
     }
 }
 
-/// UART alternate (type state).
-pub struct Uart;
-
-impl Alternate for Uart {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::Uart;
-}
-
 #[cfg(any(doc, feature = "glb-v2"))]
 const UART_GPIO_CONFIG: v2::GpioConfig = v2::GpioConfig::RESET_VALUE
     .enable_input()
@@ -748,14 +680,6 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
     }
 }
 
-/// Multi-media cluster UART alternate (type state).
-pub struct MmUart;
-
-impl Alternate for MmUart {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::MmUart;
-}
-
 impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as multi-media cluster UART signal.
     #[cfg(any(doc, feature = "glb-v2"))]
@@ -769,19 +693,6 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
             _mode: PhantomData,
         }
     }
-}
-
-/// Pulse Width Modulation signal mode (type state).
-pub struct Pwm<const F: usize>;
-
-impl Alternate for Pwm<0> {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::Pwm0;
-}
-
-impl Alternate for Pwm<1> {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::Pwm1;
 }
 
 impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
@@ -845,29 +756,6 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GL
             _mode: PhantomData,
         }
     }
-}
-
-/// Inter-Integrated Circuit mode (type state).
-pub struct I2c<const F: usize>;
-
-impl Alternate for I2c<0> {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::I2c0;
-}
-
-impl Alternate for I2c<1> {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::I2c1;
-}
-
-impl Alternate for I2c<2> {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::I2c2;
-}
-
-impl Alternate for I2c<3> {
-    #[cfg(feature = "glb-v2")]
-    const F: v2::Function = v2::Function::I2c3;
 }
 
 impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
