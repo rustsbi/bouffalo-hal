@@ -29,3 +29,14 @@ pub enum Drive {
     /// Drive strength 3.
     Drive3 = 3,
 }
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "glb-v1")] {
+        pub use v1::RegisterBlock;
+    } else if #[cfg(feature = "glb-v2")] {
+        pub use v2::RegisterBlock;
+    } else {
+        /// Global configuration registers.
+        pub struct RegisterBlock {}
+    }
+}

@@ -1,26 +1,27 @@
 //! General Purpose Input/Output.
 
+mod pad_dummy;
+mod pad_v1;
+mod pad_v2;
 mod typestate;
 
-#[cfg(feature = "glb-v1")]
-use crate::glb::v1;
-#[cfg(any(doc, feature = "glb-v2"))]
-use crate::glb::v2;
-use crate::glb::{Drive, Pull};
-use core::{marker::PhantomData, ops::Deref};
+pub use typestate::*;
+pub use {pad_v1::Padv1, pad_v2::Padv2};
+
+use crate::glb::{self, Drive};
+use core::ops::Deref;
 use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 pub use typestate::Alternate;
-use typestate::{Disabled, Floating, Input, Output, PullDown, PullUp, Sdh};
-pub use typestate::{I2c, JtagD0, JtagLp, JtagM0, MmUart, Pwm, Spi, Uart};
 
-#[cfg(feature = "glb-v1")]
-pub use crate::glb::v1::RegisterBlock as GlbRegisterBlock;
-#[cfg(any(doc, feature = "glb-v2"))]
-pub use crate::glb::v2::RegisterBlock as GlbRegisterBlock;
-#[cfg(not(any(doc, feature = "glb-v1", feature = "glb-v2")))]
-pub struct GlbRegisterBlock {}
+cfg_if::cfg_if! {
+    if #[cfg(feature = "glb-v1")] {
+        pub use crate::glb::v1;
+    } else if #[cfg(feature = "glb-v2")] {
+        pub use crate::glb::v2;
+    }
+}
 
-/// Individual GPIO pin.
+/// Individual GPIO pad.
 ///
 /// Generic Purpose Input/Output, or GPIO, is a standard interface used to connect the
 /// microcontroller to external hardware. There are multiple GPIO pads on one chip,
@@ -49,7 +50,7 @@ pub struct GlbRegisterBlock {}
 /// # pub struct Peripherals { gpio: Pads<GLBv2> }
 /// # pub struct GLBv2;
 /// # impl core::ops::Deref for GLBv2 {
-/// #     type Target = bouffalo_hal::gpio::GlbRegisterBlock;
+/// #     type Target = bouffalo_hal::glb::RegisterBlock;
 /// #     fn deref(&self) -> &Self::Target { unimplemented!() }
 /// # }
 /// # fn main() -> ! {
@@ -102,7 +103,7 @@ pub struct GlbRegisterBlock {}
 /// # }
 /// # pub struct GLBv2;
 /// # impl core::ops::Deref for GLBv2 {
-/// #     type Target = bouffalo_hal::gpio::GlbRegisterBlock;
+/// #     type Target = bouffalo_hal::glb::RegisterBlock;
 /// #     fn deref(&self) -> &Self::Target { unimplemented!() }
 /// # }
 /// # pub struct UART0;
@@ -141,82 +142,45 @@ pub struct GlbRegisterBlock {}
 /// # }
 /// ```
 pub struct Pad<GLB, const N: usize, M> {
-    #[cfg(any(feature = "glb-v1", feature = "glb-v2"))]
-    pub(crate) base: GLB,
+    #[cfg(feature = "glb-v1")]
+    inner: pad_v1::Padv1<GLB, N, M>,
+    #[cfg(feature = "glb-v2")]
+    inner: pad_v2::Padv2<GLB, N, M>,
     #[cfg(not(any(feature = "glb-v1", feature = "glb-v2")))]
-    pub(crate) _base_not_implemented: PhantomData<GLB>,
-    pub(crate) _mode: PhantomData<M>,
+    inner: pad_dummy::PadDummy<GLB, N, M>,
 }
 
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> ErrorType for Pad<GLB, N, Input<M>> {
+impl<GLB, const N: usize, M> ErrorType for Pad<GLB, N, Input<M>> {
     type Error = core::convert::Infallible;
 }
 
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> ErrorType
-    for Pad<GLB, N, Output<M>>
+impl<GLB, const N: usize, M> ErrorType for Pad<GLB, N, Output<M>> {
+    type Error = core::convert::Infallible;
+}
+
+impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> InputPin
+    for Pad<GLB, N, Input<M>>
 {
-    type Error = core::convert::Infallible;
-}
-
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> InputPin for Pad<GLB, N, Input<M>> {
     #[inline]
     fn is_high(&mut self) -> Result<bool, Self::Error> {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                Ok(self.base.gpio_input_value.read() & (1 << N) != 0)
-            } else if #[cfg(feature = "glb-v2")] {
-                Ok(self.base.gpio_input[N >> 5].read() & (1 << (N & 0x1F)) != 0)
-            } else {
-                unimplemented!()
-            }
-        }
+        self.inner.is_high()
     }
     #[inline]
     fn is_low(&mut self) -> Result<bool, Self::Error> {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                Ok(self.base.gpio_input_value.read() & (1 << N) == 0)
-            } else if #[cfg(feature = "glb-v2")] {
-                Ok(self.base.gpio_input[N >> 5].read() & (1 << (N & 0x1F)) == 0)
-            } else {
-                unimplemented!()
-            }
-        }
+        self.inner.is_low()
     }
 }
 
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> OutputPin
+impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> OutputPin
     for Pad<GLB, N, Output<M>>
 {
     #[inline]
     fn set_low(&mut self) -> Result<(), Self::Error> {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                let val = self.base.gpio_output_value.read();
-                unsafe { self.base.gpio_output_value.write(val & !(1 << N)) };
-                Ok(())
-            } else if #[cfg(feature = "glb-v2")] {
-                unsafe { self.base.gpio_clear[N >> 5].write(1 << (N & 0x1F)) };
-                Ok(())
-            } else {
-                unimplemented!()
-            }
-        }
+        self.inner.set_low()
     }
     #[inline]
     fn set_high(&mut self) -> Result<(), Self::Error> {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                let val = self.base.gpio_output_value.read();
-                unsafe { self.base.gpio_output_value.write(val | (1 << N)) };
-                Ok(())
-            } else if #[cfg(feature = "glb-v2")] {
-                unsafe { self.base.gpio_set[N >> 5].write(1 << (N & 0x1F)) };
-                Ok(())
-            } else {
-                unimplemented!()
-            }
-        }
+        self.inner.set_high()
     }
 }
 
@@ -224,7 +188,7 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> OutputPin
 // ecosystem crates, as some of them depends on embedded-hal v0.2.7 traits.
 // We encourage ecosystem developers to use embedded-hal v1.0.0 traits; after that, this part of code
 // would be removed in the future.
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M>
+impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M>
     embedded_hal_027::digital::v2::OutputPin for Pad<GLB, N, Output<M>>
 {
     type Error = core::convert::Infallible;
@@ -242,543 +206,218 @@ impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M>
 // have such functionality to read back the previously set pin state.
 // It is recommended that users add a variable to store the pin state if necessary; see examples/gpio-demo.
 
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Input<M>> {
+impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> Pad<GLB, N, Input<M>> {
     /// Enable schmitt trigger.
     #[inline]
     pub fn enable_schmitt(&mut self) {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                let config = self.base.gpio_config[N >> 1].read().enable_schmitt(N & 0x1);
-                unsafe { self.base.gpio_config[N >> 1].write(config) };
-            } else if #[cfg(feature = "glb-v2")] {
-                let config = self.base.gpio_config[N].read().enable_schmitt();
-                unsafe { self.base.gpio_config[N].write(config) };
-            } else {
-                unimplemented!()
-            }
-        }
+        self.inner.enable_schmitt()
     }
     /// Disable schmitt trigger.
     #[inline]
     pub fn disable_schmitt(&mut self) {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                let config = self.base.gpio_config[N >> 1].read().disable_schmitt(N & 0x1);
-                unsafe { self.base.gpio_config[N >> 1].write(config) };
-            } else if #[cfg(feature = "glb-v2")] {
-                let config = self.base.gpio_config[N].read().disable_schmitt();
-                unsafe { self.base.gpio_config[N].write(config) };
-            } else {
-                unimplemented!()
-            }
-        }
+        self.inner.disable_schmitt()
     }
     /// Clear interrupt flag.
     #[inline]
     pub fn clear_interrupt(&mut self) {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                unsafe { self.base.gpio_interrupt_clear.write(1 << N) };
-            } else if #[cfg(feature = "glb-v2")] {
-                let config = self.base.gpio_config[N].read().clear_interrupt();
-                unsafe { self.base.gpio_config[N].write(config) };
-            } else {
-                unimplemented!()
-            }
-        }
+        self.inner.clear_interrupt()
     }
     /// Check if interrupt flag is set.
     #[inline]
     pub fn has_interrupt(&self) -> bool {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                self.base.gpio_interrupt_state.read() & (1 << N) != 0
-            } else if #[cfg(feature = "glb-v2")] {
-                self.base.gpio_config[N].read().has_interrupt()
-            } else {
-                unimplemented!()
-            }
-        }
+        self.inner.has_interrupt()
     }
     /// Mask interrupt.
     #[inline]
     pub fn mask_interrupt(&mut self) {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                let config = self.base.gpio_interrupt_mask.read() | (1 << N);
-                unsafe { self.base.gpio_interrupt_mask.write(config) };
-            } else if #[cfg(feature = "glb-v2")] {
-                let config = self.base.gpio_config[N].read().mask_interrupt();
-                unsafe { self.base.gpio_config[N].write(config) };
-            } else {
-                unimplemented!()
-            }
-        }
+        self.inner.mask_interrupt()
     }
     /// Unmask interrupt.
     #[inline]
     pub fn unmask_interrupt(&mut self) {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                let config = self.base.gpio_interrupt_mask.read() & !(1 << N);
-                unsafe { self.base.gpio_interrupt_mask.write(config) };
-            } else if #[cfg(feature = "glb-v2")] {
-                let config = self.base.gpio_config[N].read().unmask_interrupt();
-                unsafe { self.base.gpio_config[N].write(config) };
-            } else {
-                unimplemented!()
-            }
-        }
+        self.inner.unmask_interrupt();
+    }
+}
+
+impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> Pad<GLB, N, Output<M>> {
+    /// Get drive strength of this pin.
+    #[inline]
+    pub fn drive(&self) -> Drive {
+        self.inner.drive()
+    }
+    /// Set drive strength of this pin.
+    #[inline]
+    pub fn set_drive(&mut self, val: Drive) {
+        self.inner.set_drive(val)
     }
 }
 
 #[cfg(feature = "glb-v1")]
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Input<M>> {
+impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> Pad<GLB, N, Input<M>> {
     /// Get interrupt mode.
     #[inline]
     pub fn interrupt_mode(&self) -> v1::InterruptMode {
-        self.base.gpio_interrupt_mode[N >> 1]
-            .read()
-            .interrupt_mode(N & 0x1)
+        self.inner.interrupt_mode()
     }
     /// Set interrupt mode.
     #[inline]
     pub fn set_interrupt_mode(&mut self, val: v1::InterruptMode) {
-        let config = self.base.gpio_interrupt_mode[N >> 1]
-            .read()
-            .set_interrupt_mode(N & 0x1, val);
-        unsafe { self.base.gpio_interrupt_mode[N >> 1].write(config) };
+        self.inner.set_interrupt_mode(val)
     }
 }
 
 #[cfg(feature = "glb-v2")]
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Input<M>> {
+impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> Pad<GLB, N, Input<M>> {
     /// Get interrupt mode.
     #[inline]
     pub fn interrupt_mode(&self) -> v2::InterruptMode {
-        self.base.gpio_config[N].read().interrupt_mode()
+        self.inner.interrupt_mode()
     }
     /// Set interrupt mode.
     #[inline]
     pub fn set_interrupt_mode(&mut self, val: v2::InterruptMode) {
-        let config = self.base.gpio_config[N].read().set_interrupt_mode(val);
-        unsafe { self.base.gpio_config[N].write(config) };
+        self.inner.set_interrupt_mode(val)
     }
 }
 
-#[cfg(feature = "glb-v1")]
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Output<M>> {
-    /// Get drive strength of this pin.
+impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> Pad<GLB, N, M> {
+    /// Configures the pin to operate as a pull up output pin.
     #[inline]
-    pub fn drive(&self) -> Drive {
-        self.base.gpio_config[N >> 1].read().drive(N & 0x1)
+    pub fn into_pull_up_output(self) -> Pad<GLB, N, Output<PullUp>> {
+        Pad {
+            inner: self.inner.into_pull_up_output(),
+        }
     }
-    /// Set drive strength of this pin.
+    /// Configures the pin to operate as a pull down output pin.
     #[inline]
-    pub fn set_drive(&mut self, val: Drive) {
-        let config = self.base.gpio_config[N >> 1].read().set_drive(N & 0x1, val);
-        unsafe { self.base.gpio_config[N >> 1].write(config) };
+    pub fn into_pull_down_output(self) -> Pad<GLB, N, Output<PullDown>> {
+        Pad {
+            inner: self.inner.into_pull_down_output(),
+        }
+    }
+    /// Configures the pin to operate as a floating output pin.
+    #[inline]
+    pub fn into_floating_output(self) -> Pad<GLB, N, Output<Floating>> {
+        Pad {
+            inner: self.inner.into_floating_output(),
+        }
+    }
+    /// Configures the pin to operate as a pull up input pin.
+    #[inline]
+    pub fn into_pull_up_input(self) -> Pad<GLB, N, Input<PullUp>> {
+        Pad {
+            inner: self.inner.into_pull_up_input(),
+        }
+    }
+    /// Configures the pin to operate as a pull down input pin.
+    #[inline]
+    pub fn into_pull_down_input(self) -> Pad<GLB, N, Input<PullDown>> {
+        Pad {
+            inner: self.inner.into_pull_down_input(),
+        }
+    }
+    /// Configures the pin to operate as a floating input pin.
+    #[inline]
+    pub fn into_floating_input(self) -> Pad<GLB, N, Input<Floating>> {
+        Pad {
+            inner: self.inner.into_floating_input(),
+        }
     }
 }
 
-#[cfg(feature = "glb-v2")]
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M> Pad<GLB, N, Output<M>> {
-    /// Get drive strength of this pin.
-    #[inline]
-    pub fn drive(&self) -> Drive {
-        self.base.gpio_config[N].read().drive()
-    }
-    /// Set drive strength of this pin.
-    #[inline]
-    pub fn set_drive(&mut self, val: Drive) {
-        let config = self.base.gpio_config[N].read().set_drive(val);
-        unsafe { self.base.gpio_config[N].write(config) };
-    }
-}
-
-#[cfg(feature = "glb-v2")]
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
+// TODO: #[doc(cfg(feature = "glb-v2"))] once feature(doc_cfg) is stablized
+#[cfg(any(doc, feature = "glb-v2"))]
+impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> Pad<GLB, N, M> {
     /// Configures the pin to operate as a SPI pin.
     #[inline]
     pub fn into_spi<const I: usize>(self) -> Pad<GLB, N, Spi<I>>
     where
         Spi<I>: Alternate,
     {
-        let config = v2::GpioConfig::RESET_VALUE
-            .enable_input()
-            .disable_output()
-            .enable_schmitt()
-            .set_pull(Pull::Up)
-            .set_drive(Drive::Drive0)
-            .set_function(Spi::<I>::F);
-        unsafe {
-            self.base.gpio_config[N].write(config);
-        }
-
         Pad {
-            base: self.base,
-            _mode: PhantomData,
+            inner: self.inner.into_spi(),
         }
     }
-}
-
-#[cfg(feature = "glb-v2")]
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as a SDH pin.
     #[inline]
     pub fn into_sdh(self) -> Pad<GLB, N, Sdh> {
-        let config = v2::GpioConfig::RESET_VALUE
-            .enable_input()
-            .disable_output()
-            .enable_schmitt()
-            .set_pull(Pull::Up)
-            .set_drive(Drive::Drive0)
-            .set_function(Sdh::F);
-        unsafe {
-            self.base.gpio_config[N].write(config);
-        }
-
         Pad {
-            base: self.base,
-            _mode: PhantomData,
+            inner: self.inner.into_sdh(),
         }
     }
-}
-
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
-    /// Configures the pin to operate as a pull up output pin.
-    #[inline]
-    pub fn into_pull_up_output(self) -> Pad<GLB, N, Output<PullUp>> {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                let config = self.base.gpio_config[N >> 1]
-                    .read()
-                    .set_function(N & 0x1, v1::Function::Gpio)
-                    .disable_input(N & 0x1)
-                    .set_pull(N & 0x1, Pull::Up);
-                unsafe { self.base.gpio_config[N >> 1].write(config) };
-                let val = self.base.gpio_output_enable.read();
-                unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
-                Pad {
-                    base: self.base,
-                    _mode: PhantomData,
-                }
-            } else if #[cfg(feature = "glb-v2")] {
-                let config = self.base.gpio_config[N]
-                    .read()
-                    .set_function(v2::Function::Gpio)
-                    .set_mode(v2::Mode::SetClear)
-                    .disable_input()
-                    .enable_output()
-                    .set_pull(Pull::Up);
-                unsafe { self.base.gpio_config[N].write(config) };
-                Pad {
-                    base: self.base,
-                    _mode: PhantomData,
-                }
-            } else {
-                unimplemented!()
-            }
-        }
-    }
-    /// Configures the pin to operate as a pull down output pin.
-    #[inline]
-    pub fn into_pull_down_output(self) -> Pad<GLB, N, Output<PullDown>> {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                let config = self.base.gpio_config[N >> 1]
-                    .read()
-                    .set_function(N & 0x1, v1::Function::Gpio)
-                    .disable_input(N & 0x1)
-                    .set_pull(N & 0x1, Pull::Down);
-                unsafe { self.base.gpio_config[N >> 1].write(config) };
-                let val = self.base.gpio_output_enable.read();
-                unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
-                Pad {
-                    base: self.base,
-                    _mode: PhantomData,
-                }
-            } else if #[cfg(feature = "glb-v2")] {
-                let config = self.base.gpio_config[N]
-                    .read()
-                    .set_function(v2::Function::Gpio)
-                    .set_mode(v2::Mode::SetClear)
-                    .disable_input()
-                    .enable_output()
-                    .set_pull(Pull::Down);
-                unsafe { self.base.gpio_config[N].write(config) };
-                Pad {
-                    base: self.base,
-                    _mode: PhantomData,
-                }
-            } else {
-                unimplemented!()
-            }
-        }
-    }
-    /// Configures the pin to operate as a floating output pin.
-    #[inline]
-    pub fn into_floating_output(self) -> Pad<GLB, N, Output<Floating>> {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                let config = self.base.gpio_config[N >> 1]
-                    .read()
-                    .set_function(N & 0x1, v1::Function::Gpio)
-                    .disable_input(N & 0x1)
-                    .set_pull(N & 0x1, Pull::None);
-                unsafe { self.base.gpio_config[N >> 1].write(config) };
-                let val = self.base.gpio_output_enable.read();
-                unsafe { self.base.gpio_output_enable.write(val | (1 << N)) };
-                Pad {
-                    base: self.base,
-                    _mode: PhantomData,
-                }
-            } else if #[cfg(feature = "glb-v2")] {
-                let config = self.base.gpio_config[N]
-                    .read()
-                    .set_function(v2::Function::Gpio)
-                    .set_mode(v2::Mode::SetClear)
-                    .disable_input()
-                    .enable_output()
-                    .set_pull(Pull::None);
-                unsafe { self.base.gpio_config[N].write(config) };
-                Pad {
-                    base: self.base,
-                    _mode: PhantomData,
-                }
-            } else {
-                unimplemented!()
-            }
-        }
-    }
-    /// Configures the pin to operate as a pull up input pin.
-    #[inline]
-    pub fn into_pull_up_input(self) -> Pad<GLB, N, Input<PullUp>> {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                let config = self.base.gpio_config[N >> 1]
-                    .read()
-                    .set_function(N & 0x1, v1::Function::Gpio)
-                    .enable_input(N & 0x1)
-                    .set_pull(N & 0x1, Pull::Up);
-                unsafe { self.base.gpio_config[N >> 1].write(config) };
-                let val = self.base.gpio_output_enable.read();
-                unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
-                Pad {
-                    base: self.base,
-                    _mode: PhantomData,
-                }
-            } else if #[cfg(feature = "glb-v2")] {
-                let config = self.base.gpio_config[N]
-                    .read()
-                    .set_function(v2::Function::Gpio)
-                    .set_mode(v2::Mode::SetClear)
-                    .enable_input()
-                    .disable_output()
-                    .set_pull(Pull::Up);
-                unsafe { self.base.gpio_config[N].write(config) };
-                Pad {
-                    base: self.base,
-                    _mode: PhantomData,
-                }
-            } else {
-                unimplemented!()
-            }
-        }
-    }
-    /// Configures the pin to operate as a pull down input pin.
-    #[inline]
-    pub fn into_pull_down_input(self) -> Pad<GLB, N, Input<PullDown>> {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                let config = self.base.gpio_config[N >> 1]
-                    .read()
-                    .set_function(N & 0x1, v1::Function::Gpio)
-                    .enable_input(N & 0x1)
-                    .set_pull(N & 0x1, Pull::Down);
-                unsafe { self.base.gpio_config[N >> 1].write(config) };
-                let val = self.base.gpio_output_enable.read();
-                unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
-                Pad {
-                    base: self.base,
-                    _mode: PhantomData,
-                }
-            } else if #[cfg(feature = "glb-v2")] {
-                let config = self.base.gpio_config[N]
-                    .read()
-                    .set_function(v2::Function::Gpio)
-                    .set_mode(v2::Mode::SetClear)
-                    .enable_input()
-                    .disable_output()
-                    .set_pull(Pull::Down);
-                unsafe { self.base.gpio_config[N].write(config) };
-                Pad {
-                    base: self.base,
-                    _mode: PhantomData,
-                }
-            } else {
-                unimplemented!()
-            }
-        }
-    }
-    /// Configures the pin to operate as a floating input pin.
-    #[inline]
-    pub fn into_floating_input(self) -> Pad<GLB, N, Input<Floating>> {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "glb-v1")] {
-                let config = self.base.gpio_config[N >> 1]
-                    .read()
-                    .set_function(N & 0x1, v1::Function::Gpio)
-                    .enable_input(N & 0x1)
-                    .set_pull(N & 0x1, Pull::None);
-                    unsafe { self.base.gpio_config[N >> 1].write(config) };
-                let val = self.base.gpio_output_enable.read();
-                unsafe { self.base.gpio_output_enable.write(val & !(1 << N)) };
-                Pad {
-                    base: self.base,
-                    _mode: PhantomData,
-                }
-            } else if #[cfg(feature = "glb-v2")] {
-                let config = self.base.gpio_config[N]
-                    .read()
-                    .set_function(v2::Function::Gpio)
-                    .set_mode(v2::Mode::SetClear)
-                    .enable_input()
-                    .disable_output()
-                    .set_pull(Pull::None);
-                unsafe { self.base.gpio_config[N].write(config) };
-                Pad {
-                    base: self.base,
-                    _mode: PhantomData,
-                }
-            } else {
-                unimplemented!()
-            }
-        }
-    }
-}
-
-#[cfg(any(doc, feature = "glb-v2"))]
-const UART_GPIO_CONFIG: v2::GpioConfig = v2::GpioConfig::RESET_VALUE
-    .enable_input()
-    .enable_output()
-    .enable_schmitt()
-    .set_drive(Drive::Drive0)
-    .set_pull(Pull::Up)
-    .set_function(v2::Function::Uart);
-
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as UART signal.
-    #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
     pub fn into_uart(self) -> Pad<GLB, N, Uart> {
-        unsafe { self.base.gpio_config[N].write(UART_GPIO_CONFIG) };
         Pad {
-            base: self.base,
-            _mode: PhantomData,
+            inner: self.inner.into_uart(),
         }
     }
-}
-
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as multi-media cluster UART signal.
-    #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
     pub fn into_mm_uart(self) -> Pad<GLB, N, MmUart> {
-        unsafe {
-            self.base.gpio_config[N].write(UART_GPIO_CONFIG.set_function(v2::Function::MmUart))
-        };
         Pad {
-            base: self.base,
-            _mode: PhantomData,
+            inner: self.inner.into_mm_uart(),
         }
     }
-}
-
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as a pull up Pulse Width Modulation signal pin.
-    #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
     pub fn into_pull_up_pwm<const I: usize>(self) -> Pad<GLB, N, Pwm<I>>
     where
         Pwm<I>: Alternate,
     {
-        let config = v2::GpioConfig::RESET_VALUE
-            .disable_input()
-            .enable_output()
-            .enable_schmitt()
-            .set_drive(Drive::Drive0)
-            .set_pull(Pull::Up)
-            .set_function(Pwm::<I>::F);
-        unsafe { self.base.gpio_config[N].write(config) };
         Pad {
-            base: self.base,
-            _mode: PhantomData,
+            inner: self.inner.into_pull_up_pwm(),
         }
     }
     /// Configures the pin to operate as a pull down Pulse Width Modulation signal pin.
-    #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
     pub fn into_pull_down_pwm<const I: usize>(self) -> Pad<GLB, N, Pwm<I>>
     where
         Pwm<I>: Alternate,
     {
-        let config = v2::GpioConfig::RESET_VALUE
-            .disable_input()
-            .enable_output()
-            .enable_schmitt()
-            .set_drive(Drive::Drive0)
-            .set_pull(Pull::Down)
-            .set_function(Pwm::<I>::F);
-        unsafe { self.base.gpio_config[N].write(config) };
         Pad {
-            base: self.base,
-            _mode: PhantomData,
+            inner: self.inner.into_pull_down_pwm(),
         }
     }
     /// Configures the pin to operate as floating Pulse Width Modulation signal pin.
-    #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
     pub fn into_floating_pwm<const I: usize>(self) -> Pad<GLB, N, Pwm<I>>
     where
         Pwm<I>: Alternate,
     {
-        let config = v2::GpioConfig::RESET_VALUE
-            .disable_input()
-            .enable_output()
-            .enable_schmitt()
-            .set_drive(Drive::Drive0)
-            .set_pull(Pull::None)
-            .set_function(Pwm::<I>::F);
-        unsafe { self.base.gpio_config[N].write(config) };
         Pad {
-            base: self.base,
-            _mode: PhantomData,
+            inner: self.inner.into_floating_pwm(),
         }
     }
-}
-
-impl<GLB: Deref<Target = GlbRegisterBlock>, const N: usize, M: Alternate> Pad<GLB, N, M> {
     /// Configures the pin to operate as an Inter-Integrated Circuit signal pin.
-    #[cfg(any(doc, feature = "glb-v2"))]
     #[inline]
     pub fn into_i2c<const I: usize>(self) -> Pad<GLB, N, I2c<I>>
     where
         I2c<I>: Alternate,
     {
-        let config = v2::GpioConfig::RESET_VALUE
-            .enable_input()
-            .enable_output()
-            .enable_schmitt()
-            .set_drive(Drive::Drive0)
-            .set_pull(Pull::Up)
-            .set_function(I2c::<I>::F);
-        unsafe {
-            self.base.gpio_config[N].write(config);
-        }
         Pad {
-            base: self.base,
-            _mode: PhantomData,
+            inner: self.inner.into_i2c(),
+        }
+    }
+    /// Configures the pin to operate as D0 core JTAG.
+    #[inline]
+    pub fn into_jtag_d0(self) -> Pad<GLB, N, JtagD0> {
+        Pad {
+            inner: self.inner.into_jtag_d0(),
+        }
+    }
+    /// Configures the pin to operate as M0 core JTAG.
+    #[inline]
+    pub fn into_jtag_m0(self) -> Pad<GLB, N, JtagM0> {
+        Pad {
+            inner: self.inner.into_jtag_m0(),
+        }
+    }
+    /// Configures the pin to operate as LP core JTAG.
+    #[inline]
+    pub fn into_jtag_lp(self) -> Pad<GLB, N, JtagLp> {
+        Pad {
+            inner: self.inner.into_jtag_lp(),
         }
     }
 }

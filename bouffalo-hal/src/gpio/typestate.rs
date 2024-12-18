@@ -4,7 +4,6 @@ use core::marker::PhantomData;
 /// Alternate type state.
 pub trait Alternate {
     /// Function number for this alternate type state.
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function;
 }
 
@@ -31,17 +30,14 @@ pub struct PullUp;
 pub struct Floating;
 
 impl<MODE> Alternate for Input<MODE> {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::Gpio;
 }
 
 impl<MODE> Alternate for Output<MODE> {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::Gpio;
 }
 
 impl Alternate for Disabled {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::Gpio;
 }
 
@@ -49,7 +45,6 @@ impl Alternate for Disabled {
 pub struct Uart;
 
 impl Alternate for Uart {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::Uart;
 }
 
@@ -57,7 +52,6 @@ impl Alternate for Uart {
 pub struct MmUart;
 
 impl Alternate for MmUart {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::MmUart;
 }
 
@@ -71,17 +65,14 @@ pub struct JtagM0;
 pub struct JtagLp;
 
 impl Alternate for JtagD0 {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::JtagD0;
 }
 
 impl Alternate for JtagM0 {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::JtagM0;
 }
 
 impl Alternate for JtagLp {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::JtagLp;
 }
 
@@ -89,12 +80,10 @@ impl Alternate for JtagLp {
 pub struct Spi<const F: usize>;
 
 impl Alternate for Spi<0> {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::Spi0;
 }
 
 impl Alternate for Spi<1> {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::Spi1;
 }
 
@@ -102,7 +91,6 @@ impl Alternate for Spi<1> {
 pub struct Sdh;
 
 impl Alternate for Sdh {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::Sdh;
 }
 
@@ -110,22 +98,18 @@ impl Alternate for Sdh {
 pub struct I2c<const F: usize>;
 
 impl Alternate for I2c<0> {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::I2c0;
 }
 
 impl Alternate for I2c<1> {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::I2c1;
 }
 
 impl Alternate for I2c<2> {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::I2c2;
 }
 
 impl Alternate for I2c<3> {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::I2c3;
 }
 
@@ -133,11 +117,9 @@ impl Alternate for I2c<3> {
 pub struct Pwm<const F: usize>;
 
 impl Alternate for Pwm<0> {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::Pwm0;
 }
 
 impl Alternate for Pwm<1> {
-    #[cfg(feature = "glb-v2")]
     const F: v2::Function = v2::Function::Pwm1;
 }
