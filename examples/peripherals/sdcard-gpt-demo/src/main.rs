@@ -249,22 +249,22 @@ fn main(p: Peripherals, c: Clocks) -> ! {
             Spi<
                 bouffalo_rt::soc::bl808::SPI0,
                 (
-                    bouffalo_hal::gpio::Pad<
+                    bouffalo_hal::gpio::Alternate<
                         bouffalo_rt::soc::bl808::GLBv2,
                         3,
                         bouffalo_hal::gpio::Spi<1>,
                     >,
-                    bouffalo_hal::gpio::Pad<
+                    bouffalo_hal::gpio::Alternate<
                         bouffalo_rt::soc::bl808::GLBv2,
                         1,
                         bouffalo_hal::gpio::Spi<1>,
                     >,
-                    bouffalo_hal::gpio::Pad<
+                    bouffalo_hal::gpio::Alternate<
                         bouffalo_rt::soc::bl808::GLBv2,
                         2,
                         bouffalo_hal::gpio::Spi<1>,
                     >,
-                    bouffalo_hal::gpio::Pad<
+                    bouffalo_hal::gpio::Alternate<
                         bouffalo_rt::soc::bl808::GLBv2,
                         0,
                         bouffalo_hal::gpio::Spi<1>,

@@ -1,32 +1,20 @@
 use super::{
-    alternate::Alternate,
     convert::{IntoPad, IntoPadv2},
     input::Input,
+    output::Output,
     typestate::{self, Floating, PullDown, PullUp},
 };
-use crate::glb::{self, Drive, RegisterBlock};
+use crate::glb::RegisterBlock;
 use core::ops::Deref;
-use embedded_hal::digital::{ErrorType, OutputPin};
 
-/// GPIO pad in output mode.
-pub struct Output<GLB, const N: usize, M> {
-    inner: super::Inner<GLB, N, typestate::Output<M>>,
+/// GPIO pad with alternate mode.
+pub struct Alternate<GLB, const N: usize, M> {
+    inner: super::Inner<GLB, N, M>,
 }
 
-impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> Output<GLB, N, M> {
-    /// Get drive strength of this pad.
-    #[inline]
-    pub fn drive(&self) -> Drive {
-        self.inner.drive()
-    }
-    /// Set drive strength of this pad.
-    #[inline]
-    pub fn set_drive(&mut self, val: Drive) {
-        self.inner.set_drive(val)
-    }
-}
-
-impl<GLB: Deref<Target = RegisterBlock>, const N: usize, M> IntoPad<GLB, N> for Output<GLB, N, M> {
+impl<GLB: Deref<Target = RegisterBlock>, const N: usize, M> IntoPad<GLB, N>
+    for Alternate<GLB, N, M>
+{
     #[inline]
     fn into_pull_up_output(self) -> Output<GLB, N, PullUp> {
         self.inner.into_pull_up_output().into()
@@ -55,7 +43,7 @@ impl<GLB: Deref<Target = RegisterBlock>, const N: usize, M> IntoPad<GLB, N> for 
 
 #[cfg(any(doc, feature = "glb-v2"))]
 impl<GLB: Deref<Target = RegisterBlock>, const N: usize, M> IntoPadv2<GLB, N>
-    for Output<GLB, N, M>
+    for Alternate<GLB, N, M>
 {
     #[inline]
     fn into_spi<const I: usize>(self) -> Alternate<GLB, N, typestate::Spi<I>> {
@@ -103,44 +91,9 @@ impl<GLB: Deref<Target = RegisterBlock>, const N: usize, M> IntoPadv2<GLB, N>
     }
 }
 
-impl<GLB, const N: usize, M> ErrorType for Output<GLB, N, M> {
-    type Error = core::convert::Infallible;
-}
-
-impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> OutputPin for Output<GLB, N, M> {
+impl<GLB, const N: usize, M> From<super::Inner<GLB, N, M>> for Alternate<GLB, N, M> {
     #[inline]
-    fn set_low(&mut self) -> Result<(), Self::Error> {
-        self.inner.set_low()
-    }
-    #[inline]
-    fn set_high(&mut self) -> Result<(), Self::Error> {
-        self.inner.set_high()
-    }
-}
-
-// This part of implementation using `embedded_hal_027` is designed for backward compatibility of
-// ecosystem crates, as some of them depends on embedded-hal v0.2.7 traits.
-// We encourage ecosystem developers to use embedded-hal v1.0.0 traits; after that, this part of code
-// would be removed in the future.
-impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M>
-    embedded_hal_027::digital::v2::OutputPin for Output<GLB, N, M>
-{
-    type Error = core::convert::Infallible;
-    #[inline]
-    fn set_low(&mut self) -> Result<(), Self::Error> {
-        <Self as OutputPin>::set_low(self)
-    }
-    #[inline]
-    fn set_high(&mut self) -> Result<(), Self::Error> {
-        <Self as OutputPin>::set_high(self)
-    }
-}
-
-impl<GLB, const N: usize, M> From<super::Inner<GLB, N, typestate::Output<M>>>
-    for Output<GLB, N, M>
-{
-    #[inline]
-    fn from(inner: super::Inner<GLB, N, typestate::Output<M>>) -> Self {
+    fn from(inner: super::Inner<GLB, N, M>) -> Self {
         Self { inner }
     }
 }

@@ -1,5 +1,6 @@
 use super::{
-    convert::IntoPad,
+    alternate::Alternate,
+    convert::{IntoPad, IntoPadv2},
     output::Output,
     typestate::{self, Floating, PullDown, PullUp},
 };
@@ -9,12 +10,7 @@ use embedded_hal::digital::{ErrorType, InputPin};
 
 /// GPIO pad in input mode.
 pub struct Input<GLB, const N: usize, M> {
-    #[cfg(feature = "glb-v1")]
-    inner: super::pad_v1::Padv1<GLB, N, typestate::Input<M>>,
-    #[cfg(feature = "glb-v2")]
-    inner: super::pad_v2::Padv2<GLB, N, typestate::Input<M>>,
-    #[cfg(not(any(feature = "glb-v1", feature = "glb-v2")))]
-    inner: super::pad_dummy::PadDummy<GLB, N, typestate::Input<M>>,
+    inner: super::Inner<GLB, N, typestate::Input<M>>,
 }
 
 impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> Input<GLB, N, M> {
@@ -77,6 +73,54 @@ impl<GLB: Deref<Target = RegisterBlock>, const N: usize, M> IntoPad<GLB, N> for 
     }
 }
 
+#[cfg(any(doc, feature = "glb-v2"))]
+impl<GLB: Deref<Target = RegisterBlock>, const N: usize, M> IntoPadv2<GLB, N> for Input<GLB, N, M> {
+    #[inline]
+    fn into_spi<const I: usize>(self) -> Alternate<GLB, N, typestate::Spi<I>> {
+        self.inner.into_spi().into()
+    }
+    #[inline]
+    fn into_sdh(self) -> Alternate<GLB, N, typestate::Sdh> {
+        self.inner.into_sdh().into()
+    }
+    #[inline]
+    fn into_uart(self) -> Alternate<GLB, N, typestate::Uart> {
+        self.inner.into_uart().into()
+    }
+    #[inline]
+    fn into_mm_uart(self) -> Alternate<GLB, N, typestate::MmUart> {
+        self.inner.into_mm_uart().into()
+    }
+    #[inline]
+    fn into_pull_up_pwm<const I: usize>(self) -> Alternate<GLB, N, typestate::Pwm<I>> {
+        self.inner.into_pull_up_pwm().into()
+    }
+    #[inline]
+    fn into_pull_down_pwm<const I: usize>(self) -> Alternate<GLB, N, typestate::Pwm<I>> {
+        self.inner.into_pull_down_pwm().into()
+    }
+    #[inline]
+    fn into_floating_pwm<const I: usize>(self) -> Alternate<GLB, N, typestate::Pwm<I>> {
+        self.inner.into_floating_pwm().into()
+    }
+    #[inline]
+    fn into_i2c<const I: usize>(self) -> Alternate<GLB, N, typestate::I2c<I>> {
+        self.inner.into_i2c().into()
+    }
+    #[inline]
+    fn into_jtag_d0(self) -> Alternate<GLB, N, typestate::JtagD0> {
+        self.inner.into_jtag_d0().into()
+    }
+    #[inline]
+    fn into_jtag_m0(self) -> Alternate<GLB, N, typestate::JtagM0> {
+        self.inner.into_jtag_m0().into()
+    }
+    #[inline]
+    fn into_jtag_lp(self) -> Alternate<GLB, N, typestate::JtagLp> {
+        self.inner.into_jtag_lp().into()
+    }
+}
+
 impl<GLB, const N: usize, M> ErrorType for Input<GLB, N, M> {
     type Error = core::convert::Infallible;
 }
@@ -92,32 +136,9 @@ impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> InputPin for In
     }
 }
 
-#[cfg(feature = "glb-v1")]
-impl<GLB, const N: usize, M> From<super::pad_v1::Padv1<GLB, N, typestate::Input<M>>>
-    for Input<GLB, N, M>
-{
+impl<GLB, const N: usize, M> From<super::Inner<GLB, N, typestate::Input<M>>> for Input<GLB, N, M> {
     #[inline]
-    fn from(inner: super::pad_v1::Padv1<GLB, N, typestate::Input<M>>) -> Self {
-        Self { inner }
-    }
-}
-
-#[cfg(feature = "glb-v2")]
-impl<GLB, const N: usize, M> From<super::pad_v2::Padv2<GLB, N, typestate::Input<M>>>
-    for Input<GLB, N, M>
-{
-    #[inline]
-    fn from(inner: super::pad_v2::Padv2<GLB, N, typestate::Input<M>>) -> Self {
-        Self { inner }
-    }
-}
-
-#[cfg(not(any(feature = "glb-v1", feature = "glb-v2")))]
-impl<GLB, const N: usize, M> From<super::pad_dummy::PadDummy<GLB, N, typestate::Input<M>>>
-    for Input<GLB, N, M>
-{
-    #[inline]
-    fn from(inner: super::pad_dummy::PadDummy<GLB, N, typestate::Input<M>>) -> Self {
+    fn from(inner: super::Inner<GLB, N, typestate::Input<M>>) -> Self {
         Self { inner }
     }
 }

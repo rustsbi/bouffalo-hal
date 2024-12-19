@@ -61,7 +61,7 @@
 //! # use embedded_time::rate::*;
 //! # use bouffalo_hal::{
 //! #     clocks::Clocks,
-//! #     gpio::{Pads, Pad},
+//! #     gpio::Pads,
 //! #     uart::{BitOrder, Config, Parity, StopBits, WordLength},
 //! # };
 //! # use embedded_io::Write;
@@ -119,6 +119,7 @@
 //! # }
 //! ```
 
+mod alternate;
 mod convert;
 mod disabled;
 mod gpio_group;
@@ -129,113 +130,20 @@ mod pad_v1;
 mod pad_v2;
 mod typestate;
 
+pub use alternate::Alternate;
 pub use convert::{IntoPad, IntoPadv2};
 pub use disabled::Disabled;
 pub use gpio_group::Pads;
 pub use input::Input;
 pub use output::Output;
 pub use typestate::*;
-pub use {pad_v1::Padv1, pad_v2::Padv2};
-
-use crate::glb;
-use core::ops::Deref;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "glb-v1")] {
-        pub use crate::glb::v1;
+        pub(crate) use pad_v1::Padv1 as Inner;
     } else if #[cfg(feature = "glb-v2")] {
-        pub use crate::glb::v2;
-    }
-}
-
-/// Individual GPIO pad.
-pub struct Pad<GLB, const N: usize, M> {
-    #[cfg(feature = "glb-v1")]
-    inner: pad_v1::Padv1<GLB, N, M>,
-    #[cfg(feature = "glb-v2")]
-    inner: pad_v2::Padv2<GLB, N, M>,
-    #[cfg(not(any(feature = "glb-v1", feature = "glb-v2")))]
-    inner: pad_dummy::PadDummy<GLB, N, M>,
-}
-
-// TODO: #[doc(cfg(feature = "glb-v2"))] once feature(doc_cfg) is stablized
-#[cfg(any(doc, feature = "glb-v2"))]
-impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> Pad<GLB, N, M> {
-    /// Configures the pin to operate as a SPI pin.
-    #[inline]
-    pub fn into_spi<const I: usize>(self) -> Pad<GLB, N, Spi<I>> {
-        Pad {
-            inner: self.inner.into_spi(),
-        }
-    }
-    /// Configures the pin to operate as a SDH pin.
-    #[inline]
-    pub fn into_sdh(self) -> Pad<GLB, N, Sdh> {
-        Pad {
-            inner: self.inner.into_sdh(),
-        }
-    }
-    /// Configures the pin to operate as UART signal.
-    #[inline]
-    pub fn into_uart(self) -> Pad<GLB, N, Uart> {
-        Pad {
-            inner: self.inner.into_uart(),
-        }
-    }
-    /// Configures the pin to operate as multi-media cluster UART signal.
-    #[inline]
-    pub fn into_mm_uart(self) -> Pad<GLB, N, MmUart> {
-        Pad {
-            inner: self.inner.into_mm_uart(),
-        }
-    }
-    /// Configures the pin to operate as a pull up Pulse Width Modulation signal pin.
-    #[inline]
-    pub fn into_pull_up_pwm<const I: usize>(self) -> Pad<GLB, N, Pwm<I>> {
-        Pad {
-            inner: self.inner.into_pull_up_pwm(),
-        }
-    }
-    /// Configures the pin to operate as a pull down Pulse Width Modulation signal pin.
-    #[inline]
-    pub fn into_pull_down_pwm<const I: usize>(self) -> Pad<GLB, N, Pwm<I>> {
-        Pad {
-            inner: self.inner.into_pull_down_pwm(),
-        }
-    }
-    /// Configures the pin to operate as floating Pulse Width Modulation signal pin.
-    #[inline]
-    pub fn into_floating_pwm<const I: usize>(self) -> Pad<GLB, N, Pwm<I>> {
-        Pad {
-            inner: self.inner.into_floating_pwm(),
-        }
-    }
-    /// Configures the pin to operate as an Inter-Integrated Circuit signal pin.
-    #[inline]
-    pub fn into_i2c<const I: usize>(self) -> Pad<GLB, N, I2c<I>> {
-        Pad {
-            inner: self.inner.into_i2c(),
-        }
-    }
-    /// Configures the pin to operate as D0 core JTAG.
-    #[inline]
-    pub fn into_jtag_d0(self) -> Pad<GLB, N, JtagD0> {
-        Pad {
-            inner: self.inner.into_jtag_d0(),
-        }
-    }
-    /// Configures the pin to operate as M0 core JTAG.
-    #[inline]
-    pub fn into_jtag_m0(self) -> Pad<GLB, N, JtagM0> {
-        Pad {
-            inner: self.inner.into_jtag_m0(),
-        }
-    }
-    /// Configures the pin to operate as LP core JTAG.
-    #[inline]
-    pub fn into_jtag_lp(self) -> Pad<GLB, N, JtagLp> {
-        Pad {
-            inner: self.inner.into_jtag_lp(),
-        }
+        pub(crate) use pad_v2::Padv2 as Inner;
+    } else {
+        pub(crate) use pad_dummy::PadDummy as Inner;
     }
 }

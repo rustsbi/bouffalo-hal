@@ -1,4 +1,5 @@
 use super::{
+    alternate::Alternate,
     convert::{IntoPad, IntoPadv2},
     input::Input,
     output::Output,
@@ -9,12 +10,7 @@ use core::ops::Deref;
 
 /// GPIO pad which is disabled.
 pub struct Disabled<GLB, const N: usize> {
-    #[cfg(feature = "glb-v1")]
-    inner: super::pad_v1::Padv1<GLB, N, typestate::Disabled>,
-    #[cfg(feature = "glb-v2")]
-    inner: super::pad_v2::Padv2<GLB, N, typestate::Disabled>,
-    #[cfg(not(any(feature = "glb-v1", feature = "glb-v2")))]
-    inner: super::pad_dummy::PadDummy<GLB, N, typestate::Disabled>,
+    inner: super::Inner<GLB, N, typestate::Disabled>,
 }
 
 impl<GLB: Deref<Target = RegisterBlock>, const N: usize> IntoPad<GLB, N> for Disabled<GLB, N> {
@@ -47,69 +43,54 @@ impl<GLB: Deref<Target = RegisterBlock>, const N: usize> IntoPad<GLB, N> for Dis
 #[cfg(any(doc, feature = "glb-v2"))]
 impl<GLB: Deref<Target = RegisterBlock>, const N: usize> IntoPadv2<GLB, N> for Disabled<GLB, N> {
     #[inline]
-    fn into_spi<const I: usize>(self) -> super::Pad<GLB, N, super::typestate::Spi<I>> {
-        super::Pad {
-            inner: self.inner.into_spi(),
-        }
+    fn into_spi<const I: usize>(self) -> Alternate<GLB, N, typestate::Spi<I>> {
+        self.inner.into_spi().into()
     }
     #[inline]
-    fn into_sdh(self) -> super::Pad<GLB, N, super::typestate::Sdh> {
-        super::Pad {
-            inner: self.inner.into_sdh(),
-        }
+    fn into_sdh(self) -> Alternate<GLB, N, typestate::Sdh> {
+        self.inner.into_sdh().into()
     }
     #[inline]
-    fn into_uart(self) -> super::Pad<GLB, N, super::typestate::Uart> {
-        super::Pad {
-            inner: self.inner.into_uart(),
-        }
+    fn into_uart(self) -> Alternate<GLB, N, typestate::Uart> {
+        self.inner.into_uart().into()
     }
     #[inline]
-    fn into_mm_uart(self) -> super::Pad<GLB, N, super::typestate::MmUart> {
-        super::Pad {
-            inner: self.inner.into_mm_uart(),
-        }
+    fn into_mm_uart(self) -> Alternate<GLB, N, typestate::MmUart> {
+        self.inner.into_mm_uart().into()
     }
     #[inline]
-    fn into_pull_up_pwm<const I: usize>(self) -> super::Pad<GLB, N, super::typestate::Pwm<I>> {
-        super::Pad {
-            inner: self.inner.into_pull_up_pwm(),
-        }
+    fn into_pull_up_pwm<const I: usize>(self) -> Alternate<GLB, N, typestate::Pwm<I>> {
+        self.inner.into_pull_up_pwm().into()
     }
     #[inline]
-    fn into_pull_down_pwm<const I: usize>(self) -> super::Pad<GLB, N, super::typestate::Pwm<I>> {
-        super::Pad {
-            inner: self.inner.into_pull_down_pwm(),
-        }
+    fn into_pull_down_pwm<const I: usize>(self) -> Alternate<GLB, N, typestate::Pwm<I>> {
+        self.inner.into_pull_down_pwm().into()
     }
     #[inline]
-    fn into_floating_pwm<const I: usize>(self) -> super::Pad<GLB, N, super::typestate::Pwm<I>> {
-        super::Pad {
-            inner: self.inner.into_floating_pwm(),
-        }
+    fn into_floating_pwm<const I: usize>(self) -> Alternate<GLB, N, typestate::Pwm<I>> {
+        self.inner.into_floating_pwm().into()
     }
     #[inline]
-    fn into_i2c<const I: usize>(self) -> super::Pad<GLB, N, super::typestate::I2c<I>> {
-        super::Pad {
-            inner: self.inner.into_i2c(),
-        }
+    fn into_i2c<const I: usize>(self) -> Alternate<GLB, N, typestate::I2c<I>> {
+        self.inner.into_i2c().into()
     }
     #[inline]
-    fn into_jtag_d0(self) -> super::Pad<GLB, N, super::typestate::JtagD0> {
-        super::Pad {
-            inner: self.inner.into_jtag_d0(),
-        }
+    fn into_jtag_d0(self) -> Alternate<GLB, N, typestate::JtagD0> {
+        self.inner.into_jtag_d0().into()
     }
     #[inline]
-    fn into_jtag_m0(self) -> super::Pad<GLB, N, super::typestate::JtagM0> {
-        super::Pad {
-            inner: self.inner.into_jtag_m0(),
-        }
+    fn into_jtag_m0(self) -> Alternate<GLB, N, typestate::JtagM0> {
+        self.inner.into_jtag_m0().into()
     }
     #[inline]
-    fn into_jtag_lp(self) -> super::Pad<GLB, N, super::typestate::JtagLp> {
-        super::Pad {
-            inner: self.inner.into_jtag_lp(),
-        }
+    fn into_jtag_lp(self) -> Alternate<GLB, N, typestate::JtagLp> {
+        self.inner.into_jtag_lp().into()
+    }
+}
+
+impl<GLB, const N: usize> From<super::Inner<GLB, N, typestate::Disabled>> for Disabled<GLB, N> {
+    #[inline]
+    fn from(inner: super::Inner<GLB, N, typestate::Disabled>) -> Self {
+        Self { inner }
     }
 }

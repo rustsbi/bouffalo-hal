@@ -1,7 +1,7 @@
 //! Serial Peripheral Interface peripheral.
 
 use crate::glb::{self, v2::SpiMode};
-use crate::gpio::{self, Pad};
+use crate::gpio::{self, Alternate};
 use core::cmp::max;
 use core::ops::Deref;
 use embedded_hal::spi::Mode;
@@ -630,7 +630,7 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> Spi<SPI, PADS, I>
     #[inline]
     pub fn new<GLB>(spi: SPI, pads: PADS, mode: Mode, glb: &GLB) -> Self
     where
-        PADS: Pads<I>,
+        PADS: Alternates<I>,
         GLB: Deref<Target = glb::v2::RegisterBlock>,
     {
         let mut config = Config(0)
@@ -877,105 +877,106 @@ impl<SPI: Deref<Target = RegisterBlock>, PINS, const I: usize>
     }
 }
 
-/// Valid SPI pads.
-pub trait Pads<const I: usize> {}
+/// Valid SPI Alternates.
+pub trait Alternates<const I: usize> {}
 
-impl<A1, A2, A3, const N1: usize, const N2: usize, const N3: usize> Pads<1>
+impl<A1, A2, A3, const N1: usize, const N2: usize, const N3: usize> Alternates<1>
     for (
-        Pad<A1, N1, gpio::Spi<1>>,
-        Pad<A2, N2, gpio::Spi<1>>,
-        Pad<A3, N3, gpio::Spi<1>>,
+        Alternate<A1, N1, gpio::Spi<1>>,
+        Alternate<A2, N2, gpio::Spi<1>>,
+        Alternate<A3, N3, gpio::Spi<1>>,
     )
 where
     A1: Deref<Target = glb::v2::RegisterBlock>,
     A2: Deref<Target = glb::v2::RegisterBlock>,
     A3: Deref<Target = glb::v2::RegisterBlock>,
-    Pad<A1, N1, gpio::Spi<1>>: HasClkSignal,
-    Pad<A2, N2, gpio::Spi<1>>: HasMosiSignal,
-    Pad<A3, N3, gpio::Spi<1>>: HasCsSignal,
+    Alternate<A1, N1, gpio::Spi<1>>: HasClkSignal,
+    Alternate<A2, N2, gpio::Spi<1>>: HasMosiSignal,
+    Alternate<A3, N3, gpio::Spi<1>>: HasCsSignal,
 {
 }
 
-impl<A1, A2, A3, A4, const N1: usize, const N2: usize, const N3: usize, const N4: usize> Pads<1>
+impl<A1, A2, A3, A4, const N1: usize, const N2: usize, const N3: usize, const N4: usize>
+    Alternates<1>
     for (
-        Pad<A1, N1, gpio::Spi<1>>,
-        Pad<A2, N2, gpio::Spi<1>>,
-        Pad<A3, N3, gpio::Spi<1>>,
-        Pad<A4, N4, gpio::Spi<1>>,
+        Alternate<A1, N1, gpio::Spi<1>>,
+        Alternate<A2, N2, gpio::Spi<1>>,
+        Alternate<A3, N3, gpio::Spi<1>>,
+        Alternate<A4, N4, gpio::Spi<1>>,
     )
 where
     A1: Deref<Target = glb::v2::RegisterBlock>,
     A2: Deref<Target = glb::v2::RegisterBlock>,
     A3: Deref<Target = glb::v2::RegisterBlock>,
     A4: Deref<Target = glb::v2::RegisterBlock>,
-    Pad<A1, N1, gpio::Spi<1>>: HasClkSignal,
-    Pad<A2, N2, gpio::Spi<1>>: HasMosiSignal,
-    Pad<A3, N3, gpio::Spi<1>>: HasMisoSignal,
-    Pad<A4, N4, gpio::Spi<1>>: HasCsSignal,
+    Alternate<A1, N1, gpio::Spi<1>>: HasClkSignal,
+    Alternate<A2, N2, gpio::Spi<1>>: HasMosiSignal,
+    Alternate<A3, N3, gpio::Spi<1>>: HasMisoSignal,
+    Alternate<A4, N4, gpio::Spi<1>>: HasCsSignal,
 {
 }
 
 /// Check if target gpio `Pin` is internally connected to SPI clock signal.
 pub trait HasClkSignal {}
 
-impl<GLB> HasClkSignal for Pad<GLB, 3, gpio::Spi<1>> {}
-impl<GLB> HasClkSignal for Pad<GLB, 7, gpio::Spi<1>> {}
-impl<GLB> HasClkSignal for Pad<GLB, 11, gpio::Spi<1>> {}
-impl<GLB> HasClkSignal for Pad<GLB, 15, gpio::Spi<1>> {}
-impl<GLB> HasClkSignal for Pad<GLB, 19, gpio::Spi<1>> {}
-impl<GLB> HasClkSignal for Pad<GLB, 23, gpio::Spi<1>> {}
-impl<GLB> HasClkSignal for Pad<GLB, 27, gpio::Spi<1>> {}
-impl<GLB> HasClkSignal for Pad<GLB, 31, gpio::Spi<1>> {}
-impl<GLB> HasClkSignal for Pad<GLB, 35, gpio::Spi<1>> {}
-impl<GLB> HasClkSignal for Pad<GLB, 39, gpio::Spi<1>> {}
-impl<GLB> HasClkSignal for Pad<GLB, 43, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Alternate<GLB, 3, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Alternate<GLB, 7, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Alternate<GLB, 11, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Alternate<GLB, 15, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Alternate<GLB, 19, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Alternate<GLB, 23, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Alternate<GLB, 27, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Alternate<GLB, 31, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Alternate<GLB, 35, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Alternate<GLB, 39, gpio::Spi<1>> {}
+impl<GLB> HasClkSignal for Alternate<GLB, 43, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI MISO signal.
 pub trait HasMisoSignal {}
 
-impl<GLB> HasMisoSignal for Pad<GLB, 2, gpio::Spi<1>> {}
-impl<GLB> HasMisoSignal for Pad<GLB, 6, gpio::Spi<1>> {}
-impl<GLB> HasMisoSignal for Pad<GLB, 10, gpio::Spi<1>> {}
-impl<GLB> HasMisoSignal for Pad<GLB, 14, gpio::Spi<1>> {}
-impl<GLB> HasMisoSignal for Pad<GLB, 18, gpio::Spi<1>> {}
-impl<GLB> HasMisoSignal for Pad<GLB, 22, gpio::Spi<1>> {}
-impl<GLB> HasMisoSignal for Pad<GLB, 26, gpio::Spi<1>> {}
-impl<GLB> HasMisoSignal for Pad<GLB, 30, gpio::Spi<1>> {}
-impl<GLB> HasMisoSignal for Pad<GLB, 34, gpio::Spi<1>> {}
-impl<GLB> HasMisoSignal for Pad<GLB, 38, gpio::Spi<1>> {}
-impl<GLB> HasMisoSignal for Pad<GLB, 42, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Alternate<GLB, 2, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Alternate<GLB, 6, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Alternate<GLB, 10, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Alternate<GLB, 14, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Alternate<GLB, 18, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Alternate<GLB, 22, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Alternate<GLB, 26, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Alternate<GLB, 30, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Alternate<GLB, 34, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Alternate<GLB, 38, gpio::Spi<1>> {}
+impl<GLB> HasMisoSignal for Alternate<GLB, 42, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI MOSI signal.
 pub trait HasMosiSignal {}
 
-impl<GLB> HasMosiSignal for Pad<GLB, 1, gpio::Spi<1>> {}
-impl<GLB> HasMosiSignal for Pad<GLB, 5, gpio::Spi<1>> {}
-impl<GLB> HasMosiSignal for Pad<GLB, 9, gpio::Spi<1>> {}
-impl<GLB> HasMosiSignal for Pad<GLB, 13, gpio::Spi<1>> {}
-impl<GLB> HasMosiSignal for Pad<GLB, 17, gpio::Spi<1>> {}
-impl<GLB> HasMosiSignal for Pad<GLB, 21, gpio::Spi<1>> {}
-impl<GLB> HasMosiSignal for Pad<GLB, 25, gpio::Spi<1>> {}
-impl<GLB> HasMosiSignal for Pad<GLB, 29, gpio::Spi<1>> {}
-impl<GLB> HasMosiSignal for Pad<GLB, 33, gpio::Spi<1>> {}
-impl<GLB> HasMosiSignal for Pad<GLB, 37, gpio::Spi<1>> {}
-impl<GLB> HasMosiSignal for Pad<GLB, 41, gpio::Spi<1>> {}
-impl<GLB> HasMosiSignal for Pad<GLB, 45, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Alternate<GLB, 1, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Alternate<GLB, 5, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Alternate<GLB, 9, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Alternate<GLB, 13, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Alternate<GLB, 17, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Alternate<GLB, 21, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Alternate<GLB, 25, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Alternate<GLB, 29, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Alternate<GLB, 33, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Alternate<GLB, 37, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Alternate<GLB, 41, gpio::Spi<1>> {}
+impl<GLB> HasMosiSignal for Alternate<GLB, 45, gpio::Spi<1>> {}
 
 /// Check if target gpio `Pin` is internally connected to SPI CS signal.
 pub trait HasCsSignal {}
 
-impl<GLB> HasCsSignal for Pad<GLB, 0, gpio::Spi<1>> {}
-impl<GLB> HasCsSignal for Pad<GLB, 4, gpio::Spi<1>> {}
-impl<GLB> HasCsSignal for Pad<GLB, 8, gpio::Spi<1>> {}
-impl<GLB> HasCsSignal for Pad<GLB, 12, gpio::Spi<1>> {}
-impl<GLB> HasCsSignal for Pad<GLB, 16, gpio::Spi<1>> {}
-impl<GLB> HasCsSignal for Pad<GLB, 20, gpio::Spi<1>> {}
-impl<GLB> HasCsSignal for Pad<GLB, 24, gpio::Spi<1>> {}
-impl<GLB> HasCsSignal for Pad<GLB, 28, gpio::Spi<1>> {}
-impl<GLB> HasCsSignal for Pad<GLB, 32, gpio::Spi<1>> {}
-impl<GLB> HasCsSignal for Pad<GLB, 36, gpio::Spi<1>> {}
-impl<GLB> HasCsSignal for Pad<GLB, 40, gpio::Spi<1>> {}
-impl<GLB> HasCsSignal for Pad<GLB, 44, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Alternate<GLB, 0, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Alternate<GLB, 4, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Alternate<GLB, 8, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Alternate<GLB, 12, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Alternate<GLB, 16, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Alternate<GLB, 20, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Alternate<GLB, 24, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Alternate<GLB, 28, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Alternate<GLB, 32, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Alternate<GLB, 36, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Alternate<GLB, 40, gpio::Spi<1>> {}
+impl<GLB> HasCsSignal for Alternate<GLB, 44, gpio::Spi<1>> {}
 
 #[cfg(test)]
 mod tests {
