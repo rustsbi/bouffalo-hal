@@ -14,5 +14,8 @@ pub fn check_interrupt_name(ident: &Ident) -> Option<Error> {
             ),
         ));
     }
+    // TODO: support for other chips and contexts
+    #[cfg(not(feature = "bl808-dsp"))]
+    let _ = ident;
     None
 }

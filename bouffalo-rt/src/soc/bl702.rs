@@ -215,13 +215,26 @@ pub use bouffalo_hal::clocks::Clocks;
 
 // TODO: BL702 clock tree configuration.
 // Used by macros only.
+#[allow(unused)]
 #[doc(hidden)]
 #[inline(always)]
-pub fn __new_clocks(xtal_hz: u32) -> Clocks {
+pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals, Clocks) {
     use embedded_time::rate::Hertz;
-    Clocks {
+    let peripherals = Peripherals {
+        glb: GLBv1 { _private: () },
+        uart0: UART0 { _private: () },
+        uart1: UART1 { _private: () },
+        spi: SPI { _private: () },
+        i2c: I2C { _private: () },
+        pwm: PWM { _private: () },
+        emac: EMAC { _private: () },
+        hbn: HBN { _private: () },
+        usb: USBv1 { _private: () },
+    };
+    let clocks = Clocks {
         xtal: Hertz(xtal_hz),
-    }
+    };
+    (peripherals, clocks)
 }
 
 #[cfg(test)]
