@@ -630,7 +630,7 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> Spi<SPI, PADS, I>
     #[inline]
     pub fn new<GLB>(spi: SPI, pads: PADS, mode: Mode, glb: &GLB) -> Self
     where
-        PADS: Alternates<I>,
+        PADS: Pads<I>,
         GLB: Deref<Target = glb::v2::RegisterBlock>,
     {
         let mut config = Config(0)
@@ -877,10 +877,10 @@ impl<SPI: Deref<Target = RegisterBlock>, PINS, const I: usize>
     }
 }
 
-/// Valid SPI Alternates.
-pub trait Alternates<const I: usize> {}
+/// Valid SPI pads.
+pub trait Pads<const I: usize> {}
 
-impl<A1, A2, A3, const N1: usize, const N2: usize, const N3: usize> Alternates<1>
+impl<A1, A2, A3, const N1: usize, const N2: usize, const N3: usize> Pads<1>
     for (
         Alternate<A1, N1, gpio::Spi<1>>,
         Alternate<A2, N2, gpio::Spi<1>>,
@@ -896,8 +896,7 @@ where
 {
 }
 
-impl<A1, A2, A3, A4, const N1: usize, const N2: usize, const N3: usize, const N4: usize>
-    Alternates<1>
+impl<A1, A2, A3, A4, const N1: usize, const N2: usize, const N3: usize, const N4: usize> Pads<1>
     for (
         Alternate<A1, N1, gpio::Spi<1>>,
         Alternate<A2, N2, gpio::Spi<1>>,

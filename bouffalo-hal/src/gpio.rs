@@ -14,8 +14,8 @@
 //! GPIO pin structure has an alternate mode parameter `M`. Alternate modes can be
 //! switched by using functions begin with `into_`. Those functions internally operate
 //! on hardware (specifically, GLB peripheral) to change pin function, and convert this
-//! structure to `Pin` type with different alternate mode generic parameters. With new
-//! alternate mode types, `Pin` structure would now match the demand of creating new
+//! structure to `Pad` type with different alternate mode generic parameters. With new
+//! alternate mode types, `Pad` structure would now match the demand of creating new
 //! peripheral structures, or include specific functions for developers to use.
 //!
 //! # Examples
@@ -130,13 +130,11 @@ mod pad_v1;
 mod pad_v2;
 mod typestate;
 
-pub use alternate::Alternate;
 pub use convert::{IntoPad, IntoPadv2};
-pub use disabled::Disabled;
 pub use gpio_group::Pads;
-pub use input::Input;
-pub use output::Output;
 pub use typestate::*;
+pub use {alternate::Alternate, disabled::Disabled, input::Input, output::Output};
+pub use {pad_v1::Padv1, pad_v2::Padv2};
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "glb-v1")] {
