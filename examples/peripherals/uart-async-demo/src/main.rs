@@ -13,7 +13,7 @@ use bouffalo_rt::{
 use embedded_time::rate::*;
 use panic_halt as _;
 
-async fn async_main(p: Peripherals, c: Clocks) {
+async fn async_main(p: Peripherals<'_>, c: Clocks) {
     // enable jtag
     p.gpio.io0.into_jtag_d0();
     p.gpio.io1.into_jtag_d0();

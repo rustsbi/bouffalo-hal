@@ -52,8 +52,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     quote!(
         #[export_name = "main"]
         pub extern "C" fn main() -> ! {
-            let p = unsafe { core::mem::transmute(()) };
-            let c = bouffalo_rt::__new_clocks(40_000_000);
+            let (p, c) = bouffalo_rt::__rom_init_params(40_000_000);
             unsafe { __bouffalo_rt_macros__main(p, c) }
         }
         #[allow(non_snake_case)]

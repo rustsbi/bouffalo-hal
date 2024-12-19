@@ -18,15 +18,15 @@ cfg_if::cfg_if! {
     if #[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp", feature = "bl808-lp"))] {
         pub use soc::bl808::{Peripherals, Clocks};
         #[doc(hidden)]
-        pub use soc::bl808::__new_clocks;
+        pub use soc::bl808::__rom_init_params;
     } else if #[cfg(feature = "bl702")] {
         pub use soc::bl702::{Peripherals, Clocks};
         #[doc(hidden)]
-        pub use soc::bl702::__new_clocks;
+        pub use soc::bl702::__rom_init_params;
     } else if #[cfg(feature = "bl616")] {
         pub use soc::bl616::{Peripherals, Clocks};
         #[doc(hidden)]
-        pub use soc::bl616::__new_clocks;
+        pub use soc::bl616::__rom_init_params;
     }
 }
 

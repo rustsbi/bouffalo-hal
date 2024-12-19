@@ -24,14 +24,15 @@
 //!
 //! ```no_run
 //! # use bouffalo_hal::gpio::{Pads, IntoPad};
-//! # pub struct Peripherals { gpio: Pads<GLBv2> }
+//! # pub struct Peripherals { gpio: Pads<'static> }
 //! # pub struct GLBv2;
 //! # impl core::ops::Deref for GLBv2 {
 //! #     type Target = bouffalo_hal::glb::RegisterBlock;
 //! #     fn deref(&self) -> &Self::Target { unimplemented!() }
 //! # }
 //! # fn main() -> ! {
-//! #   let p: Peripherals = unsafe { core::mem::transmute(()) };
+//! # let glb: &bouffalo_hal::glb::RegisterBlock = unsafe { &*core::ptr::null() };
+//! # let p: Peripherals = Peripherals { gpio: Pads::__pads_from_glb(glb) };
 //! use embedded_hal::digital::{OutputPin, PinState};
 //!
 //! // Switch io8 pin into floating output mode to prepare setting its state.
@@ -61,27 +62,22 @@
 //! # use embedded_time::rate::*;
 //! # use bouffalo_hal::{
 //! #     clocks::Clocks,
-//! #     gpio::Pads,
+//! #     gpio::{Pads, IntoPadv2},
 //! #     uart::{BitOrder, Config, Parity, StopBits, WordLength},
 //! # };
 //! # use embedded_io::Write;
 //! # pub struct Serial<PADS> { pads: PADS }
 //! # impl<PADS> Serial<PADS> {
 //! #     pub fn new<UART>(_: UART, _: Config, _: Baud,
-//! # #[cfg(feature = "glb-v2")] _: PADS, _: &Clocks, _: &GLBv2)
+//! # #[cfg(feature = "glb-v2")] _: PADS, _: &Clocks, _: &())
 //! #     -> Self { unimplemented!() }
 //! #     pub fn write_fmt(&mut self, fmt: core::fmt::Arguments<'_>) -> Result<(), ()> { unimplemented!() }
 //! #     pub fn flush(&mut self) -> Result<(), ()> { unimplemented!() }
 //! # }
 //! # pub struct Peripherals {
-//! #     gpio: Pads<GLBv2>,
-//! #     glb: GLBv2,
+//! #     gpio: Pads<'static>,
+//! #     glb: (),
 //! #     uart0: UART0,
-//! # }
-//! # pub struct GLBv2;
-//! # impl core::ops::Deref for GLBv2 {
-//! #     type Target = bouffalo_hal::glb::RegisterBlock;
-//! #     fn deref(&self) -> &Self::Target { unimplemented!() }
 //! # }
 //! # pub struct UART0;
 //! # impl core::ops::Deref for UART0 {
@@ -89,7 +85,8 @@
 //! #     fn deref(&self) -> &Self::Target { unimplemented!() }
 //! # }
 //! # fn main() {
-//! # let p: Peripherals = unsafe { core::mem::transmute(()) };
+//! # let glb: &bouffalo_hal::glb::RegisterBlock = unsafe { &*core::ptr::null() };
+//! # let p: Peripherals = Peripherals { gpio: Pads::__pads_from_glb(glb), glb: (), uart0: UART0 };
 //! # let clocks = Clocks { xtal: Hertz(40_000_000) };
 //! // Prepare UART transmit and receive pads by converting io14 and io15 into
 //! // UART signal alternate mode.

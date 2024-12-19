@@ -1,15 +1,15 @@
 use super::typestate::{Floating, Input, Output, PullDown, PullUp};
 use crate::glb::{v1, Drive, Pull};
-use core::{marker::PhantomData, ops::Deref};
+use core::marker::PhantomData;
 use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 
 /// Raw GPIO pad of BL602 and BL702.
-pub struct Padv1<GLB, const N: usize, M> {
-    base: GLB,
+pub struct Padv1<'a, const N: usize, M> {
+    base: &'a v1::RegisterBlock,
     _mode: PhantomData<M>,
 }
 
-impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> Padv1<GLB, N, Input<M>> {
+impl<'a, const N: usize, M> Padv1<'a, N, Input<M>> {
     /// Enable schmitt trigger.
     #[inline]
     pub fn enable_schmitt(&mut self) {
@@ -48,7 +48,7 @@ impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> Padv1<GLB, N, In
     }
 }
 
-impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> Padv1<GLB, N, Output<M>> {
+impl<'a, const N: usize, M> Padv1<'a, N, Output<M>> {
     /// Get drive strength of this pin.
     #[inline]
     pub fn drive(&self) -> Drive {
@@ -62,7 +62,7 @@ impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> Padv1<GLB, N, Ou
     }
 }
 
-impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> Padv1<GLB, N, Input<M>> {
+impl<'a, const N: usize, M> Padv1<'a, N, Input<M>> {
     /// Get interrupt mode.
     #[inline]
     pub fn interrupt_mode(&self) -> v1::InterruptMode {
@@ -80,10 +80,10 @@ impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> Padv1<GLB, N, In
     }
 }
 
-impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> Padv1<GLB, N, M> {
+impl<'a, const N: usize, M> Padv1<'a, N, M> {
     /// Configures the pin to operate as a pull up output pin.
     #[inline]
-    pub fn into_pull_up_output(self) -> Padv1<GLB, N, Output<PullUp>> {
+    pub fn into_pull_up_output(self) -> Padv1<'a, N, Output<PullUp>> {
         let config = self.base.gpio_config[N >> 1]
             .read()
             .set_function(N & 0x1, v1::Function::Gpio)
@@ -99,7 +99,7 @@ impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> Padv1<GLB, N, M>
     }
     /// Configures the pin to operate as a pull down output pin.
     #[inline]
-    pub fn into_pull_down_output(self) -> Padv1<GLB, N, Output<PullDown>> {
+    pub fn into_pull_down_output(self) -> Padv1<'a, N, Output<PullDown>> {
         let config = self.base.gpio_config[N >> 1]
             .read()
             .set_function(N & 0x1, v1::Function::Gpio)
@@ -115,7 +115,7 @@ impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> Padv1<GLB, N, M>
     }
     /// Configures the pin to operate as a floating output pin.
     #[inline]
-    pub fn into_floating_output(self) -> Padv1<GLB, N, Output<Floating>> {
+    pub fn into_floating_output(self) -> Padv1<'a, N, Output<Floating>> {
         let config = self.base.gpio_config[N >> 1]
             .read()
             .set_function(N & 0x1, v1::Function::Gpio)
@@ -131,7 +131,7 @@ impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> Padv1<GLB, N, M>
     }
     /// Configures the pin to operate as a pull up input pin.
     #[inline]
-    pub fn into_pull_up_input(self) -> Padv1<GLB, N, Input<PullUp>> {
+    pub fn into_pull_up_input(self) -> Padv1<'a, N, Input<PullUp>> {
         let config = self.base.gpio_config[N >> 1]
             .read()
             .set_function(N & 0x1, v1::Function::Gpio)
@@ -147,7 +147,7 @@ impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> Padv1<GLB, N, M>
     }
     /// Configures the pin to operate as a pull down input pin.
     #[inline]
-    pub fn into_pull_down_input(self) -> Padv1<GLB, N, Input<PullDown>> {
+    pub fn into_pull_down_input(self) -> Padv1<'a, N, Input<PullDown>> {
         let config = self.base.gpio_config[N >> 1]
             .read()
             .set_function(N & 0x1, v1::Function::Gpio)
@@ -163,7 +163,7 @@ impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> Padv1<GLB, N, M>
     }
     /// Configures the pin to operate as a floating input pin.
     #[inline]
-    pub fn into_floating_input(self) -> Padv1<GLB, N, Input<Floating>> {
+    pub fn into_floating_input(self) -> Padv1<'a, N, Input<Floating>> {
         let config = self.base.gpio_config[N >> 1]
             .read()
             .set_function(N & 0x1, v1::Function::Gpio)
@@ -179,21 +179,15 @@ impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> Padv1<GLB, N, M>
     }
 }
 
-impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> ErrorType
-    for Padv1<GLB, N, Input<M>>
-{
+impl<'a, const N: usize, M> ErrorType for Padv1<'a, N, Input<M>> {
     type Error = core::convert::Infallible;
 }
 
-impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> ErrorType
-    for Padv1<GLB, N, Output<M>>
-{
+impl<'a, const N: usize, M> ErrorType for Padv1<'a, N, Output<M>> {
     type Error = core::convert::Infallible;
 }
 
-impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> InputPin
-    for Padv1<GLB, N, Input<M>>
-{
+impl<'a, const N: usize, M> InputPin for Padv1<'a, N, Input<M>> {
     #[inline]
     fn is_high(&mut self) -> Result<bool, Self::Error> {
         Ok(self.base.gpio_input_value.read() & (1 << N) != 0)
@@ -204,9 +198,7 @@ impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> InputPin
     }
 }
 
-impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> OutputPin
-    for Padv1<GLB, N, Output<M>>
-{
+impl<'a, const N: usize, M> OutputPin for Padv1<'a, N, Output<M>> {
     #[inline]
     fn set_low(&mut self) -> Result<(), Self::Error> {
         let val = self.base.gpio_output_value.read();
@@ -218,5 +210,17 @@ impl<GLB: Deref<Target = v1::RegisterBlock>, const N: usize, M> OutputPin
         let val = self.base.gpio_output_value.read();
         unsafe { self.base.gpio_output_value.write(val | (1 << N)) };
         Ok(())
+    }
+}
+
+// Macro internal functions, do not use.
+impl<'a, const N: usize> Padv1<'a, N, super::typestate::Disabled> {
+    #[doc(hidden)]
+    #[inline]
+    pub fn __from_glb(base: &'a v1::RegisterBlock) -> Self {
+        Self {
+            base,
+            _mode: PhantomData,
+        }
     }
 }

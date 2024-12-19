@@ -1,5 +1,3 @@
-use std::{env, path::PathBuf};
-
 fn main() {
     #[cfg(any(
         feature = "bl616",
@@ -9,6 +7,7 @@ fn main() {
         feature = "bl702"
     ))]
     let (out, ld) = {
+        use std::{env, path::PathBuf};
         let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
         let ld = out.join("bouffalo-rt.ld");
         (out, ld)
