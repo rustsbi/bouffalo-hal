@@ -1,97 +1,97 @@
-use super::{typestate::Disabled, Pad};
+use super::disabled::Disabled;
 
 /// Available GPIO pads.
 pub struct Pads<GLB> {
     /// GPIO I/O 0.
-    pub io0: Pad<GLB, 0, Disabled>,
+    pub io0: Disabled<GLB, 0>,
     /// GPIO I/O 1.
-    pub io1: Pad<GLB, 1, Disabled>,
+    pub io1: Disabled<GLB, 1>,
     /// GPIO I/O 2.
-    pub io2: Pad<GLB, 2, Disabled>,
+    pub io2: Disabled<GLB, 2>,
     /// GPIO I/O 3.
-    pub io3: Pad<GLB, 3, Disabled>,
+    pub io3: Disabled<GLB, 3>,
     /// GPIO I/O 4.
-    pub io4: Pad<GLB, 4, Disabled>,
+    pub io4: Disabled<GLB, 4>,
     /// GPIO I/O 5.
-    pub io5: Pad<GLB, 5, Disabled>,
+    pub io5: Disabled<GLB, 5>,
     /// GPIO I/O 6.
-    pub io6: Pad<GLB, 6, Disabled>,
+    pub io6: Disabled<GLB, 6>,
     /// GPIO I/O 7.
-    pub io7: Pad<GLB, 7, Disabled>,
+    pub io7: Disabled<GLB, 7>,
     /// GPIO I/O 8.
-    pub io8: Pad<GLB, 8, Disabled>,
+    pub io8: Disabled<GLB, 8>,
     /// GPIO I/O 9.
-    pub io9: Pad<GLB, 9, Disabled>,
+    pub io9: Disabled<GLB, 9>,
     /// GPIO I/O 10.
-    pub io10: Pad<GLB, 10, Disabled>,
+    pub io10: Disabled<GLB, 10>,
     /// GPIO I/O 11.
-    pub io11: Pad<GLB, 11, Disabled>,
+    pub io11: Disabled<GLB, 11>,
     /// GPIO I/O 12.
-    pub io12: Pad<GLB, 12, Disabled>,
+    pub io12: Disabled<GLB, 12>,
     /// GPIO I/O 13.
-    pub io13: Pad<GLB, 13, Disabled>,
+    pub io13: Disabled<GLB, 13>,
     /// GPIO I/O 14.
-    pub io14: Pad<GLB, 14, Disabled>,
+    pub io14: Disabled<GLB, 14>,
     /// GPIO I/O 15.
-    pub io15: Pad<GLB, 15, Disabled>,
+    pub io15: Disabled<GLB, 15>,
     /// GPIO I/O 16.
-    pub io16: Pad<GLB, 16, Disabled>,
+    pub io16: Disabled<GLB, 16>,
     /// GPIO I/O 17.
-    pub io17: Pad<GLB, 17, Disabled>,
+    pub io17: Disabled<GLB, 17>,
     /// GPIO I/O 18.
-    pub io18: Pad<GLB, 18, Disabled>,
+    pub io18: Disabled<GLB, 18>,
     /// GPIO I/O 19.
-    pub io19: Pad<GLB, 19, Disabled>,
+    pub io19: Disabled<GLB, 19>,
     /// GPIO I/O 20.
-    pub io20: Pad<GLB, 20, Disabled>,
+    pub io20: Disabled<GLB, 20>,
     /// GPIO I/O 21.
-    pub io21: Pad<GLB, 21, Disabled>,
+    pub io21: Disabled<GLB, 21>,
     /// GPIO I/O 22.
-    pub io22: Pad<GLB, 22, Disabled>,
+    pub io22: Disabled<GLB, 22>,
     /// GPIO I/O 23.
-    pub io23: Pad<GLB, 23, Disabled>,
+    pub io23: Disabled<GLB, 23>,
     /// GPIO I/O 24.
-    pub io24: Pad<GLB, 24, Disabled>,
+    pub io24: Disabled<GLB, 24>,
     /// GPIO I/O 25.
-    pub io25: Pad<GLB, 25, Disabled>,
+    pub io25: Disabled<GLB, 25>,
     /// GPIO I/O 26.
-    pub io26: Pad<GLB, 26, Disabled>,
+    pub io26: Disabled<GLB, 26>,
     /// GPIO I/O 27.
-    pub io27: Pad<GLB, 27, Disabled>,
+    pub io27: Disabled<GLB, 27>,
     /// GPIO I/O 28.
-    pub io28: Pad<GLB, 28, Disabled>,
+    pub io28: Disabled<GLB, 28>,
     /// GPIO I/O 29.
-    pub io29: Pad<GLB, 29, Disabled>,
+    pub io29: Disabled<GLB, 29>,
     /// GPIO I/O 30.
-    pub io30: Pad<GLB, 30, Disabled>,
+    pub io30: Disabled<GLB, 30>,
     /// GPIO I/O 31.
-    pub io31: Pad<GLB, 31, Disabled>,
+    pub io31: Disabled<GLB, 31>,
     /// GPIO I/O 32.
-    pub io32: Pad<GLB, 32, Disabled>,
+    pub io32: Disabled<GLB, 32>,
     /// GPIO I/O 33.
-    pub io33: Pad<GLB, 33, Disabled>,
+    pub io33: Disabled<GLB, 33>,
     /// GPIO I/O 34.
-    pub io34: Pad<GLB, 34, Disabled>,
+    pub io34: Disabled<GLB, 34>,
     /// GPIO I/O 35.
-    pub io35: Pad<GLB, 35, Disabled>,
+    pub io35: Disabled<GLB, 35>,
     /// GPIO I/O 36.
-    pub io36: Pad<GLB, 36, Disabled>,
+    pub io36: Disabled<GLB, 36>,
     /// GPIO I/O 37.
-    pub io37: Pad<GLB, 37, Disabled>,
+    pub io37: Disabled<GLB, 37>,
     /// GPIO I/O 38.
-    pub io38: Pad<GLB, 38, Disabled>,
+    pub io38: Disabled<GLB, 38>,
     /// GPIO I/O 39.
-    pub io39: Pad<GLB, 39, Disabled>,
+    pub io39: Disabled<GLB, 39>,
     /// GPIO I/O 40.
-    pub io40: Pad<GLB, 40, Disabled>,
+    pub io40: Disabled<GLB, 40>,
     /// GPIO I/O 41.
-    pub io41: Pad<GLB, 41, Disabled>,
+    pub io41: Disabled<GLB, 41>,
     /// GPIO I/O 42.
-    pub io42: Pad<GLB, 42, Disabled>,
+    pub io42: Disabled<GLB, 42>,
     /// GPIO I/O 43.
-    pub io43: Pad<GLB, 43, Disabled>,
+    pub io43: Disabled<GLB, 43>,
     /// GPIO I/O 44.
-    pub io44: Pad<GLB, 44, Disabled>,
+    pub io44: Disabled<GLB, 44>,
     /// GPIO I/O 45.
-    pub io45: Pad<GLB, 45, Disabled>,
+    pub io45: Disabled<GLB, 45>,
 }

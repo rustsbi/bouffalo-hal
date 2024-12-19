@@ -7,6 +7,7 @@ use crate::glb::{self, RegisterBlock};
 use core::ops::Deref;
 use embedded_hal::digital::{ErrorType, InputPin};
 
+/// GPIO pad in input mode.
 pub struct Input<GLB, const N: usize, M> {
     #[cfg(feature = "glb-v1")]
     inner: super::pad_v1::Padv1<GLB, N, typestate::Input<M>>,

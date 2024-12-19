@@ -4,7 +4,7 @@ use crate::glb::{
     self,
     v2::{PwmSignal0, PwmSignal1},
 };
-use crate::gpio::{self, Alternate, Pad};
+use crate::gpio::{self, Pad};
 use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
 use embedded_time::rate::Hertz;
@@ -776,7 +776,6 @@ impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize> Chan
     ) -> PwmPin<Self, Pad<GLB, N, gpio::Pwm<F>>, Positive>
     where
         GLB: Deref<Target = glb::v2::RegisterBlock>,
-        gpio::Pwm<F>: Alternate,
         Pad<GLB, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Positive>,
     {
         PwmPin {
@@ -796,7 +795,6 @@ impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize> Chan
     ) -> PwmPin<Self, Pad<GLB, N, gpio::Pwm<F>>, Negative>
     where
         GLB: Deref<Target = glb::v2::RegisterBlock>,
-        gpio::Pwm<F>: Alternate,
         Pad<GLB, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Negative>,
     {
         PwmPin {
@@ -824,7 +822,6 @@ impl<S, const I: usize> ExternalBreak<S, I> {
     ) -> PwmPin<Self, Pad<GLB, N, gpio::Pwm<F>>, ()>
     where
         GLB: Deref<Target = glb::v2::RegisterBlock>,
-        gpio::Pwm<F>: Alternate,
         Pad<GLB, N, gpio::Pwm<F>>: HasPwmExternalBreak<I>,
     {
         PwmPin {

@@ -662,36 +662,36 @@ mod i2c_impls {
     // 0, 2, 4, ..., 2n: SCL
     // 1, 3, 5, ..., 2n+1: SDA
     // TODO: support other pads if needed
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 0, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 1, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 2, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 3, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 4, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 5, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 6, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 7, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 8, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 9, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 10, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 11, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 12, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 13, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 14, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 15, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 16, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 17, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 18, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 19, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 20, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 21, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 22, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 23, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 24, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 25, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 26, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 27, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 28, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
-    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 29, gpio::I2c<I>> where gpio::I2c<I>: gpio::Alternate {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 0, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 1, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 2, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 3, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 4, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 5, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 6, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 7, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 8, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 9, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 10, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 11, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 12, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 13, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 14, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 15, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 16, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 17, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 18, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 19, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 20, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 21, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 22, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 23, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 24, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 25, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 26, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 27, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SclPin<I> for Pad<GLB, 28, gpio::I2c<I>> {}
+    impl<GLB, const I: usize> SdaPin<I> for Pad<GLB, 29, gpio::I2c<I>> {}
 }
 
 #[cfg(test)]

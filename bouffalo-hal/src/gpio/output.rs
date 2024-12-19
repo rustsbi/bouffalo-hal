@@ -7,6 +7,7 @@ use crate::glb::{self, Drive, RegisterBlock};
 use core::ops::Deref;
 use embedded_hal::digital::{ErrorType, OutputPin};
 
+/// GPIO pad in output mode.
 pub struct Output<GLB, const N: usize, M> {
     #[cfg(feature = "glb-v1")]
     inner: super::pad_v1::Padv1<GLB, N, typestate::Output<M>>,
@@ -17,12 +18,12 @@ pub struct Output<GLB, const N: usize, M> {
 }
 
 impl<GLB: Deref<Target = glb::RegisterBlock>, const N: usize, M> Output<GLB, N, M> {
-    /// Get drive strength of this pin.
+    /// Get drive strength of this pad.
     #[inline]
     pub fn drive(&self) -> Drive {
         self.inner.drive()
     }
-    /// Set drive strength of this pin.
+    /// Set drive strength of this pad.
     #[inline]
     pub fn set_drive(&mut self, val: Drive) {
         self.inner.set_drive(val)

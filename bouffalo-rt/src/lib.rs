@@ -10,6 +10,10 @@ pub use bouffalo_rt_macros::{entry, exception, interrupt};
 pub mod arch;
 pub mod soc;
 
+pub mod prelude {
+    pub use bouffalo_hal::prelude::*;
+}
+
 cfg_if::cfg_if! {
     if #[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp", feature = "bl808-lp"))] {
         pub use soc::bl808::{Peripherals, Clocks};

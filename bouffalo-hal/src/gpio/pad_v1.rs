@@ -3,7 +3,7 @@ use crate::glb::{v1, Drive, Pull};
 use core::{marker::PhantomData, ops::Deref};
 use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 
-/// GPIO pad of BL602 and BL702.
+/// Raw GPIO pad of BL602 and BL702.
 pub struct Padv1<GLB, const N: usize, M> {
     base: GLB,
     _mode: PhantomData<M>,

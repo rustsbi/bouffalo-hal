@@ -1,7 +1,7 @@
 use super::{
     typestate::{
-        Alternate, Floating, I2c, Input, JtagD0, JtagLp, JtagM0, MmUart, Output, PullDown, PullUp,
-        Pwm, Sdh, Uart,
+        Floating, I2c, Input, JtagD0, JtagLp, JtagM0, MmUart, Output, PullDown, PullUp, Pwm, Sdh,
+        Uart,
     },
     Spi,
 };
@@ -9,7 +9,7 @@ use crate::glb::{v2, Drive, Pull};
 use core::{marker::PhantomData, ops::Deref};
 use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 
-/// GPIO pad of BL808 and BL616.
+/// Raw GPIO pad of BL808 and BL616.
 pub struct Padv2<GLB, const N: usize, M> {
     base: GLB,
     _mode: PhantomData<M>,
@@ -217,17 +217,14 @@ impl<GLB: Deref<Target = v2::RegisterBlock>, const N: usize, M> Padv2<GLB, N, M>
     }
     /// Configures the pin to operate as a pull up Pulse Width Modulation signal pin.
     #[inline]
-    pub fn into_pull_up_pwm<const I: usize>(self) -> Padv2<GLB, N, Pwm<I>>
-    where
-        Pwm<I>: Alternate,
-    {
+    pub fn into_pull_up_pwm<const I: usize>(self) -> Padv2<GLB, N, Pwm<I>> {
         let config = v2::GpioConfig::RESET_VALUE
             .disable_input()
             .enable_output()
             .enable_schmitt()
             .set_drive(Drive::Drive0)
             .set_pull(Pull::Up)
-            .set_function(Pwm::<I>::F);
+            .set_function(Pwm::<I>::FUNCTION_V2);
         unsafe { self.base.gpio_config[N].write(config) };
         Padv2 {
             base: self.base,
@@ -236,17 +233,14 @@ impl<GLB: Deref<Target = v2::RegisterBlock>, const N: usize, M> Padv2<GLB, N, M>
     }
     /// Configures the pin to operate as a pull down Pulse Width Modulation signal pin.
     #[inline]
-    pub fn into_pull_down_pwm<const I: usize>(self) -> Padv2<GLB, N, Pwm<I>>
-    where
-        Pwm<I>: Alternate,
-    {
+    pub fn into_pull_down_pwm<const I: usize>(self) -> Padv2<GLB, N, Pwm<I>> {
         let config = v2::GpioConfig::RESET_VALUE
             .disable_input()
             .enable_output()
             .enable_schmitt()
             .set_drive(Drive::Drive0)
             .set_pull(Pull::Down)
-            .set_function(Pwm::<I>::F);
+            .set_function(Pwm::<I>::FUNCTION_V2);
         unsafe { self.base.gpio_config[N].write(config) };
         Padv2 {
             base: self.base,
@@ -255,17 +249,14 @@ impl<GLB: Deref<Target = v2::RegisterBlock>, const N: usize, M> Padv2<GLB, N, M>
     }
     /// Configures the pin to operate as floating Pulse Width Modulation signal pin.
     #[inline]
-    pub fn into_floating_pwm<const I: usize>(self) -> Padv2<GLB, N, Pwm<I>>
-    where
-        Pwm<I>: Alternate,
-    {
+    pub fn into_floating_pwm<const I: usize>(self) -> Padv2<GLB, N, Pwm<I>> {
         let config = v2::GpioConfig::RESET_VALUE
             .disable_input()
             .enable_output()
             .enable_schmitt()
             .set_drive(Drive::Drive0)
             .set_pull(Pull::None)
-            .set_function(Pwm::<I>::F);
+            .set_function(Pwm::<I>::FUNCTION_V2);
         unsafe { self.base.gpio_config[N].write(config) };
         Padv2 {
             base: self.base,
@@ -273,17 +264,14 @@ impl<GLB: Deref<Target = v2::RegisterBlock>, const N: usize, M> Padv2<GLB, N, M>
         }
     }
     #[inline]
-    pub fn into_i2c<const I: usize>(self) -> Padv2<GLB, N, I2c<I>>
-    where
-        I2c<I>: Alternate,
-    {
+    pub fn into_i2c<const I: usize>(self) -> Padv2<GLB, N, I2c<I>> {
         let config = v2::GpioConfig::RESET_VALUE
             .enable_input()
             .enable_output()
             .enable_schmitt()
             .set_drive(Drive::Drive0)
             .set_pull(Pull::Up)
-            .set_function(I2c::<I>::F);
+            .set_function(I2c::<I>::FUNCTION_V2);
         unsafe {
             self.base.gpio_config[N].write(config);
         }
@@ -324,17 +312,14 @@ impl<GLB: Deref<Target = v2::RegisterBlock>, const N: usize, M> Padv2<GLB, N, M>
     }
     /// Configures the pin to operate as a SPI pin.
     #[inline]
-    pub fn into_spi<const I: usize>(self) -> Padv2<GLB, N, Spi<I>>
-    where
-        Spi<I>: Alternate,
-    {
+    pub fn into_spi<const I: usize>(self) -> Padv2<GLB, N, Spi<I>> {
         let config = v2::GpioConfig::RESET_VALUE
             .enable_input()
             .disable_output()
             .enable_schmitt()
             .set_pull(Pull::Up)
             .set_drive(Drive::Drive0)
-            .set_function(Spi::<I>::F);
+            .set_function(Spi::<I>::FUNCTION_V2);
         unsafe {
             self.base.gpio_config[N].write(config);
         }
@@ -353,7 +338,7 @@ impl<GLB: Deref<Target = v2::RegisterBlock>, const N: usize, M> Padv2<GLB, N, M>
             .enable_schmitt()
             .set_pull(Pull::Up)
             .set_drive(Drive::Drive0)
-            .set_function(Sdh::F);
+            .set_function(v2::Function::Sdh);
         unsafe {
             self.base.gpio_config[N].write(config);
         }
