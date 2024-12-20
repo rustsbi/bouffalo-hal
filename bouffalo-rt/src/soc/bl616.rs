@@ -213,13 +213,13 @@ pub struct HalCpuCfg {
 }
 
 /// Peripherals available on ROM start.
-pub struct Peripherals {
+pub struct Peripherals<'a> {
     /// Global configuration peripheral.
     pub glb: GLBv2,
     /// General Purpose Input/Output pads.
-    pub gpio: bouffalo_hal::gpio::Pads<GLBv2>,
+    pub gpio: bouffalo_hal::gpio::Pads<'a>,
     /// UART signal multiplexers.
-    pub uart_muxes: bouffalo_hal::uart::UartMuxes<GLBv2>,
+    pub uart_muxes: bouffalo_hal::uart::UartMuxes<'a>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
     pub uart0: UART0,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
@@ -262,13 +262,33 @@ soc! {
 pub use bouffalo_hal::clocks::Clocks;
 
 // Used by macros only.
+#[allow(unused)]
 #[doc(hidden)]
 #[inline(always)]
-pub fn __new_clocks(xtal_hz: u32) -> Clocks {
+pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
     use embedded_time::rate::Hertz;
-    Clocks {
+    let peripherals = Peripherals {
+        glb: GLBv2 { _private: () },
+        gpio: match () {
+            #[cfg(feature = "bl616")]
+            () => bouffalo_hal::gpio::Pads::__pads_from_glb(&GLBv2 { _private: () }),
+            #[cfg(not(feature = "bl616"))]
+            () => unimplemented!(),
+        },
+        uart_muxes: bouffalo_hal::uart::UartMuxes::__uart_muxes_from_glb(&GLBv2 { _private: () }),
+        uart0: UART0 { _private: () },
+        uart1: UART1 { _private: () },
+        spi: SPI { _private: () },
+        i2c0: I2C0 { _private: () },
+        pwm: PWM { _private: () },
+        i2c1: I2C1 { _private: () },
+        hbn: HBN { _private: () },
+        emac: EMAC { _private: () },
+    };
+    let clocks = Clocks {
         xtal: Hertz(xtal_hz),
-    }
+    };
+    (peripherals, clocks)
 }
 
 #[cfg(test)]

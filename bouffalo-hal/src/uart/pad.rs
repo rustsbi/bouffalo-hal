@@ -1,62 +1,60 @@
 use super::{BlockingReceiveHalf, BlockingTransmitHalf, MuxCts, MuxRts, MuxRxd, MuxTxd, UartMux};
-use crate::glb;
-use crate::gpio::{MmUart, Pad, Uart};
-use core::ops::Deref;
+use crate::gpio::{Alternate, MmUart, Uart};
 
 /// Check if target gpio `Pin` is internally connected to UART signal index `I`.
 pub trait HasUartSignal<const I: usize> {}
 
-impl<GLB> HasUartSignal<0> for Pad<GLB, 0, Uart> {}
-impl<GLB> HasUartSignal<1> for Pad<GLB, 1, Uart> {}
-impl<GLB> HasUartSignal<2> for Pad<GLB, 2, Uart> {}
-impl<GLB> HasUartSignal<3> for Pad<GLB, 3, Uart> {}
-impl<GLB> HasUartSignal<4> for Pad<GLB, 4, Uart> {}
-impl<GLB> HasUartSignal<5> for Pad<GLB, 5, Uart> {}
-impl<GLB> HasUartSignal<6> for Pad<GLB, 6, Uart> {}
-impl<GLB> HasUartSignal<7> for Pad<GLB, 7, Uart> {}
-impl<GLB> HasUartSignal<8> for Pad<GLB, 8, Uart> {}
-impl<GLB> HasUartSignal<9> for Pad<GLB, 9, Uart> {}
-impl<GLB> HasUartSignal<10> for Pad<GLB, 10, Uart> {}
-impl<GLB> HasUartSignal<11> for Pad<GLB, 11, Uart> {}
-impl<GLB> HasUartSignal<0> for Pad<GLB, 12, Uart> {}
-impl<GLB> HasUartSignal<1> for Pad<GLB, 13, Uart> {}
-impl<GLB> HasUartSignal<2> for Pad<GLB, 14, Uart> {}
-impl<GLB> HasUartSignal<3> for Pad<GLB, 15, Uart> {}
-impl<GLB> HasUartSignal<4> for Pad<GLB, 16, Uart> {}
-impl<GLB> HasUartSignal<5> for Pad<GLB, 17, Uart> {}
-impl<GLB> HasUartSignal<6> for Pad<GLB, 18, Uart> {}
-impl<GLB> HasUartSignal<7> for Pad<GLB, 19, Uart> {}
-impl<GLB> HasUartSignal<8> for Pad<GLB, 20, Uart> {}
-impl<GLB> HasUartSignal<9> for Pad<GLB, 21, Uart> {}
-impl<GLB> HasUartSignal<10> for Pad<GLB, 22, Uart> {}
-impl<GLB> HasUartSignal<11> for Pad<GLB, 23, Uart> {}
-impl<GLB> HasUartSignal<0> for Pad<GLB, 24, Uart> {}
-impl<GLB> HasUartSignal<1> for Pad<GLB, 25, Uart> {}
-impl<GLB> HasUartSignal<2> for Pad<GLB, 26, Uart> {}
-impl<GLB> HasUartSignal<3> for Pad<GLB, 27, Uart> {}
-impl<GLB> HasUartSignal<4> for Pad<GLB, 28, Uart> {}
-impl<GLB> HasUartSignal<5> for Pad<GLB, 29, Uart> {}
-impl<GLB> HasUartSignal<6> for Pad<GLB, 30, Uart> {}
-impl<GLB> HasUartSignal<7> for Pad<GLB, 31, Uart> {}
-impl<GLB> HasUartSignal<8> for Pad<GLB, 32, Uart> {}
-impl<GLB> HasUartSignal<9> for Pad<GLB, 33, Uart> {}
-impl<GLB> HasUartSignal<10> for Pad<GLB, 34, Uart> {}
-impl<GLB> HasUartSignal<11> for Pad<GLB, 35, Uart> {}
-impl<GLB> HasUartSignal<0> for Pad<GLB, 36, Uart> {}
-impl<GLB> HasUartSignal<1> for Pad<GLB, 37, Uart> {}
-impl<GLB> HasUartSignal<2> for Pad<GLB, 38, Uart> {}
-impl<GLB> HasUartSignal<3> for Pad<GLB, 39, Uart> {}
-impl<GLB> HasUartSignal<4> for Pad<GLB, 40, Uart> {}
-impl<GLB> HasUartSignal<5> for Pad<GLB, 41, Uart> {}
-impl<GLB> HasUartSignal<6> for Pad<GLB, 42, Uart> {}
-impl<GLB> HasUartSignal<7> for Pad<GLB, 43, Uart> {}
-impl<GLB> HasUartSignal<8> for Pad<GLB, 44, Uart> {}
-impl<GLB> HasUartSignal<9> for Pad<GLB, 45, Uart> {}
+impl<'a> HasUartSignal<0> for Alternate<'a, 0, Uart> {}
+impl<'a> HasUartSignal<1> for Alternate<'a, 1, Uart> {}
+impl<'a> HasUartSignal<2> for Alternate<'a, 2, Uart> {}
+impl<'a> HasUartSignal<3> for Alternate<'a, 3, Uart> {}
+impl<'a> HasUartSignal<4> for Alternate<'a, 4, Uart> {}
+impl<'a> HasUartSignal<5> for Alternate<'a, 5, Uart> {}
+impl<'a> HasUartSignal<6> for Alternate<'a, 6, Uart> {}
+impl<'a> HasUartSignal<7> for Alternate<'a, 7, Uart> {}
+impl<'a> HasUartSignal<8> for Alternate<'a, 8, Uart> {}
+impl<'a> HasUartSignal<9> for Alternate<'a, 9, Uart> {}
+impl<'a> HasUartSignal<10> for Alternate<'a, 10, Uart> {}
+impl<'a> HasUartSignal<11> for Alternate<'a, 11, Uart> {}
+impl<'a> HasUartSignal<0> for Alternate<'a, 12, Uart> {}
+impl<'a> HasUartSignal<1> for Alternate<'a, 13, Uart> {}
+impl<'a> HasUartSignal<2> for Alternate<'a, 14, Uart> {}
+impl<'a> HasUartSignal<3> for Alternate<'a, 15, Uart> {}
+impl<'a> HasUartSignal<4> for Alternate<'a, 16, Uart> {}
+impl<'a> HasUartSignal<5> for Alternate<'a, 17, Uart> {}
+impl<'a> HasUartSignal<6> for Alternate<'a, 18, Uart> {}
+impl<'a> HasUartSignal<7> for Alternate<'a, 19, Uart> {}
+impl<'a> HasUartSignal<8> for Alternate<'a, 20, Uart> {}
+impl<'a> HasUartSignal<9> for Alternate<'a, 21, Uart> {}
+impl<'a> HasUartSignal<10> for Alternate<'a, 22, Uart> {}
+impl<'a> HasUartSignal<11> for Alternate<'a, 23, Uart> {}
+impl<'a> HasUartSignal<0> for Alternate<'a, 24, Uart> {}
+impl<'a> HasUartSignal<1> for Alternate<'a, 25, Uart> {}
+impl<'a> HasUartSignal<2> for Alternate<'a, 26, Uart> {}
+impl<'a> HasUartSignal<3> for Alternate<'a, 27, Uart> {}
+impl<'a> HasUartSignal<4> for Alternate<'a, 28, Uart> {}
+impl<'a> HasUartSignal<5> for Alternate<'a, 29, Uart> {}
+impl<'a> HasUartSignal<6> for Alternate<'a, 30, Uart> {}
+impl<'a> HasUartSignal<7> for Alternate<'a, 31, Uart> {}
+impl<'a> HasUartSignal<8> for Alternate<'a, 32, Uart> {}
+impl<'a> HasUartSignal<9> for Alternate<'a, 33, Uart> {}
+impl<'a> HasUartSignal<10> for Alternate<'a, 34, Uart> {}
+impl<'a> HasUartSignal<11> for Alternate<'a, 35, Uart> {}
+impl<'a> HasUartSignal<0> for Alternate<'a, 36, Uart> {}
+impl<'a> HasUartSignal<1> for Alternate<'a, 37, Uart> {}
+impl<'a> HasUartSignal<2> for Alternate<'a, 38, Uart> {}
+impl<'a> HasUartSignal<3> for Alternate<'a, 39, Uart> {}
+impl<'a> HasUartSignal<4> for Alternate<'a, 40, Uart> {}
+impl<'a> HasUartSignal<5> for Alternate<'a, 41, Uart> {}
+impl<'a> HasUartSignal<6> for Alternate<'a, 42, Uart> {}
+impl<'a> HasUartSignal<7> for Alternate<'a, 43, Uart> {}
+impl<'a> HasUartSignal<8> for Alternate<'a, 44, Uart> {}
+impl<'a> HasUartSignal<9> for Alternate<'a, 45, Uart> {}
 
 /// Check if an internal multi-media UART signal is connected to target gpio `Pin`.
 pub trait HasMmUartSignal {}
 
-impl<GLB, const N: usize> HasMmUartSignal for Pad<GLB, N, MmUart> {}
+impl<'a, const N: usize> HasMmUartSignal for Alternate<'a, N, MmUart> {}
 
 /// Valid UART pads.
 #[diagnostic::on_unimplemented(
@@ -92,18 +90,17 @@ fn from_pads<T, TX, RX>(
     )
 }
 
-impl<A1, GLB2, const I: usize, const U: usize, const N: usize> Pads<U>
-    for (Pad<A1, N, Uart>, UartMux<GLB2, I, MuxTxd<U>>)
+impl<'a, 'b, const I: usize, const U: usize, const N: usize> Pads<U>
+    for (Alternate<'a, N, Uart>, UartMux<'b, I, MuxTxd<U>>)
 where
-    A1: Deref<Target = glb::v2::RegisterBlock>,
-    Pad<A1, N, Uart>: HasUartSignal<I>,
+    Alternate<'a, N, Uart>: HasUartSignal<I>,
 {
     const RTS: bool = false;
     const CTS: bool = false;
     const TXD: bool = true;
     const RXD: bool = false;
     type Split<T> = (
-        BlockingTransmitHalf<T, (Pad<A1, N, Uart>, UartMux<GLB2, I, MuxTxd<U>>)>,
+        BlockingTransmitHalf<T, (Alternate<'a, N, Uart>, UartMux<'b, I, MuxTxd<U>>)>,
         BlockingReceiveHalf<T, ()>,
     );
     #[inline]
@@ -113,10 +110,10 @@ where
 }
 
 impl<
-        A1,
-        GLB2,
-        A3,
-        GLB4,
+        'a,
+        'b,
+        'c,
+        'd,
         const I1: usize,
         const I2: usize,
         const U: usize,
@@ -124,22 +121,20 @@ impl<
         const N2: usize,
     > Pads<U>
     for (
-        (Pad<A1, N1, Uart>, UartMux<GLB2, I1, MuxTxd<U>>),
-        (Pad<A3, N2, Uart>, UartMux<GLB4, I2, MuxRxd<U>>),
+        (Alternate<'a, N1, Uart>, UartMux<'b, I1, MuxTxd<U>>),
+        (Alternate<'c, N2, Uart>, UartMux<'d, I2, MuxRxd<U>>),
     )
 where
-    A1: Deref<Target = glb::v2::RegisterBlock>,
-    A3: Deref<Target = glb::v2::RegisterBlock>,
-    Pad<A1, N1, Uart>: HasUartSignal<I1>,
-    Pad<A3, N2, Uart>: HasUartSignal<I2>,
+    Alternate<'a, N1, Uart>: HasUartSignal<I1>,
+    Alternate<'c, N2, Uart>: HasUartSignal<I2>,
 {
     const RTS: bool = false;
     const CTS: bool = false;
     const TXD: bool = true;
     const RXD: bool = true;
     type Split<T> = (
-        BlockingTransmitHalf<T, (Pad<A1, N1, Uart>, UartMux<GLB2, I1, MuxTxd<U>>)>,
-        BlockingReceiveHalf<T, (Pad<A3, N2, Uart>, UartMux<GLB4, I2, MuxRxd<U>>)>,
+        BlockingTransmitHalf<T, (Alternate<'a, N1, Uart>, UartMux<'b, I1, MuxTxd<U>>)>,
+        BlockingReceiveHalf<T, (Alternate<'c, N2, Uart>, UartMux<'d, I2, MuxRxd<U>>)>,
     );
     #[inline]
     fn split<T>(self, uart: T) -> Self::Split<T> {
@@ -148,10 +143,10 @@ where
 }
 
 impl<
-        A1,
-        GLB2,
-        A3,
-        GLB4,
+        'a,
+        'b,
+        'c,
+        'd,
         const I1: usize,
         const I2: usize,
         const U: usize,
@@ -159,14 +154,12 @@ impl<
         const N2: usize,
     > Pads<U>
     for (
-        (Pad<A1, N1, Uart>, UartMux<GLB2, I1, MuxTxd<U>>),
-        (Pad<A3, N2, Uart>, UartMux<GLB4, I2, MuxCts<U>>),
+        (Alternate<'a, N1, Uart>, UartMux<'b, I1, MuxTxd<U>>),
+        (Alternate<'c, N2, Uart>, UartMux<'d, I2, MuxCts<U>>),
     )
 where
-    A1: Deref<Target = glb::v2::RegisterBlock>,
-    A3: Deref<Target = glb::v2::RegisterBlock>,
-    Pad<A1, N1, Uart>: HasUartSignal<I1>,
-    Pad<A3, N2, Uart>: HasUartSignal<I2>,
+    Alternate<'a, N1, Uart>: HasUartSignal<I1>,
+    Alternate<'d, N2, Uart>: HasUartSignal<I2>,
 {
     const RTS: bool = false;
     const CTS: bool = true;
@@ -175,8 +168,8 @@ where
     type Split<T> = BlockingTransmitHalf<
         T,
         (
-            (Pad<A1, N1, Uart>, UartMux<GLB2, I1, MuxTxd<U>>),
-            (Pad<A3, N2, Uart>, UartMux<GLB4, I2, MuxCts<U>>),
+            (Alternate<'a, N1, Uart>, UartMux<'b, I1, MuxTxd<U>>),
+            (Alternate<'c, N2, Uart>, UartMux<'d, I2, MuxCts<U>>),
         ),
     >;
     #[inline]
@@ -186,14 +179,14 @@ where
 }
 
 impl<
-        A1,
-        GLB2,
-        A3,
-        GLB4,
-        A5,
-        GLB6,
-        A7,
-        GLB8,
+        'a,
+        'b,
+        'c,
+        'd,
+        'e,
+        'f,
+        'g,
+        'h,
         const I1: usize,
         const I2: usize,
         const I3: usize,
@@ -205,20 +198,16 @@ impl<
         const N4: usize,
     > Pads<U>
     for (
-        (Pad<A1, N1, Uart>, UartMux<GLB2, I1, MuxTxd<U>>),
-        (Pad<A3, N2, Uart>, UartMux<GLB4, I2, MuxRxd<U>>),
-        (Pad<A5, N3, Uart>, UartMux<GLB6, I3, MuxRts<U>>),
-        (Pad<A7, N4, Uart>, UartMux<GLB8, I4, MuxCts<U>>),
+        (Alternate<'a, N1, Uart>, UartMux<'b, I1, MuxTxd<U>>),
+        (Alternate<'c, N2, Uart>, UartMux<'d, I2, MuxRxd<U>>),
+        (Alternate<'e, N3, Uart>, UartMux<'f, I3, MuxRts<U>>),
+        (Alternate<'g, N4, Uart>, UartMux<'h, I4, MuxCts<U>>),
     )
 where
-    A1: Deref<Target = glb::v2::RegisterBlock>,
-    A3: Deref<Target = glb::v2::RegisterBlock>,
-    A5: Deref<Target = glb::v2::RegisterBlock>,
-    A7: Deref<Target = glb::v2::RegisterBlock>,
-    Pad<A1, N1, Uart>: HasUartSignal<I1>,
-    Pad<A3, N2, Uart>: HasUartSignal<I2>,
-    Pad<A5, N3, Uart>: HasUartSignal<I3>,
-    Pad<A7, N4, Uart>: HasUartSignal<I4>,
+    Alternate<'a, N1, Uart>: HasUartSignal<I1>,
+    Alternate<'c, N2, Uart>: HasUartSignal<I2>,
+    Alternate<'e, N3, Uart>: HasUartSignal<I3>,
+    Alternate<'g, N4, Uart>: HasUartSignal<I4>,
 {
     const RTS: bool = false;
     const CTS: bool = true;
@@ -228,15 +217,15 @@ where
         BlockingTransmitHalf<
             T,
             (
-                (Pad<A1, N1, Uart>, UartMux<GLB2, I1, MuxTxd<U>>),
-                (Pad<A7, N4, Uart>, UartMux<GLB8, I4, MuxCts<U>>),
+                (Alternate<'a, N1, Uart>, UartMux<'b, I1, MuxTxd<U>>),
+                (Alternate<'g, N4, Uart>, UartMux<'h, I4, MuxCts<U>>),
             ),
         >,
         BlockingReceiveHalf<
             T,
             (
-                (Pad<A3, N2, Uart>, UartMux<GLB4, I2, MuxRxd<U>>),
-                (Pad<A5, N3, Uart>, UartMux<GLB6, I3, MuxRts<U>>),
+                (Alternate<'c, N2, Uart>, UartMux<'d, I2, MuxRxd<U>>),
+                (Alternate<'e, N3, Uart>, UartMux<'f, I3, MuxRts<U>>),
             ),
         >,
     );
@@ -250,10 +239,9 @@ where
 
 const MMUART_UART_ID: usize = 3;
 
-impl<A1, const N: usize> Pads<MMUART_UART_ID> for Pad<A1, N, MmUart>
+impl<'a, const N: usize> Pads<MMUART_UART_ID> for Alternate<'a, N, MmUart>
 where
-    A1: Deref<Target = glb::v2::RegisterBlock>,
-    Pad<A1, N, MmUart>: HasMmUartSignal,
+    Alternate<'a, N, MmUart>: HasMmUartSignal,
 {
     const RTS: bool = { N % 4 == 2 };
     const CTS: bool = { N % 4 == 3 };
@@ -267,13 +255,11 @@ where
     }
 }
 
-impl<A1, A2, const N1: usize, const N2: usize> Pads<MMUART_UART_ID>
-    for (Pad<A1, N1, MmUart>, Pad<A2, N2, MmUart>)
+impl<'a, 'b, const N1: usize, const N2: usize> Pads<MMUART_UART_ID>
+    for (Alternate<'a, N1, MmUart>, Alternate<'b, N2, MmUart>)
 where
-    A1: Deref<Target = glb::v2::RegisterBlock>,
-    A2: Deref<Target = glb::v2::RegisterBlock>,
-    Pad<A1, N1, MmUart>: HasMmUartSignal,
-    Pad<A2, N2, MmUart>: HasMmUartSignal,
+    Alternate<'a, N1, MmUart>: HasMmUartSignal,
+    Alternate<'b, N2, MmUart>: HasMmUartSignal,
 {
     const RTS: bool = { N1 % 4 == 2 || N2 % 4 == 2 };
     const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 };
@@ -287,19 +273,16 @@ where
     }
 }
 
-impl<A1, A2, A3, const N1: usize, const N2: usize, const N3: usize> Pads<MMUART_UART_ID>
+impl<'a, 'b, 'c, const N1: usize, const N2: usize, const N3: usize> Pads<MMUART_UART_ID>
     for (
-        Pad<A1, N1, MmUart>,
-        Pad<A2, N2, MmUart>,
-        Pad<A3, N3, MmUart>,
+        Alternate<'a, N1, MmUart>,
+        Alternate<'b, N2, MmUart>,
+        Alternate<'c, N3, MmUart>,
     )
 where
-    A1: Deref<Target = glb::v2::RegisterBlock>,
-    A2: Deref<Target = glb::v2::RegisterBlock>,
-    A3: Deref<Target = glb::v2::RegisterBlock>,
-    Pad<A1, N1, MmUart>: HasMmUartSignal,
-    Pad<A2, N2, MmUart>: HasMmUartSignal,
-    Pad<A3, N3, MmUart>: HasMmUartSignal,
+    Alternate<'a, N1, MmUart>: HasMmUartSignal,
+    Alternate<'b, N2, MmUart>: HasMmUartSignal,
+    Alternate<'c, N3, MmUart>: HasMmUartSignal,
 {
     const RTS: bool = { N1 % 4 == 2 || N2 % 4 == 2 || N3 % 4 == 2 };
     const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 || N3 % 4 == 3 };
@@ -313,23 +296,19 @@ where
     }
 }
 
-impl<A1, A2, A3, A4, const N1: usize, const N2: usize, const N3: usize, const N4: usize>
+impl<'a, 'b, 'c, 'd, const N1: usize, const N2: usize, const N3: usize, const N4: usize>
     Pads<MMUART_UART_ID>
     for (
-        Pad<A1, N1, MmUart>,
-        Pad<A2, N2, MmUart>,
-        Pad<A3, N3, MmUart>,
-        Pad<A4, N4, MmUart>,
+        Alternate<'a, N1, MmUart>,
+        Alternate<'b, N2, MmUart>,
+        Alternate<'c, N3, MmUart>,
+        Alternate<'d, N4, MmUart>,
     )
 where
-    A1: Deref<Target = glb::v2::RegisterBlock>,
-    A2: Deref<Target = glb::v2::RegisterBlock>,
-    A3: Deref<Target = glb::v2::RegisterBlock>,
-    A4: Deref<Target = glb::v2::RegisterBlock>,
-    Pad<A1, N1, MmUart>: HasMmUartSignal,
-    Pad<A2, N2, MmUart>: HasMmUartSignal,
-    Pad<A3, N3, MmUart>: HasMmUartSignal,
-    Pad<A4, N4, MmUart>: HasMmUartSignal,
+    Alternate<'a, N1, MmUart>: HasMmUartSignal,
+    Alternate<'b, N2, MmUart>: HasMmUartSignal,
+    Alternate<'c, N3, MmUart>: HasMmUartSignal,
+    Alternate<'d, N4, MmUart>: HasMmUartSignal,
 {
     const RTS: bool = { N1 % 4 == 2 || N2 % 4 == 2 || N3 % 4 == 2 || N4 % 4 == 2 };
     const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 || N3 % 4 == 3 || N4 % 4 == 3 };

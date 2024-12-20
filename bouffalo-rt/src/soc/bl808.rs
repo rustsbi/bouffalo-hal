@@ -794,13 +794,13 @@ impl HalCpuCfg {
 }
 
 /// Peripherals available on ROM start.
-pub struct Peripherals {
+pub struct Peripherals<'a> {
     /// Global configuration peripheral.
     pub glb: GLBv2,
     /// General Purpose Input/Output pads.
-    pub gpio: bouffalo_hal::gpio::Pads<GLBv2>,
+    pub gpio: bouffalo_hal::gpio::Pads<'a>,
     /// UART signal multiplexers.
-    pub uart_muxes: bouffalo_hal::uart::UartMuxes<GLBv2>,
+    pub uart_muxes: bouffalo_hal::uart::UartMuxes<'a>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
     pub uart0: UART0,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
@@ -879,13 +879,42 @@ soc! {
 pub use bouffalo_hal::clocks::Clocks;
 
 // Used by macros only.
+#[allow(unused)]
 #[doc(hidden)]
 #[inline(always)]
-pub fn __new_clocks(xtal_hz: u32) -> Clocks {
+pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
     use embedded_time::rate::Hertz;
-    Clocks {
+    let peripherals = Peripherals {
+        glb: GLBv2 { _private: () },
+        gpio: match () {
+            #[cfg(any(feature = "bl808-dsp", feature = "bl808-mcu", feature = "bl808-lp"))]
+            () => bouffalo_hal::gpio::Pads::__pads_from_glb(&GLBv2 { _private: () }),
+            #[cfg(not(any(feature = "bl808-dsp", feature = "bl808-mcu", feature = "bl808-lp")))]
+            () => unimplemented!(),
+        },
+        uart_muxes: bouffalo_hal::uart::UartMuxes::__uart_muxes_from_glb(&GLBv2 { _private: () }),
+        uart0: UART0 { _private: () },
+        uart1: UART1 { _private: () },
+        spi0: SPI0 { _private: () },
+        i2c0: I2C0 { _private: () },
+        pwm: PWM { _private: () },
+        i2c1: I2C1 { _private: () },
+        uart2: UART2 { _private: () },
+        lz4d: LZ4D { _private: () },
+        hbn: HBN { _private: () },
+        emac: EMAC { _private: () },
+        uart3: UART3 { _private: () },
+        i2c2: I2C2 { _private: () },
+        i2c3: I2C3 { _private: () },
+        spi1: SPI1 { _private: () },
+        plic: PLIC { _private: () },
+        mmglb: MMGLB { _private: () },
+        psram: PSRAM { _private: () },
+    };
+    let clocks = Clocks {
         xtal: Hertz(xtal_hz),
-    }
+    };
+    (peripherals, clocks)
 }
 
 #[cfg(test)]
