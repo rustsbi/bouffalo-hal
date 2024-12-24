@@ -631,9 +631,15 @@ impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2
                     };
 
                     let mut i = 0;
+                    let max_retry = len * 100;
+                    let mut retry = 0;
                     while i < len {
                         while self.i2c.fifo_config_1.read().receive_available_bytes() == 0 {
-                            core::hint::spin_loop();
+                            retry += 1;
+                            if retry >= max_retry {
+                                unsafe { self.i2c.config.modify(|config| config.disable_master()) };
+                                return Err(Error::Other);
+                            }
                         }
                         let word = self.i2c.fifo_read.read();
                         let bytes_to_read = core::cmp::min(len - i, 4);
