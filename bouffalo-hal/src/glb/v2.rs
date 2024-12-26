@@ -19,22 +19,25 @@ pub struct RegisterBlock {
     _reserved3: [u8; 0x1c],
     /// Pulse Width Modulation configuration register.
     pub pwm_config: RW<PwmConfig>,
-    _reserved4: [u8; 0x33b],
+    _reserved4: [u8; 0x25c],
+    /// SDH configuration register.
+    pub sdh_config: RW<SdhConfig>,
+    _reserved5: [u8; 0xdd],
     pub param_config: RW<ParamConfig>,
-    _reserved5: [u8; 0x70],
+    _reserved6: [u8; 0x70],
     // TODO: clock_config_0, clock_config_2, clock_config_3 registers
     /// Clock generation configuration 1.
     pub clock_config_1: RW<ClockConfig1>,
-    _reserved6: [u8; 0x148],
+    _reserved7: [u8; 0x148],
     /// LDO12UHS config.
     pub ldo12uhs_config: RW<Ldo12uhsConfig>,
-    _reserved7: [u8; 0x1f0],
+    _reserved8: [u8; 0x1f0],
     /// Generic Purpose Input/Output config.
     pub gpio_config: [RW<GpioConfig>; 46],
-    _reserved8: [u8; 0x148],
+    _reserved9: [u8; 0x148],
     /// Read value from Generic Purpose Input/Output pads.
     pub gpio_input: [RO<u32>; 2],
-    _reserved9: [u8; 0x18],
+    _reserved10: [u8; 0x18],
     /// Write value to Generic Purpose Input/Output pads.
     pub gpio_output: [RW<u32>; 2],
     /// Set pin output value to high.
@@ -377,6 +380,53 @@ impl ParamConfig {
             }
             _ => unreachable!(),
         }
+    }
+}
+
+/// SDH configuration register.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct SdhConfig(u16);
+
+impl SdhConfig {
+    const SDH_CLK_EN: u16 = 0x1 << 13;
+    const SDH_CLK_SEL: u16 = 0x1 << 12;
+    const SDH_CLK_DIV_LEN: u16 = 0x7 << 9;
+
+    /// Enable SDH clock.
+    #[inline]
+    pub const fn enable_sdh_clk(self) -> Self {
+        Self((self.0 & !Self::SDH_CLK_EN) | (Self::SDH_CLK_EN & (1 << 13)))
+    }
+    /// Disable SDH clock.
+    #[inline]
+    pub const fn disable_sdh_clk(self) -> Self {
+        Self((self.0 & !Self::SDH_CLK_EN) | (Self::SDH_CLK_EN & (0 << 13)))
+    }
+    // If SDH clock is enabled.
+    #[inline]
+    pub const fn is_sdh_clk_enabled(self) -> bool {
+        (self.0 & Self::SDH_CLK_EN) >> 13 == 1
+    }
+    /// Set SDH clock select.
+    #[inline]
+    pub const fn set_sdh_clk_sel(self, val: u8) -> Self {
+        Self((self.0 & !Self::SDH_CLK_SEL) | (Self::SDH_CLK_SEL & ((val as u16) << 12)))
+    }
+    /// Get SDH clock select.
+    #[inline]
+    pub const fn sdh_clk_sel(self) -> u8 {
+        ((self.0 & Self::SDH_CLK_SEL) >> 12) as u8
+    }
+    /// Set SDH clock divider length.
+    #[inline]
+    pub const fn set_sdh_clk_div_len(self, val: u8) -> Self {
+        Self((self.0 & !Self::SDH_CLK_DIV_LEN) | (Self::SDH_CLK_DIV_LEN & ((val as u16) << 9)))
+    }
+    /// Get SDH clock divider length.
+    #[inline]
+    pub const fn sdh_clk_div_len(self) -> u8 {
+        ((self.0 & Self::SDH_CLK_DIV_LEN) >> 9) as u8
     }
 }
 
@@ -798,8 +848,8 @@ mod tests {
 
     use super::{
         Drive, Function, GpioConfig, I2cClockSource, I2cConfig, InterruptMode, Mode, Pull,
-        PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, SpiConfig, UartConfig, UartMuxGroup,
-        UartSignal,
+        PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, SdhConfig, SpiConfig, UartConfig,
+        UartMuxGroup, UartSignal,
     };
     use memoffset::offset_of;
 
@@ -810,6 +860,7 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, i2c_config), 0x180);
         assert_eq!(offset_of!(RegisterBlock, spi_config), 0x1b0);
         assert_eq!(offset_of!(RegisterBlock, pwm_config), 0x1d0);
+        assert_eq!(offset_of!(RegisterBlock, sdh_config), 0x430);
         assert_eq!(offset_of!(RegisterBlock, param_config), 0x510);
         assert_eq!(offset_of!(RegisterBlock, clock_config_1), 0x584);
         assert_eq!(offset_of!(RegisterBlock, ldo12uhs_config), 0x6d0);
@@ -1069,5 +1120,25 @@ mod tests {
         config = config.set_signal_1(PwmSignal1::BrushlessDcMotor);
         assert_eq!(config.0, 0x00000002);
         assert_eq!(config.signal_1(), PwmSignal1::BrushlessDcMotor);
+    }
+
+    #[test]
+    fn struct_sdh_config_functions() {
+        let mut val = SdhConfig(0x0);
+        val = val.enable_sdh_clk();
+        assert!(val.is_sdh_clk_enabled());
+        assert_eq!(val.0, 0x2000);
+        val = val.disable_sdh_clk();
+        assert!(!val.is_sdh_clk_enabled());
+        assert_eq!(val.0, 0x0000);
+
+        val = val.set_sdh_clk_sel(1);
+        assert_eq!(val.sdh_clk_sel(), 1);
+        assert_eq!(val.0, 0x1000);
+
+        val = SdhConfig(0x0);
+        val = val.set_sdh_clk_div_len(0x7);
+        assert_eq!(val.sdh_clk_div_len(), 0x7);
+        assert_eq!(val.0, 0x0E00);
     }
 }
