@@ -1,5 +1,11 @@
 //! Secure Digital Input/Output peripheral.
 
+use crate::glb;
+use crate::gpio::{self, Alternate};
+use core::arch::asm;
+use core::ops::Deref;
+use embedded_io::Write;
+use embedded_sdmmc::{Block, BlockDevice, BlockIdx};
 use volatile_register::RW;
 
 /// Secure Digital Input/Output peripheral registers.
@@ -26,7 +32,7 @@ pub struct RegisterBlock {
     /// Host Control 1 Register.
     pub host_control_1: RW<HostControl1>,
     /// Power Control Register.
-    pub powercontrol: RW<PowerControl>,
+    pub power_control: RW<PowerControl>,
     /// Block Gap Control Register.
     pub block_gap: RW<BlockGap>,
     /// Register which is mandatory for the Host Controller.
@@ -234,6 +240,8 @@ pub enum AutoCMDMode {
     CMD12 = 1,
     /// Auto CMD23 Enable.
     CMD23 = 2,
+    /// Set this bit to zero.
+    None = 0,
 }
 
 impl TransferMode {
@@ -279,7 +287,8 @@ impl TransferMode {
     pub const fn auto_cmd_mode(self) -> AutoCMDMode {
         match (self.0 & Self::AUTO_CMD) >> 2 {
             1 => AutoCMDMode::CMD12,
-            _ => AutoCMDMode::CMD23,
+            2 => AutoCMDMode::CMD23,
+            _ => AutoCMDMode::None,
         }
     }
     /// Enable Block Count register.
@@ -322,21 +331,22 @@ pub struct Command(u16);
 /// CMD Type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CmdType {
-    Other,
+    Normal,
     Suspend,
     Resume,
     Abort,
+    Empty,
 }
-/// Response Type
+/// Response Type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ResponseType {
     /// No Response.
     NoResponse,
-    /// Response Length 136
+    /// Response Length 136.
     ResponseLen136,
-    /// Response Length 48
+    /// Response Length 48.
     ResponseLen48,
-    /// Response Length 48 check Busy after response
+    /// Response Length 48 check Busy after response.
     ResponseLen48Check,
 }
 
@@ -350,12 +360,12 @@ impl Command {
 
     /// These bits shall be set to the command number (CMD0-63, ACMD0-63) that is specified in bits 45-40 of the Command-Format in the Physical Layer Specification and SDIO Card Specification.
     #[inline]
-    pub const fn set_cmd_num(self, val: u16) -> Self {
-        Self((self.0 & Self::CMD_INDEX) | (Self::CMD_INDEX & (val << 8)))
+    pub const fn set_cmd_idx(self, val: u16) -> Self {
+        Self((self.0 & !Self::CMD_INDEX) | (Self::CMD_INDEX & (val << 8)))
     }
     /// Get command number.
     #[inline]
-    pub const fn cmd_num(self) -> u16 {
+    pub const fn cmd_idx(self) -> u16 {
         (self.0 & Self::CMD_INDEX) >> 8
     }
     /// Set command type.
@@ -367,10 +377,11 @@ impl Command {
     #[inline]
     pub const fn cmd_type(self) -> CmdType {
         match (self.0 & Self::CMD_TYPE) >> 6 {
+            0 => CmdType::Normal,
             1 => CmdType::Suspend,
             2 => CmdType::Resume,
             3 => CmdType::Abort,
-            _ => CmdType::Other,
+            _ => CmdType::Empty,
         }
     }
     /// Set this bit to 1 to indicate that data is present and shall be transferred using the DAT line.
@@ -589,7 +600,7 @@ pub enum CardSignal {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BusWidthMode {
     /// 8-bit Bus Width.
-    SelectByDataTrabsferWidth,
+    SelectByDataTransferWidth,
     /// Bus Width is Selected by Data Transfer Width.
     EightBitWidth,
 }
@@ -675,7 +686,7 @@ impl HostControl1 {
     pub const fn bus_width(self) -> BusWidthMode {
         match (self.0 & Self::EXTEND_DATA) >> 5 {
             1 => BusWidthMode::EightBitWidth,
-            _ => BusWidthMode::SelectByDataTrabsferWidth,
+            _ => BusWidthMode::SelectByDataTransferWidth,
         }
     }
     /// Set DMA mode.
@@ -2250,7 +2261,7 @@ impl HostControl2 {
     pub const fn enable_preset_val(self) -> Self {
         Self((self.0 & !Self::PRESET_VAL_EN) | (Self::PRESET_VAL_EN & (1 << 15)))
     }
-    // Disable Preset Value.
+    /// Disable Preset Value.
     #[inline]
     pub const fn disable_preset_val(self) -> Self {
         Self((self.0 & !Self::PRESET_VAL_EN) | (Self::PRESET_VAL_EN & (0 << 15)))
@@ -2265,7 +2276,7 @@ impl HostControl2 {
     pub const fn enable_async_int(self) -> Self {
         Self((self.0 & !Self::ASYNCHRONOUS_INT_EN) | (Self::ASYNCHRONOUS_INT_EN & (1 << 14)))
     }
-    // Disable Asynchronous Interrupt.
+    /// Disable Asynchronous Interrupt.
     #[inline]
     pub const fn disable_async_int(self) -> Self {
         Self((self.0 & !Self::ASYNCHRONOUS_INT_EN) | (Self::ASYNCHRONOUS_INT_EN & (0 << 14)))
@@ -2382,7 +2393,7 @@ impl Capabilities {
     const BASE_CLK_FREQ: u64 = 0xFF << 40;
     const TIMEOUT_CLK_UNIT: u64 = 0x1 << 39;
     const TIMEOUT_CLK_FREQ: u64 = 0x3F << 32;
-    // Capabilities_2
+    // Capabilities_2.
     const CLK_MULTIPLIER: u64 = 0xFF << 16;
     const RE_TUNING_MODES: u64 = 0x3 << 14;
     const USE_TUNING: u64 = 0x1 << 13;
@@ -3008,113 +3019,114 @@ impl PresetValue {
         ((self.0 & Self::DDR50_SDCLK_FREQ_SEL_VAL) >> 112) as u16
     }
 
-    // Get Driver Strength Value For SDR104.
+    /// Get Driver Strength Value For SDR104.
     #[inline]
     pub const fn sdr104_drv_strength_val(self) -> u16 {
         ((self.0 & Self::SDR104_DRV_STRENGTH_VAL) >> 110) as u16
     }
-    // Get Clock Generator Frequency Select Value For SDR104.
+    /// Get Clock Generator Frequency Select Value For SDR104.
     #[inline]
     pub const fn sdr104_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::SDR104_CLKGEN_SEL_VAL) >> 106) as u16
     }
-    // Get SD Clock Generator Frequency Select Value For SDR104.
+    /// Get SD Clock Generator Frequency Select Value For SDR104.
     #[inline]
     pub const fn sdr104_sdclk_freq_clk_val(self) -> u16 {
         ((self.0 & Self::SDR104_SDCLK_FREQ_SEL_VAL) >> 96) as u16
     }
 
-    // Get Driver Strength Value For SDR50.
+    /// Get Driver Strength Value For SDR50.
     #[inline]
     pub const fn sdr50_drv_strength_val(self) -> u16 {
         ((self.0 & Self::SDR50_DRV_STRENGTH_VAL) >> 94) as u16
     }
-    // Get Clock Generator Frequency Select Value For SDR50.
+    /// Get Clock Generator Frequency Select Value For SDR50.
     #[inline]
     pub const fn sdr50_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::SDR50_CLKGEN_SEL_VAL) >> 90) as u16
     }
-    // Get SD Clock Generator Frequency Select Value For SDR50.
+    /// Get SD Clock Generator Frequency Select Value For SDR50.
     #[inline]
     pub const fn sdr50_sdclk_freq_clk_val(self) -> u16 {
         ((self.0 & Self::SDR50_SDCLK_FREQ_SEL_VAL) >> 80) as u16
     }
 
-    // Get Driver Strength Value For SDR25.
+    /// Get Driver Strength Value For SDR25.
     #[inline]
     pub const fn sdr25_drv_strength_val(self) -> u16 {
         ((self.0 & Self::SDR25_DRV_STRENGTH_VAL) >> 78) as u16
     }
-    // Get Clock Generator Frequency Select Value For SDR25.
+
+    /// Get Clock Generator Frequency Select Value For SDR25.
     #[inline]
     pub const fn sdr25_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::SDR25_CLKGEN_SEL_VAL) >> 74) as u16
     }
-    // Get SD Clock Generator Frequency Select Value For SDR25.
+    /// Get SD Clock Generator Frequency Select Value For SDR25.
     #[inline]
     pub const fn sdr25_sdclk_freq_clk_val(self) -> u16 {
         ((self.0 & Self::SDR25_SDCLK_FREQ_SEL_VAL) >> 64) as u16
     }
 
-    // Get Driver Strength Value For SDR12.
+    /// Get Driver Strength Value For SDR12.
     #[inline]
     pub const fn sdr12_drv_strength_val(self) -> u16 {
         ((self.0 & Self::SDR12_DRV_STRENGTH_VAL) >> 62) as u16
     }
-    // Get Clock Generator Frequency Select Value For SDR12.
+    /// Get Clock Generator Frequency Select Value For SDR12.
     #[inline]
     pub const fn sdr12_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::SDR12_CLKGEN_SEL_VAL) >> 58) as u16
     }
-    // Get SD Clock Generator Frequency Select Value For SDR12.
+    /// Get SD Clock Generator Frequency Select Value For SDR12.
     #[inline]
     pub const fn sdr12_sdclk_freq_clk_val(self) -> u16 {
         ((self.0 & Self::SDR12_SDCLK_FREQ_SEL_VAL) >> 48) as u16
     }
 
-    // Get Driver Strength Value For High Speed.
+    /// Get Driver Strength Value For High Speed.
     #[inline]
     pub const fn hs_drv_strength_val(self) -> u16 {
         ((self.0 & Self::HS_DRV_STRENGTH_VAL) >> 46) as u16
     }
-    // Get Clock Generator Frequency Select Value For High Speed.
+    /// Get Clock Generator Frequency Select Value For High Speed.
     #[inline]
     pub const fn hs_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::HS_CLKGEN_SEL_VAL) >> 42) as u16
     }
-    // Get SD Clock Generator Frequency Select Value For High Speed.
+    /// Get SD Clock Generator Frequency Select Value For High Speed.
     #[inline]
     pub const fn hs_sdclk_freq_clk_val(self) -> u16 {
         ((self.0 & Self::HS_SDCLK_FREQ_SEL_VAL) >> 32) as u16
     }
 
-    // Get Driver Strength Value For Default Speed.
+    /// Get Driver Strength Value For Default Speed.
     #[inline]
     pub const fn default_drv_strength_val(self) -> u16 {
         ((self.0 & Self::DEFAULT_DRV_STRENGTH_VAL) >> 30) as u16
     }
-    // Get Clock Generator Frequency Select Value For Default Speed.
+    /// Get Clock Generator Frequency Select Value For Default Speed.
     #[inline]
     pub const fn default_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::DEFAULT_CLKGEN_SEL_VAL) >> 26) as u16
     }
-    // Get SD Clock Generator Frequency Select Value For Default Speed.
+    /// Get SD Clock Generator Frequency Select Value For Default Speed.
     #[inline]
     pub const fn default_sdclk_freq_clk_val(self) -> u16 {
         ((self.0 & Self::DEFAULT_SDCLK_FREQ_SEL_VAL) >> 16) as u16
     }
 
-    // Get Driver Strength Value For Initialization.
+    /// Get Driver Strength Value For Initialization.
     #[inline]
     pub const fn init_drv_strength_val(self) -> u16 {
         ((self.0 & Self::INIT_DRV_STRENGTH_VAL) >> 14) as u16
     }
-    // Get Clock Generator Frequency Select Value For Initialization.
+    /// Get Clock Generator Frequency Select Value For Initialization.
     #[inline]
     pub const fn init_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::INIT_CLKGEN_SEL_VAL) >> 10) as u16
     }
-    // Get SD Clock Generator Frequency Select Value For Initialization.
+    /// Get SD Clock Generator Frequency Select Value For Initialization.
     #[inline]
     pub const fn init_sdclk_freq_clk_val(self) -> u16 {
         (self.0 & Self::INIT_SDCLK_FREQ_SEL_VAL) as u16
@@ -3228,6 +3240,7 @@ impl SlotInterruptStatus {
 #[repr(transparent)]
 pub struct HostControllerVersion(u16);
 
+/// SD Host Specification Version.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SpecificVersion {
     /// SD Host Specification Version 1.00.
@@ -3489,10 +3502,20 @@ pub struct TXConfiguration(u32);
 
 impl TXConfiguration {
     const _TX_MUX_SEL: u32 = 0x1 << 31;
-    const _TX_INT_CLK_SEL: u32 = 0x1 << 30;
+    const TX_INT_CLK_SEL: u32 = 0x1 << 30;
     const _TX_HOLD_DELAY1: u32 = 0x3FF << 16;
     const _TX_HOLD_DELAY0: u32 = 0x3FF;
 
+    /// Set tx interrupt clock select.
+    #[inline]
+    pub const fn set_tx_int_clk_sel(self, val: u8) -> Self {
+        Self((self.0 & !Self::TX_INT_CLK_SEL) | (Self::TX_INT_CLK_SEL & ((val as u32) << 30)))
+    }
+    /// Get tx interrupt clock select.
+    #[inline]
+    pub const fn tx_int_clk_sel(self) -> u8 {
+        ((self.0 & Self::TX_INT_CLK_SEL) >> 30) as u8
+    }
     // TODO
 }
 
@@ -3510,6 +3533,431 @@ impl TUNINGConfiguration {
     // TODO
 }
 
+/// SDH transfer flag.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SDHTransFlag {
+    None = 0x00000000,
+    EnDma = 0x00000001,              // Enable DMA.
+    EnBlkCount = 0x00000002,         // Enable block count.
+    EnAutoCmd12 = 0x00000004,        // Enable auto CMD12.
+    EnAutoCmd23 = 0x00000008,        // Enable auto CMD23.
+    ReadData = 0x00000010,           // Enable read data.
+    MultiBlk = 0x00000020,           // Enable multi-block data operation.
+    Resp136Bits = 0x00010000,        // Response is 136 bits length.
+    Resp48Bits = 0x00020000,         // Response is 48 bits length.
+    Resp48BitsWithBusy = 0x00030000, // Response is 48 bits length with busy status.
+    EnCrcCheck = 0x00080000,         // Enable CRC check.
+    EnIndexCheck = 0x00100000,       // Enable index check.
+    DataPresent = 0x00200000,        // Data present.
+    Suspend = 0x00400000,            // Suspend command.
+    Resume = 0x00800000,             // Resume command.
+    Abort = 0x00C00000,              // Abort command.
+}
+
+/// SDH response type.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SDHResp {
+    None,
+    R1,
+    R5,
+    R6,
+    R7,
+    R1B,
+    R5B,
+    R2,
+    R3,
+    R4,
+}
+
+/// Sleep for n milliseconds.
+pub fn sleep_ms(n: u32) {
+    for _ in 0..n * 125 {
+        unsafe { asm!("nop") }
+    }
+}
+
+/// Managed Secure Digital Host Controller peripheral.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Sdh<SDH, PADS, const I: usize> {
+    sdh: SDH,
+    pads: PADS,
+    block_count: u32,
+}
+
+impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I> {
+    /// Create a new instance of the SDH peripheral.
+    #[inline]
+    pub fn new(sdh: SDH, pads: PADS) -> Self
+    where
+        PADS: Pads<I>,
+    {
+        let block_count = 0;
+        Self {
+            sdh,
+            pads,
+            block_count,
+        }
+    }
+
+    /// Initialize the SDH peripheral (enable debug to print card info).
+    #[inline]
+    pub fn init<GLB, W: Write>(&mut self, w: &mut W, glb: &GLB, debug: bool)
+    where
+        GLB: Deref<Target = glb::v2::RegisterBlock>,
+    {
+        // SDH_RESET.
+        unsafe {
+            self.sdh.software_reset.modify(|val| val.reset_all());
+        }
+        while !self.sdh.software_reset.read().is_reset_all_finished() {
+            // Wait for software reset finished.
+            core::hint::spin_loop()
+        }
+
+        unsafe {
+            // GLB_Set_SDH_CLK.
+            glb.sdh_config.modify(|val| {
+                val.set_sdh_clk_sel(0) // GLB_REG_SDH_CLK_SEL.
+                    .set_sdh_clk_div_len(7) // GLB_REG_SDH_CLK_DIV.
+                    .enable_sdh_clk() // GLB_REG_SDH_CLK_EN.
+            });
+
+            // SDH_Ctrl_Init.
+            self.sdh.clock_control.modify(|val| {
+                val.set_sd_clk_freq(0) // SDH_SD_FREQ_SEL_LO.
+                    .set_sd_clk_freq_upper(0) // SDH_SD_FREQ_SEL_HI.
+                    .set_clk_gen_mode(ClkGenMode::DividedClk) // SDH_CLK_GEN_SEL.
+                    .enable_internal_clk() // SDH_INT_CLK_EN.
+                    .enable_sd_clk() // SDH_SD_CLK_EN.
+            });
+        }
+        while !self.sdh.clock_control.read().is_sd_clk_enabled() {
+            // Wait for sd clock enabled.
+            core::hint::spin_loop()
+        }
+        unsafe {
+            // SDH_DMA_EN.
+            self.sdh.transfer_mode.modify(|val| val.disable_dma());
+
+            self.sdh.host_control_1.modify(|val| {
+                val.set_bus_width(BusWidthMode::SelectByDataTransferWidth) // SDH_EX_DATA_WIDTH.
+                    .set_transfer_width(TransferWidth::OneBitMode) // SDH_DATA_WIDTH.
+                    .set_speed_mode(SpeedMode::HighSpeed) // SDH_HI_SPEED_EN.
+            });
+
+            // SDH_SD_BUS_VLT.
+            self.sdh
+                .power_control
+                .modify(|val| val.set_bus_voltage(BusVoltage::V3_3));
+
+            // SDH_TX_INT_CLK_SEL.
+            self.sdh
+                .tx_configuration
+                .modify(|val| val.set_tx_int_clk_sel(1));
+
+            // SDH enable interrupt.
+            self.sdh
+                .normal_interrupt_status_enable
+                .modify(|val| val.enable_buffer_read_ready());
+
+            // SDH_Set_Timeout.
+            self.sdh
+                .timeout_control
+                .modify(|val| val.set_timeout_val(0x0e));
+
+            // SDH_Powon.
+            self.sdh.power_control.modify(|val| val.enable_bus_power());
+        }
+
+        // Sdcard idle.
+        self.send_command(SDHResp::None, CmdType::Normal, 0, 0, false);
+        sleep_ms(100);
+
+        // Send CMD8.
+        self.send_command(SDHResp::R7, CmdType::Normal, 8, 0x1AA, false);
+        sleep_ms(100);
+        let data = self.get_resp();
+        if data != 0x1AA {
+            writeln!(
+                *w,
+                "unexpected response to CMD8: {:#010X}, expected 0x1AA",
+                data
+            )
+            .ok();
+            loop {}
+        }
+
+        loop {
+            const OCR_NBUSY: u32 = 0x80000000;
+            const OCR_VOLTAGE_MASK: u32 = 0x007FFF80;
+            const OCR_HCS: u32 = 0x40000000;
+            self.send_command(SDHResp::R1, CmdType::Normal, 55, 0, false);
+            sleep_ms(100);
+            self.send_command(
+                SDHResp::R3,
+                CmdType::Normal,
+                41,
+                OCR_VOLTAGE_MASK & 0x00ff8000 | OCR_HCS,
+                false,
+            );
+            sleep_ms(100);
+            let ocr = self.get_resp();
+            if (ocr as u32 & OCR_NBUSY) == OCR_NBUSY {
+                break;
+            }
+            sleep_ms(100);
+        }
+
+        // Send CMD2 to get CID.
+        self.send_command(SDHResp::R2, CmdType::Normal, 2, 0, false);
+        sleep_ms(100);
+        let cid = self.get_resp();
+        if debug {
+            writeln!(*w, "cid: {:#034X}", cid).ok();
+        }
+
+        // Send CMD3 to get RCA.
+        self.send_command(SDHResp::R6, CmdType::Normal, 3, 0, false);
+        sleep_ms(100);
+        let rca = self.get_resp() as u32 >> 16;
+        if debug {
+            writeln!(*w, "rca: {:#010X}", rca).ok();
+        }
+
+        // Send CMD9 to get CSD.
+        self.send_command(SDHResp::R2, CmdType::Normal, 9, rca << 16, false);
+        sleep_ms(100);
+        let csd_raw = self.get_resp();
+        let (csd_structure, c_size) = parse_csd_v2(csd_raw);
+        if csd_structure != 1 {
+            writeln!(*w, "unexpected CSD: {:#034X}", csd_raw).ok();
+            loop {}
+        }
+        if debug {
+            writeln!(*w, "csd: {:#034X}, c_size: {}", csd_raw, c_size).ok();
+        }
+
+        let block_size = 512;
+        self.block_count = (c_size + 1) * 1024;
+
+        // Send CMD7 to select card.
+        self.send_command(SDHResp::R1B, CmdType::Normal, 7, rca << 16, false);
+        sleep_ms(100);
+
+        // Set 1 data len, CMD55 -> ACMD6.
+        self.send_command(SDHResp::R1, CmdType::Normal, 55, rca << 16, false);
+        sleep_ms(100);
+        self.send_command(SDHResp::R1, CmdType::Normal, 6, 0x0, false);
+        sleep_ms(100);
+
+        let kb_size = (self.block_count as f64) * (block_size as f64) / 1024.0;
+        let mb_size = kb_size / 1024.0;
+        let gb_size = mb_size / 1024.0;
+
+        if debug {
+            if kb_size < 1024.0 {
+                writeln!(*w, "sdcard init done, size: {:.2} KB", kb_size).ok();
+            } else if mb_size < 1024.0 {
+                writeln!(*w, "sdcard init done, size: {:.2} MB", mb_size).ok();
+            } else {
+                writeln!(*w, "sdcard init done, size: {:.2} GB", gb_size).ok();
+            }
+        }
+    }
+
+    /// Send command to sdcard.
+    #[inline]
+    pub fn send_command(
+        &self,
+        resp_type: SDHResp,
+        cmd_type: CmdType,
+        cmd_idx: u32,
+        argument: u32,
+        has_data: bool,
+    ) {
+        let mut flag = SDHTransFlag::None as u32;
+        if has_data {
+            flag |= SDHTransFlag::DataPresent as u32;
+        }
+        match resp_type {
+            SDHResp::None => {}
+            SDHResp::R1 | SDHResp::R5 | SDHResp::R6 | SDHResp::R7 => {
+                flag |= SDHTransFlag::Resp48Bits as u32
+                    | SDHTransFlag::EnCrcCheck as u32
+                    | SDHTransFlag::EnIndexCheck as u32;
+            }
+            SDHResp::R1B | SDHResp::R5B => {
+                flag |= SDHTransFlag::Resp48BitsWithBusy as u32
+                    | SDHTransFlag::EnCrcCheck as u32
+                    | SDHTransFlag::EnIndexCheck as u32;
+            }
+            SDHResp::R2 => {
+                flag |= SDHTransFlag::Resp136Bits as u32 | SDHTransFlag::EnCrcCheck as u32;
+            }
+            SDHResp::R3 | SDHResp::R4 => {
+                flag |= SDHTransFlag::Resp48Bits as u32;
+            }
+        }
+
+        unsafe {
+            self.sdh.argument.write(Argument(argument));
+            self.sdh.command.write(
+                Command((flag >> 16) as u16)
+                    .set_cmd_type(cmd_type)
+                    .set_cmd_idx(cmd_idx as u16),
+            )
+        }
+    }
+
+    /// Get response from sdcard.
+    #[inline]
+    pub fn get_resp(&self) -> u128 {
+        self.sdh.response.read().response()
+    }
+
+    /// Read block from sdcard.
+    #[inline]
+    pub fn read_block(&self, block: &mut Block, block_idx: u32) {
+        unsafe {
+            // SDH_SD_TRANSFER_MODE.
+            self.sdh.transfer_mode.modify(|val| {
+                val.set_data_transfer_mode(DataTransferMode::MISO) // SDH_TO_HOST_DIR.
+                    .set_auto_cmd_mode(AutoCMDMode::None) // SDH_AUTO_CMD_EN.
+            });
+
+            // Block_size.
+            self.sdh
+                .block_size
+                .modify(|val| val.set_transfer_block(512));
+
+            // Block_count.
+            self.sdh.block_count.modify(|val| val.set_blocks_count(1));
+
+            // SDH_ClearIntStatus(SDH_INT_BUFFER_READ_READY).
+            self.sdh
+                .normal_interrupt_status
+                .write(NormalInterruptStatus(0x00000020));
+        }
+        self.send_command(SDHResp::R1, CmdType::Normal, 17, block_idx, true);
+        while !self
+            .sdh
+            .normal_interrupt_status
+            .read()
+            .is_buffer_read_ready()
+        {
+            // SDH_INT_BUFFER_READ_READY.
+            // Wait for buffer read ready.
+            core::hint::spin_loop()
+        }
+        for j in 0..Block::LEN / 4 {
+            let val = self.sdh.buffer_data_port.read().buffer_data();
+            block[j * 4 + 0] = (val >> 0) as u8;
+            block[j * 4 + 1] = (val >> 8) as u8;
+            block[j * 4 + 2] = (val >> 16) as u8;
+            block[j * 4 + 3] = (val >> 24) as u8;
+        }
+    }
+
+    /// Release the SDH instance and return the pads.
+    #[inline]
+    pub fn free(self) -> (SDH, PADS) {
+        (self.sdh, self.pads)
+    }
+}
+
+impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> BlockDevice for Sdh<SDH, PADS, I> {
+    type Error = core::convert::Infallible;
+    fn read(
+        &self,
+        blocks: &mut [Block],
+        start_block_idx: BlockIdx,
+        _reason: &str,
+    ) -> Result<(), Self::Error> {
+        for (i, block) in blocks.iter_mut().enumerate() {
+            self.read_block(block, start_block_idx.0 + i as u32);
+        }
+        Ok(())
+    }
+    fn write(&self, _blocks: &[Block], _start_block_idx: BlockIdx) -> Result<(), Self::Error> {
+        unimplemented!();
+    }
+    fn num_blocks(&self) -> Result<embedded_sdmmc::BlockCount, Self::Error> {
+        Ok(embedded_sdmmc::BlockCount(self.block_count))
+    }
+}
+
+/// Parse CSD version 2.0.
+pub fn parse_csd_v2(csd: u128) -> (u32, u32) {
+    let csd_structure = (((csd >> (32 * 3)) & 0xC00000) >> 22) as u32;
+    let c_size = (((csd >> 32) & 0x3FFFFF00) >> 8) as u32;
+    (csd_structure, c_size)
+}
+
+/// Valid SDH pads.
+pub trait Pads<const I: usize> {}
+
+impl<
+        'a,
+        'b,
+        'c,
+        'd,
+        'e,
+        'f,
+        const N1: usize,
+        const N2: usize,
+        const N3: usize,
+        const N4: usize,
+        const N5: usize,
+        const N6: usize,
+    > Pads<1>
+    for (
+        Alternate<'a, N1, gpio::Sdh>,
+        Alternate<'b, N2, gpio::Sdh>,
+        Alternate<'c, N3, gpio::Sdh>,
+        Alternate<'d, N4, gpio::Sdh>,
+        Alternate<'e, N5, gpio::Sdh>,
+        Alternate<'f, N6, gpio::Sdh>,
+    )
+where
+    Alternate<'a, N1, gpio::Sdh>: HasClkSignal,
+    Alternate<'b, N2, gpio::Sdh>: HasCmdSignal,
+    Alternate<'c, N3, gpio::Sdh>: HasDat0Signal,
+    Alternate<'d, N4, gpio::Sdh>: HasDat1Signal,
+    Alternate<'e, N5, gpio::Sdh>: HasDat2Signal,
+    Alternate<'f, N6, gpio::Sdh>: HasDat3Signal,
+{
+}
+
+/// Check if target gpio `Pin` is internally connected to SDH clock signal.
+pub trait HasClkSignal {}
+
+impl<'a> HasClkSignal for Alternate<'a, 0, gpio::Sdh> {}
+
+/// Check if target gpio `Pin` is internally connected to SDH command signal.
+pub trait HasCmdSignal {}
+
+impl<'a> HasCmdSignal for Alternate<'a, 1, gpio::Sdh> {}
+
+/// Check if target gpio `Pin` is internally connected to SDH data 0 signal.
+pub trait HasDat0Signal {}
+
+impl<'a> HasDat0Signal for Alternate<'a, 2, gpio::Sdh> {}
+
+/// Check if target gpio `Pin` is internally connected to SDH data 1 signal.
+pub trait HasDat1Signal {}
+
+impl<'a> HasDat1Signal for Alternate<'a, 3, gpio::Sdh> {}
+
+/// Check if target gpio `Pin` is internally connected to SDH data 2 signal.
+pub trait HasDat2Signal {}
+
+impl<'a> HasDat2Signal for Alternate<'a, 4, gpio::Sdh> {}
+
+/// Check if target gpio `Pin` is internally connected to SDH data 3 signal.
+pub trait HasDat3Signal {}
+
+impl<'a> HasDat3Signal for Alternate<'a, 5, gpio::Sdh> {}
+
 #[cfg(test)]
 mod tests {
     use super::RegisterBlock;
@@ -3523,7 +3971,7 @@ mod tests {
         NormalInterruptStatus, NormalInterruptStatusEnable, PowerControl, PresentState,
         PresetValue, Response, ResponseType, SDExtraParameters, SPIMode, SharedBusControl,
         SlotInterruptStatus, SlotType, SoftwareReset, SpecificVersion, SpeedMode, SystemAddress,
-        TimeoutControl, TransferMode, TransferWidth, WakeupControl,
+        TXConfiguration, TimeoutControl, TransferMode, TransferWidth, WakeupControl,
     };
     use memoffset::offset_of;
 
@@ -3539,7 +3987,7 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, buffer_data_port), 0x20);
         assert_eq!(offset_of!(RegisterBlock, present_state), 0x24);
         assert_eq!(offset_of!(RegisterBlock, host_control_1), 0x28);
-        assert_eq!(offset_of!(RegisterBlock, powercontrol), 0x29);
+        assert_eq!(offset_of!(RegisterBlock, power_control), 0x29);
         assert_eq!(offset_of!(RegisterBlock, block_gap), 0x2a);
         assert_eq!(offset_of!(RegisterBlock, wakeup_control), 0x2b);
         assert_eq!(offset_of!(RegisterBlock, clock_control), 0x2c);
@@ -3682,8 +4130,8 @@ mod tests {
     fn struct_command_functions() {
         let mut val = Command(0x0);
 
-        val = val.set_cmd_num(0x3F);
-        assert_eq!(val.cmd_num(), 0x3F);
+        val = val.set_cmd_idx(0x3F);
+        assert_eq!(val.cmd_idx(), 0x3F);
         assert_eq!(val.0, 0x3F00);
 
         val = Command(0x0);
@@ -3696,8 +4144,8 @@ mod tests {
         val = val.set_cmd_type(CmdType::Suspend);
         assert_eq!(val.cmd_type(), CmdType::Suspend);
         assert_eq!(val.0, 0x0040);
-        val = val.set_cmd_type(CmdType::Other);
-        assert_eq!(val.cmd_type(), CmdType::Other);
+        val = val.set_cmd_type(CmdType::Normal);
+        assert_eq!(val.cmd_type(), CmdType::Normal);
         assert_eq!(val.0, 0x0000);
 
         val = val.set_data_present();
@@ -3818,7 +4266,7 @@ mod tests {
         val = val.set_bus_width(BusWidthMode::EightBitWidth);
         assert_eq!(val.bus_width(), BusWidthMode::EightBitWidth);
         assert_eq!(val.0, 0x20);
-        val = val.set_bus_width(BusWidthMode::SelectByDataTrabsferWidth);
+        val = val.set_bus_width(BusWidthMode::SelectByDataTransferWidth);
         assert_eq!(val.0, 0x00);
 
         val = val.set_dma_mode(DMAMode::ADMA2);
@@ -3851,7 +4299,7 @@ mod tests {
     }
 
     #[test]
-    fn struct_powercontrol_functions() {
+    fn struct_power_control_functions() {
         let mut val = PowerControl(0x0);
 
         val = val.set_bus_voltage(BusVoltage::V1_8);
@@ -5061,6 +5509,10 @@ mod tests {
 
     #[test]
     fn struct_tx_configuration_functions() {
+        let mut val = TXConfiguration(0x0);
+        val = val.set_tx_int_clk_sel(0x1);
+        assert_eq!(val.tx_int_clk_sel(), 0x1);
+        assert_eq!(val.0, 0x4000_0000);
         // TODO
     }
 

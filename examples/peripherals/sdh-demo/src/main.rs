@@ -1,16 +1,13 @@
 #![no_std]
 #![no_main]
 
-use core::{arch::asm, ptr};
+use core::arch::asm;
 
-use bouffalo_hal::{prelude::*, uart::Config};
+use bouffalo_hal::{prelude::*, sdio::Sdh, uart::Config};
 use bouffalo_rt::{entry, Clocks, Peripherals};
-use embedded_sdmmc::{Block, BlockCount, BlockDevice, BlockIdx, VolumeManager};
+use embedded_sdmmc::VolumeManager;
 use embedded_time::rate::*;
 use panic_halt as _;
-use sdh::*;
-
-mod sdh;
 
 struct MyTimeSource {}
 
@@ -23,32 +20,36 @@ impl embedded_sdmmc::TimeSource for MyTimeSource {
 
 #[entry]
 fn main(p: Peripherals, c: Clocks) -> ! {
-    // light up led
+    // Light up led.
     let mut led = p.gpio.io8.into_floating_output();
     let mut led_state = PinState::Low;
     led.set_state(led_state).ok();
 
-    // init serial
+    // Init serial.
     let tx = p.gpio.io14.into_uart();
     let rx = p.gpio.io15.into_uart();
     let sig2 = p.uart_muxes.sig2.into_transmit::<0>();
     let sig3 = p.uart_muxes.sig3.into_receive::<0>();
 
     let config = Config::default().set_baudrate(2000000.Bd());
-    let mut serial = p.uart0.freerun(config, ((tx, sig2), (rx, sig3)), &c);
+    let mut serial = p
+        .uart0
+        .freerun(config, ((tx, sig2), (rx, sig3)), &c)
+        .unwrap();
 
     writeln!(serial, "Welcome to sdh-demo!").ok();
 
-    // sdh gpio init
-    p.gpio.io0.into_sdh();
-    p.gpio.io1.into_sdh();
-    p.gpio.io2.into_sdh();
-    p.gpio.io3.into_sdh();
-    p.gpio.io4.into_sdh();
-    p.gpio.io5.into_sdh();
+    // Sdh gpio init.
+    let sdh_clk = p.gpio.io0.into_sdh();
+    let sdh_cmd = p.gpio.io1.into_sdh();
+    let sdh_d0 = p.gpio.io2.into_sdh();
+    let sdh_d1 = p.gpio.io3.into_sdh();
+    let sdh_d2 = p.gpio.io4.into_sdh();
+    let sdh_d3 = p.gpio.io5.into_sdh();
 
-    // sdh init
-    let sdcard = sdh_init(&mut serial);
+    // Sdh init.
+    let mut sdcard = Sdh::new(p.sdh, (sdh_clk, sdh_cmd, sdh_d0, sdh_d1, sdh_d2, sdh_d3));
+    sdcard.init(&mut serial, &p.glb, true);
     let time_source = MyTimeSource {};
     let mut volume_mgr = VolumeManager::new(sdcard, time_source);
     let volume_res = volume_mgr.open_raw_volume(embedded_sdmmc::VolumeIdx(0));
@@ -74,19 +75,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     }
 }
 
-#[inline]
-pub(crate) fn set_bits(val: u32, pos: u32, len: u32, val_in: u32) -> u32 {
-    let mask = ((1 << len) - 1) << pos;
-    (val & !mask) | ((val_in << pos) & mask)
-}
-
-#[inline]
-pub(crate) fn is_bit_set(val: u32, pos: u32) -> bool {
-    (val & (1 << pos)) != 0
-}
-
-#[inline]
-pub(crate) fn sleep_ms(n: u32) {
+pub fn sleep_ms(n: u32) {
     for _ in 0..n * 125 {
         unsafe { asm!("nop") }
     }

@@ -835,6 +835,8 @@ pub struct Peripherals<'a> {
     pub mmglb: MMGLB,
     /// Pseudo Static Random Access Memory controller.
     pub psram: PSRAM,
+    /// Secure Digital High Capacity peripheral.
+    pub sdh: SDH,
 }
 
 soc! {
@@ -858,6 +860,8 @@ soc! {
     pub struct LZ4D => 0x2000AD00, bouffalo_hal::lz4d::RegisterBlock;
     /// Hibernation control peripheral.
     pub struct HBN => 0x2000F000, bouffalo_hal::hbn::RegisterBlock;
+    /// Secure Digital High Capacity peripheral.
+    pub struct SDH => 0x20060000, bouffalo_hal::sdio::RegisterBlock;
     /// Ethernet Media Access Control peripheral.
     pub struct EMAC => 0x20070000, bouffalo_hal::emac::RegisterBlock;
     /// Universal Asynchronous Receiver/Transmitter 3 with fixed base address.
@@ -910,6 +914,7 @@ pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
         plic: PLIC { _private: () },
         mmglb: MMGLB { _private: () },
         psram: PSRAM { _private: () },
+        sdh: SDH { _private: () },
     };
     let clocks = Clocks {
         xtal: Hertz(xtal_hz),
