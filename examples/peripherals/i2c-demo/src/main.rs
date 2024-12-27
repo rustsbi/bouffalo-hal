@@ -21,12 +21,18 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let mut serial = p.uart0.freerun(config, pads, &c).unwrap();
     let mut led = p.gpio.io8.into_floating_output();
 
-    let scl = p.gpio.io6.into_i2c::<2>();
-    let sda = p.gpio.io7.into_i2c::<2>();
+    let scl = p.gpio.io6.into_i2c::<0>();
+    let sda = p.gpio.io7.into_i2c::<0>();
     let mut i2c = I2c::new(p.i2c0, (scl, sda), &p.glb);
     i2c.enable_sub_address(SCREEN_TOUCH_SUB_ADDRESS);
 
     writeln!(serial, "Hello Rust🦀!").ok();
+    writeln!(
+        serial,
+        "Welcome to I2C demo, touch the screen to turn on the LED"
+    )
+    .ok();
+    led.set_high().ok();
     let mut buf = [0u8; 6];
     loop {
         riscv::asm::delay(100_000);
@@ -39,9 +45,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
                 }
                 writeln!(serial, "pos: ({}, {})[{}]", buf[3], buf[5], buf[2] >> 4).ok();
             }
-            Err(_) => {
-                led.set_high().ok();
-            }
+            Err(_) => {}
         }
     }
 }
