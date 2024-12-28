@@ -3655,21 +3655,25 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
     #[inline]
     pub fn init<W: Write>(&mut self, w: &mut W, debug: bool) {
         // Sdcard idle.
-        self.send_command(SDHResp::None, CmdType::Normal, 0, 0, false);
-        sleep_ms(100);
+        loop {
+            self.send_command(SDHResp::None, CmdType::Normal, 0, 0, false);
+            sleep_ms(100);
 
-        // Send CMD8.
-        self.send_command(SDHResp::R7, CmdType::Normal, 8, 0x1AA, false);
-        sleep_ms(100);
-        let data = self.get_resp();
-        if data != 0x1AA {
-            writeln!(
-                *w,
-                "unexpected response to CMD8: {:#010X}, expected 0x1AA",
-                data
-            )
-            .ok();
-            loop {}
+            // Send CMD8.
+            self.send_command(SDHResp::R7, CmdType::Normal, 8, 0x1AA, false);
+            sleep_ms(100);
+            let data = self.get_resp();
+            if data != 0x1AA {
+                writeln!(
+                    *w,
+                    "unexpected response to CMD8: {:#010X}, expected 0x1AA",
+                    data
+                )
+                .ok();
+            } else {
+                break;
+            }
+            sleep_ms(1000);
         }
 
         loop {
