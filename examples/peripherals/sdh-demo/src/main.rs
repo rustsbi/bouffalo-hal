@@ -1,8 +1,6 @@
 #![no_std]
 #![no_main]
 
-use core::arch::asm;
-
 use bouffalo_hal::{prelude::*, sdio::Sdh, uart::Config};
 use bouffalo_rt::{entry, Clocks, Peripherals};
 use embedded_sdmmc::VolumeManager;
@@ -46,10 +44,11 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let sdh_d1 = p.gpio.io3.into_sdh();
     let sdh_d2 = p.gpio.io4.into_sdh();
     let sdh_d3 = p.gpio.io5.into_sdh();
+    let pads = (sdh_clk, sdh_cmd, sdh_d0, sdh_d1, sdh_d2, sdh_d3);
 
     // Sdh init.
-    let mut sdcard = Sdh::new(p.sdh, (sdh_clk, sdh_cmd, sdh_d0, sdh_d1, sdh_d2, sdh_d3));
-    sdcard.init(&mut serial, &p.glb, true);
+    let mut sdcard = Sdh::new(p.sdh, pads, &p.glb);
+    sdcard.init(&mut serial, true);
     let time_source = MyTimeSource {};
     let mut volume_mgr = VolumeManager::new(sdcard, time_source);
     let volume_res = volume_mgr.open_raw_volume(embedded_sdmmc::VolumeIdx(0));
@@ -71,12 +70,6 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     loop {
         led.set_state(led_state).ok();
         led_state = !led_state;
-        sleep_ms(1000);
-    }
-}
-
-pub fn sleep_ms(n: u32) {
-    for _ in 0..n * 125 {
-        unsafe { asm!("nop") }
+        riscv::asm::delay(100_000);
     }
 }

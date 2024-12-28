@@ -3534,8 +3534,10 @@ impl TUNINGConfiguration {
 }
 
 /// SDH transfer flag.
+// TODO remove allow(dead_code)
+#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum SDHTransFlag {
+enum SDHTransFlag {
     None = 0x00000000,
     EnDma = 0x00000001,              // Enable DMA.
     EnBlkCount = 0x00000002,         // Enable block count.
@@ -3555,8 +3557,11 @@ pub enum SDHTransFlag {
 }
 
 /// SDH response type.
+// TODO construct R5, R5B, R4 responses, remove allow(dead_code)
+#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum SDHResp {
+#[non_exhaustive]
+enum SDHResp {
     None,
     R1,
     R5,
@@ -3570,7 +3575,7 @@ pub enum SDHResp {
 }
 
 /// Sleep for n milliseconds.
-pub fn sleep_ms(n: u32) {
+fn sleep_ms(n: u32) {
     for _ in 0..n * 125 {
         unsafe { asm!("nop") }
     }
@@ -3587,43 +3592,25 @@ pub struct Sdh<SDH, PADS, const I: usize> {
 impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I> {
     /// Create a new instance of the SDH peripheral.
     #[inline]
-    pub fn new(sdh: SDH, pads: PADS) -> Self
+    pub fn new(sdh: SDH, pads: PADS, glb: &glb::v2::RegisterBlock) -> Self
     where
         PADS: Pads<I>,
     {
-        let block_count = 0;
-        Self {
-            sdh,
-            pads,
-            block_count,
-        }
-    }
-
-    /// Initialize the SDH peripheral (enable debug to print card info).
-    #[inline]
-    pub fn init<GLB, W: Write>(&mut self, w: &mut W, glb: &GLB, debug: bool)
-    where
-        GLB: Deref<Target = glb::v2::RegisterBlock>,
-    {
-        // SDH_RESET.
+        // Reset SDH peripheral.
         unsafe {
-            self.sdh.software_reset.modify(|val| val.reset_all());
+            sdh.software_reset.modify(|val| val.reset_all());
         }
-        while !self.sdh.software_reset.read().is_reset_all_finished() {
-            // Wait for software reset finished.
+        while !sdh.software_reset.read().is_reset_all_finished() {
             core::hint::spin_loop()
         }
-
+        // Set SDH clock.
         unsafe {
-            // GLB_Set_SDH_CLK.
             glb.sdh_config.modify(|val| {
                 val.set_sdh_clk_sel(0) // GLB_REG_SDH_CLK_SEL.
                     .set_sdh_clk_div_len(7) // GLB_REG_SDH_CLK_DIV.
                     .enable_sdh_clk() // GLB_REG_SDH_CLK_EN.
             });
-
-            // SDH_Ctrl_Init.
-            self.sdh.clock_control.modify(|val| {
+            sdh.clock_control.modify(|val| {
                 val.set_sd_clk_freq(0) // SDH_SD_FREQ_SEL_LO.
                     .set_sd_clk_freq_upper(0) // SDH_SD_FREQ_SEL_HI.
                     .set_clk_gen_mode(ClkGenMode::DividedClk) // SDH_CLK_GEN_SEL.
@@ -3631,44 +3618,42 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
                     .enable_sd_clk() // SDH_SD_CLK_EN.
             });
         }
-        while !self.sdh.clock_control.read().is_sd_clk_enabled() {
-            // Wait for sd clock enabled.
+        while !sdh.clock_control.read().is_sd_clk_enabled() {
             core::hint::spin_loop()
         }
+        // Miscellaneous settings.
         unsafe {
             // SDH_DMA_EN.
-            self.sdh.transfer_mode.modify(|val| val.disable_dma());
-
-            self.sdh.host_control_1.modify(|val| {
+            sdh.transfer_mode.modify(|val| val.disable_dma());
+            sdh.host_control_1.modify(|val| {
                 val.set_bus_width(BusWidthMode::SelectByDataTransferWidth) // SDH_EX_DATA_WIDTH.
                     .set_transfer_width(TransferWidth::OneBitMode) // SDH_DATA_WIDTH.
                     .set_speed_mode(SpeedMode::HighSpeed) // SDH_HI_SPEED_EN.
             });
-
             // SDH_SD_BUS_VLT.
-            self.sdh
-                .power_control
+            sdh.power_control
                 .modify(|val| val.set_bus_voltage(BusVoltage::V3_3));
-
             // SDH_TX_INT_CLK_SEL.
-            self.sdh
-                .tx_configuration
-                .modify(|val| val.set_tx_int_clk_sel(1));
-
+            sdh.tx_configuration.modify(|val| val.set_tx_int_clk_sel(1));
             // SDH enable interrupt.
-            self.sdh
-                .normal_interrupt_status_enable
+            sdh.normal_interrupt_status_enable
                 .modify(|val| val.enable_buffer_read_ready());
-
             // SDH_Set_Timeout.
-            self.sdh
-                .timeout_control
-                .modify(|val| val.set_timeout_val(0x0e));
-
+            sdh.timeout_control.modify(|val| val.set_timeout_val(0x0e));
             // SDH_Powon.
-            self.sdh.power_control.modify(|val| val.enable_bus_power());
+            sdh.power_control.modify(|val| val.enable_bus_power());
         }
+        Self {
+            sdh,
+            pads,
+            block_count: 0,
+        }
+    }
 
+    /// Initialize the SDH peripheral (enable debug to print card info).
+    // TODO a more proper abstraction
+    #[inline]
+    pub fn init<W: Write>(&mut self, w: &mut W, debug: bool) {
         // Sdcard idle.
         self.send_command(SDHResp::None, CmdType::Normal, 0, 0, false);
         sleep_ms(100);
@@ -3767,7 +3752,7 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
 
     /// Send command to sdcard.
     #[inline]
-    pub fn send_command(
+    fn send_command(
         &self,
         resp_type: SDHResp,
         cmd_type: CmdType,
@@ -3811,13 +3796,13 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
 
     /// Get response from sdcard.
     #[inline]
-    pub fn get_resp(&self) -> u128 {
+    fn get_resp(&self) -> u128 {
         self.sdh.response.read().response()
     }
 
     /// Read block from sdcard.
     #[inline]
-    pub fn read_block(&self, block: &mut Block, block_idx: u32) {
+    fn read_block(&self, block: &mut Block, block_idx: u32) {
         unsafe {
             // SDH_SD_TRANSFER_MODE.
             self.sdh.transfer_mode.modify(|val| {
@@ -3867,6 +3852,8 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
 
 impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> BlockDevice for Sdh<SDH, PADS, I> {
     type Error = core::convert::Infallible;
+
+    #[inline]
     fn read(
         &self,
         blocks: &mut [Block],
@@ -3878,16 +3865,21 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> BlockDevice for S
         }
         Ok(())
     }
+
+    #[inline]
     fn write(&self, _blocks: &[Block], _start_block_idx: BlockIdx) -> Result<(), Self::Error> {
-        unimplemented!();
+        todo!();
     }
+
+    #[inline]
     fn num_blocks(&self) -> Result<embedded_sdmmc::BlockCount, Self::Error> {
         Ok(embedded_sdmmc::BlockCount(self.block_count))
     }
 }
 
 /// Parse CSD version 2.0.
-pub fn parse_csd_v2(csd: u128) -> (u32, u32) {
+#[inline]
+fn parse_csd_v2(csd: u128) -> (u32, u32) {
     let csd_structure = (((csd >> (32 * 3)) & 0xC00000) >> 22) as u32;
     let c_size = (((csd >> 32) & 0x3FFFFF00) >> 8) as u32;
     (csd_structure, c_size)
