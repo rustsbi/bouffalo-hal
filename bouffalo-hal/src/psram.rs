@@ -1,5 +1,7 @@
 //! Pseudo Static Random Access Memory.
 
+use core::ptr;
+
 use crate::glb;
 use volatile_register::RW;
 
@@ -48,6 +50,8 @@ pub fn init_psram(psram: &RegisterBlock, glb: &glb::v2::RegisterBlock) {
         psram.phy_config[18].write(0x00208A08);
         psram.phy_config[19].write(0x00000000);
         psram.phy_config[20].write(0x01334433);
+
+        ptr::write_volatile(0x200007E8 as *mut u32, 0x32000); // TODO: fix magic and hardcode
     }
 }
 
