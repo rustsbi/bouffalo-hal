@@ -43,7 +43,7 @@ pub struct RegisterBlock {
     pub timeout_control: RW<TimeoutControl>,
     /// Writting 1 to each bit of this register to generate a reset pulse.
     pub software_reset: RW<SoftwareReset>,
-    /// Register that shows the defined normal interrupt status.  
+    /// Register that shows the defined normal interrupt status.
     pub normal_interrupt_status: RW<NormalInterruptStatus>,
     /// Register that shows the defined error interrupt status.
     pub error_interrupt_status: RW<ErrorInterruptStatus>,
@@ -56,7 +56,7 @@ pub struct RegisterBlock {
     /// Register that selects which interrupt status is notified to the host system as the interrupt.
     pub error_interrupt_signal_enable: RW<ErrorInterruptSignalEnable>,
     /// Register that indicates CMD12 response error of auto CMD12 and CMD23 response error of auto CMD23.
-    pub auto_cmd_error_status: RO<AutoCMDErrorStatus>,
+    pub auto_cmd_error_status: RO<AutoCmdErrorStatus>,
     /// Host control 2 register.
     pub host_control_2: RW<HostControl2>,
     /// Register that provides the host driver with information specific to the host controller implementation.
@@ -64,13 +64,13 @@ pub struct RegisterBlock {
     /// Registers that indicates maximum current capability fo each voltage.
     pub max_current_capabilities: RO<MaxCurrentCapabilities>,
     /// Register that simplifies test of the auto command error status register.
-    pub force_event_auto_cmd_error_status: WO<ForceEventAutoCMDErrorStatus>,
+    pub force_event_auto_cmd_error_status: WO<ForceEventAutoCmdErrorStatus>,
     /// Register that simplifies test of the error interrupt status register.
     pub force_event_error_interrupt_status: WO<ForceEventErrorInterruptStatus>,
     /// Register that holds the ADMA state when ADMA error interrupt is occurred.
-    pub adma_error_status: RO<ADMAErrorStatus>,
+    pub adma_error_status: RO<AdmaErrorStatus>,
     /// Register that contains the physical descriptor address used for ADMA data transfer.
-    pub adma_system_address: RW<ADMASystemAddress>,
+    pub adma_system_address: RW<AdmaSystemAddress>,
     /// Preset value register.
     pub preset_value: RW<PresetValue>,
     _reserved0: [u8; 8],
@@ -87,21 +87,21 @@ pub struct RegisterBlock {
     /// SD extra parameters register.
     pub sd_extra_parameters: RW<SDExtraParameters>,
     /// FIFO parameters register.
-    pub fifo_parameters: RW<FIFOParameters>,
+    pub fifo_parameters: RW<FifoParameters>,
     /// SPI mode register.
-    pub spi_mode: RW<SPIMode>,
+    pub spi_mode: RW<SpiMode>,
     /// Clock and burst size setup register.
     pub clock_and_burst_size_setup: RW<ClockAndBurstSizeSetup>,
     /// CE-ATA register.
-    pub ce_ata: RW<CEATA>,
+    pub ce_ata: RW<CeAta>,
     /// PAD I/O setup register.
-    pub pad_io_setup: RW<PADIOSetup>,
+    pub pad_io_setup: RW<PadIoSetup>,
     /// RX configuration register.
-    pub rx_configuration: RW<RXConfiguration>,
+    pub rx_configuration: RW<RxConfiguration>,
     /// TX configuration register.
-    pub tx_configuration: RW<TXConfiguration>,
+    pub tx_configuration: RW<TxConfiguration>,
     /// Tuning config register.
-    pub tuning_configuration: RW<TUNINGConfiguration>,
+    pub tuning_configuration: RW<TuningConfiguration>,
 }
 
 /// 32-bit block count / (SDMA system address) register.
@@ -607,7 +607,7 @@ pub enum BusWidthMode {
 
 /// DMA mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum DMAMode {
+pub enum DmaMode {
     /// SDMA is selected.
     SDMA = 0,
     /// 32-bit address ADMA2 is selected.
@@ -693,16 +693,16 @@ impl HostControl1 {
     }
     /// Set DMA mode.
     #[inline]
-    pub const fn set_dma_mode(self, val: DMAMode) -> Self {
+    pub const fn set_dma_mode(self, val: DmaMode) -> Self {
         Self((self.0 & !Self::DMA_SELECT) | (Self::DMA_SELECT & ((val as u8) << 3)))
     }
     /// Get DMA mode.
     #[inline]
-    pub const fn dma_mode(self) -> DMAMode {
+    pub const fn dma_mode(self) -> DmaMode {
         match (self.0 & Self::DMA_SELECT) >> 3 {
-            0 => DMAMode::SDMA,
-            2 => DMAMode::ADMA2,
-            _ => DMAMode::None,
+            0 => DmaMode::SDMA,
+            2 => DmaMode::ADMA2,
+            _ => DmaMode::None,
         }
     }
     /// Set speed mode.
@@ -1500,7 +1500,7 @@ impl NormalInterruptStatusEnable {
     pub const fn enable_buffer_write_ready(self) -> Self {
         Self((self.0 & !Self::BUFFER_WRITE) | (Self::BUFFER_WRITE & (1 << 4)))
     }
-    /// Disable buffer write ready  status.
+    /// Disable buffer write ready status.
     #[inline]
     pub const fn disable_buffer_write_ready(self) -> Self {
         Self((self.0 & !Self::BUFFER_WRITE) | (Self::BUFFER_WRITE & (0 << 4)))
@@ -2200,9 +2200,9 @@ impl ErrorInterruptSignalEnable {
 /// Register that indicates CMD12 response error of auto CMD12 and CMD23 response error of auto CMD23.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct AutoCMDErrorStatus(u16);
+pub struct AutoCmdErrorStatus(u16);
 
-impl AutoCMDErrorStatus {
+impl AutoCmdErrorStatus {
     const CMD_NOT_ISSUED: u16 = 0x1 << 7;
     const AUTO_CMD_INDEX_ERROR: u16 = 0x1 << 4;
     const AUTO_CMD_END_BIT_ERROR: u16 = 0x1 << 3;
@@ -2567,9 +2567,9 @@ impl MaxCurrentCapabilities {
 /// Register that simplifies test of the auto command error status register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct ForceEventAutoCMDErrorStatus(u16);
+pub struct ForceEventAutoCmdErrorStatus(u16);
 
-impl ForceEventAutoCMDErrorStatus {
+impl ForceEventAutoCmdErrorStatus {
     const CMD_NOT_ISSUED: u16 = 0x1 << 7;
     const AUTO_CMD_INDEX_ERROR: u16 = 0x1 << 4;
     const AUTO_CMD_END_BIT_ERROR: u16 = 0x1 << 3;
@@ -2697,9 +2697,9 @@ impl ForceEventErrorInterruptStatus {
 /// Register that holds the ADMA state when ADMA error interrupt is occurred.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct ADMAErrorStatus(u32);
+pub struct AdmaErrorStatus(u32);
 
-impl ADMAErrorStatus {
+impl AdmaErrorStatus {
     const ADMA_LEN_MISMATCH: u32 = 0x1 << 2;
     const ADMA_ERROR_STATE: u32 = 0x3;
 
@@ -2718,9 +2718,9 @@ impl ADMAErrorStatus {
 /// Register that contains the physical descriptor address used for ADMA data transfer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct ADMASystemAddress(u64);
+pub struct AdmaSystemAddress(u64);
 
-impl ADMASystemAddress {
+impl AdmaSystemAddress {
     const ADMA_SYSTEM_ADDRESS: u64 = 0xFFFF_FFFF_FFFF_FFFF;
 
     /// Set ADMA system address.
@@ -3128,9 +3128,9 @@ impl SDExtraParameters {
 /// FIFO parameters register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct FIFOParameters(u32);
+pub struct FifoParameters(u32);
 
-impl FIFOParameters {
+impl FifoParameters {
     const _PRE_GATE_CLK_CNT: u32 = 0xF << 16;
     const _PDLVMC: u32 = 0x1 << 14;
     const _PDFVSSM: u32 = 0x1 << 13;
@@ -3151,9 +3151,9 @@ impl FIFOParameters {
 /// SPI mode register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct SPIMode(u16);
+pub struct SpiMode(u16);
 
-impl SPIMode {
+impl SpiMode {
     const SPI_ERR_TOKEN: u16 = 0x1F << 8;
     const SPI_EN: u16 = 0x1;
 
@@ -3205,9 +3205,9 @@ impl ClockAndBurstSizeSetup {
 /// CE-ATA register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct CEATA(u32);
+pub struct CeAta(u32);
 
-impl CEATA {
+impl CeAta {
     const _CHK_CPL: u32 = 0x1 << 31;
     const _SND_CPL: u32 = 0x1 << 30;
     const _CEATA_CARD: u32 = 0x1 << 29;
@@ -3227,9 +3227,9 @@ impl CEATA {
 /// PAD I/O setup register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct PADIOSetup(u32);
+pub struct PadIoSetup(u32);
 
-impl PADIOSetup {
+impl PadIoSetup {
     const _ECO_REG: u32 = 0xF << 16;
     const _INAND_SEL: u32 = 0x1 << 1;
     const _ASYNC_IO_EN: u32 = 0x1;
@@ -3240,9 +3240,9 @@ impl PADIOSetup {
 /// RX configuration register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct RXConfiguration(u32);
+pub struct RxConfiguration(u32);
 
-impl RXConfiguration {
+impl RxConfiguration {
     const _TUNING_DLY_INC: u32 = 0x3FF << 18;
     const _SDCLK_DELAY: u32 = 0x3FF << 8;
     const _SDCLK_SEL1: u32 = 0x3 << 2;
@@ -3254,9 +3254,9 @@ impl RXConfiguration {
 /// TX configuration register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct TXConfiguration(u32);
+pub struct TxConfiguration(u32);
 
-impl TXConfiguration {
+impl TxConfiguration {
     const _TX_MUX_SEL: u32 = 0x1 << 31;
     const TX_INT_CLK_SEL: u32 = 0x1 << 30;
     const _TX_HOLD_DELAY1: u32 = 0x3FF << 16;
@@ -3278,9 +3278,9 @@ impl TXConfiguration {
 /// Tuning config register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct TUNINGConfiguration(u32);
+pub struct TuningConfiguration(u32);
 
-impl TUNINGConfiguration {
+impl TuningConfiguration {
     const _TUNING_SUCCESS_CNT: u32 = 0x3F << 24;
     const _TUNING_CLK_DLY: u32 = 0x3FF << 14;
     const _TUNING_WD_CNT: u32 = 0x3F << 8;
@@ -3293,7 +3293,7 @@ impl TUNINGConfiguration {
 // TODO remove allow(dead_code)
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum SDHTransFlag {
+enum SdhTransFlag {
     None = 0x00000000,
     EnDma = 0x00000001,              // Enable DMA.
     EnBlkCount = 0x00000002,         // Enable block count.
@@ -3317,7 +3317,7 @@ enum SDHTransFlag {
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
-enum SDHResp {
+enum SdhResp {
     None,
     R1,
     R5,
@@ -3343,7 +3343,7 @@ pub struct Config {
     bus_width_mode: BusWidthMode,
     transfer_width: TransferWidth,
     speed_mode: SpeedMode,
-    dma_mode: DMAMode,
+    dma_mode: DmaMode,
     // TODO: implment more configurations if necessary.
 }
 
@@ -3355,7 +3355,7 @@ impl Config {
             bus_width_mode: BusWidthMode::SelectByDataTransferWidth,
             transfer_width: TransferWidth::OneBitMode,
             speed_mode: SpeedMode::HighSpeed,
-            dma_mode: DMAMode::None,
+            dma_mode: DmaMode::None,
         }
     }
     /// Set bus width mode.
@@ -3378,7 +3378,7 @@ impl Config {
     }
     /// Set DMA mode.
     #[inline]
-    pub const fn dma_mode(mut self, dma_mode: DMAMode) -> Self {
+    pub const fn dma_mode(mut self, dma_mode: DmaMode) -> Self {
         self.dma_mode = dma_mode;
         self
     }
@@ -3429,15 +3429,15 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         unsafe {
             // SDH_DMA_EN.
             match config.dma_mode {
-                DMAMode::None => sdh.transfer_mode.modify(|val| val.disable_dma()),
-                DMAMode::SDMA => {
+                DmaMode::None => sdh.transfer_mode.modify(|val| val.disable_dma()),
+                DmaMode::SDMA => {
                     if sdh.capabilities.read().is_sdma_supported() {
                         sdh.transfer_mode.modify(|val| val.enable_dma());
                     } else {
                         sdh.transfer_mode.modify(|val| val.disable_dma())
                     }
                 }
-                DMAMode::ADMA2 => {
+                DmaMode::ADMA2 => {
                     if sdh.capabilities.read().is_adma2_supported() {
                         sdh.transfer_mode.modify(|val| val.enable_dma());
                     } else {
@@ -3478,11 +3478,11 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
     pub fn init<W: Write>(&mut self, w: &mut W, debug: bool) {
         // Sdcard idle.
         loop {
-            self.send_command(SDHResp::None, CmdType::Normal, 0, 0, false);
+            self.send_command(SdhResp::None, CmdType::Normal, 0, 0, false);
             sleep_ms(100);
 
             // Send CMD8.
-            self.send_command(SDHResp::R7, CmdType::Normal, 8, 0x1AA, false);
+            self.send_command(SdhResp::R7, CmdType::Normal, 8, 0x1AA, false);
             sleep_ms(100);
             let data = self.get_resp();
             if data != 0x1AA {
@@ -3502,10 +3502,10 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
             const OCR_NBUSY: u32 = 0x80000000;
             const OCR_VOLTAGE_MASK: u32 = 0x007FFF80;
             const OCR_HCS: u32 = 0x40000000;
-            self.send_command(SDHResp::R1, CmdType::Normal, 55, 0, false);
+            self.send_command(SdhResp::R1, CmdType::Normal, 55, 0, false);
             sleep_ms(100);
             self.send_command(
-                SDHResp::R3,
+                SdhResp::R3,
                 CmdType::Normal,
                 41,
                 OCR_VOLTAGE_MASK & 0x00ff8000 | OCR_HCS,
@@ -3520,7 +3520,7 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         }
 
         // Send CMD2 to get CID.
-        self.send_command(SDHResp::R2, CmdType::Normal, 2, 0, false);
+        self.send_command(SdhResp::R2, CmdType::Normal, 2, 0, false);
         sleep_ms(100);
         let cid = self.get_resp();
         if debug {
@@ -3528,7 +3528,7 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         }
 
         // Send CMD3 to get RCA.
-        self.send_command(SDHResp::R6, CmdType::Normal, 3, 0, false);
+        self.send_command(SdhResp::R6, CmdType::Normal, 3, 0, false);
         sleep_ms(100);
         let rca = self.get_resp() as u32 >> 16;
         if debug {
@@ -3536,7 +3536,7 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         }
 
         // Send CMD9 to get CSD.
-        self.send_command(SDHResp::R2, CmdType::Normal, 9, rca << 16, false);
+        self.send_command(SdhResp::R2, CmdType::Normal, 9, rca << 16, false);
         sleep_ms(100);
         let csd_raw = self.get_resp();
         let (csd_structure, c_size) = parse_csd_v2(csd_raw);
@@ -3552,13 +3552,13 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         self.block_count = (c_size + 1) * 1024;
 
         // Send CMD7 to select card.
-        self.send_command(SDHResp::R1B, CmdType::Normal, 7, rca << 16, false);
+        self.send_command(SdhResp::R1B, CmdType::Normal, 7, rca << 16, false);
         sleep_ms(100);
 
         // Set 1 data len, CMD55 -> ACMD6.
-        self.send_command(SDHResp::R1, CmdType::Normal, 55, rca << 16, false);
+        self.send_command(SdhResp::R1, CmdType::Normal, 55, rca << 16, false);
         sleep_ms(100);
-        self.send_command(SDHResp::R1, CmdType::Normal, 6, 0x0, false);
+        self.send_command(SdhResp::R1, CmdType::Normal, 6, 0x0, false);
         sleep_ms(100);
 
         let kb_size = (self.block_count as f64) * (block_size as f64) / 1024.0;
@@ -3580,33 +3580,33 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
     #[inline]
     fn send_command(
         &self,
-        resp_type: SDHResp,
+        resp_type: SdhResp,
         cmd_type: CmdType,
         cmd_idx: u32,
         argument: u32,
         has_data: bool,
     ) {
-        let mut flag = SDHTransFlag::None as u32;
+        let mut flag = SdhTransFlag::None as u32;
         if has_data {
-            flag |= SDHTransFlag::DataPresent as u32;
+            flag |= SdhTransFlag::DataPresent as u32;
         }
         match resp_type {
-            SDHResp::None => {}
-            SDHResp::R1 | SDHResp::R5 | SDHResp::R6 | SDHResp::R7 => {
-                flag |= SDHTransFlag::Resp48Bits as u32
-                    | SDHTransFlag::EnCrcCheck as u32
-                    | SDHTransFlag::EnIndexCheck as u32;
+            SdhResp::None => {}
+            SdhResp::R1 | SdhResp::R5 | SdhResp::R6 | SdhResp::R7 => {
+                flag |= SdhTransFlag::Resp48Bits as u32
+                    | SdhTransFlag::EnCrcCheck as u32
+                    | SdhTransFlag::EnIndexCheck as u32;
             }
-            SDHResp::R1B | SDHResp::R5B => {
-                flag |= SDHTransFlag::Resp48BitsWithBusy as u32
-                    | SDHTransFlag::EnCrcCheck as u32
-                    | SDHTransFlag::EnIndexCheck as u32;
+            SdhResp::R1B | SdhResp::R5B => {
+                flag |= SdhTransFlag::Resp48BitsWithBusy as u32
+                    | SdhTransFlag::EnCrcCheck as u32
+                    | SdhTransFlag::EnIndexCheck as u32;
             }
-            SDHResp::R2 => {
-                flag |= SDHTransFlag::Resp136Bits as u32 | SDHTransFlag::EnCrcCheck as u32;
+            SdhResp::R2 => {
+                flag |= SdhTransFlag::Resp136Bits as u32 | SdhTransFlag::EnCrcCheck as u32;
             }
-            SDHResp::R3 | SDHResp::R4 => {
-                flag |= SDHTransFlag::Resp48Bits as u32;
+            SdhResp::R3 | SdhResp::R4 => {
+                flag |= SdhTransFlag::Resp48Bits as u32;
             }
         }
 
@@ -3649,7 +3649,7 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
                 .normal_interrupt_status
                 .modify(|val| val.clear_buffer_read_ready());
         }
-        self.send_command(SDHResp::R1, CmdType::Normal, 17, block_idx, true);
+        self.send_command(SdhResp::R1, CmdType::Normal, 17, block_idx, true);
         while !self
             .sdh
             .normal_interrupt_status
@@ -3780,16 +3780,16 @@ impl<'a> HasDat3Signal for Alternate<'a, 5, gpio::Sdh> {}
 mod tests {
     use super::RegisterBlock;
     use super::{
-        ADMAErrorStatus, ADMASystemAddress, Argument, AutoCMDErrorStatus, AutoCMDMode, BlockCount,
+        AdmaErrorStatus, AdmaSystemAddress, Argument, AutoCMDMode, AutoCmdErrorStatus, BlockCount,
         BlockGap, BlockMode, BlockSize, BufferDataPort, BusVoltage, BusWidthMode, Capabilities,
-        CardSignal, ClkGenMode, ClockControl, CmdType, Command, DMAMode, DataTransferMode,
+        CardSignal, ClkGenMode, ClockControl, CmdType, Command, DataTransferMode, DmaMode,
         ErrorInterruptSignalEnable, ErrorInterruptStatus, ErrorInterruptStatusEnable,
-        ForceEventAutoCMDErrorStatus, ForceEventErrorInterruptStatus, HostControl1, HostControl2,
+        ForceEventAutoCmdErrorStatus, ForceEventErrorInterruptStatus, HostControl1, HostControl2,
         HostControllerVersion, LedState, MaxCurrentCapabilities, NormalInterruptSignalEnable,
         NormalInterruptStatus, NormalInterruptStatusEnable, PowerControl, PresentState,
-        PresetValue, Response, ResponseType, SDExtraParameters, SPIMode, SharedBusControl,
-        SlotInterruptStatus, SlotType, SoftwareReset, SpecificVersion, SpeedMode, SystemAddress,
-        TXConfiguration, TimeoutControl, TransferMode, TransferWidth, WakeupControl,
+        PresetValue, Response, ResponseType, SDExtraParameters, SharedBusControl,
+        SlotInterruptStatus, SlotType, SoftwareReset, SpecificVersion, SpeedMode, SpiMode,
+        SystemAddress, TimeoutControl, TransferMode, TransferWidth, TxConfiguration, WakeupControl,
     };
     use memoffset::offset_of;
 
@@ -4087,11 +4087,11 @@ mod tests {
         val = val.set_bus_width(BusWidthMode::SelectByDataTransferWidth);
         assert_eq!(val.0, 0x00);
 
-        val = val.set_dma_mode(DMAMode::ADMA2);
-        assert_eq!(val.dma_mode(), DMAMode::ADMA2);
+        val = val.set_dma_mode(DmaMode::ADMA2);
+        assert_eq!(val.dma_mode(), DmaMode::ADMA2);
         assert_eq!(val.0, 0x10);
-        val = val.set_dma_mode(DMAMode::SDMA);
-        assert_eq!(val.dma_mode(), DMAMode::SDMA);
+        val = val.set_dma_mode(DmaMode::SDMA);
+        assert_eq!(val.dma_mode(), DmaMode::SDMA);
         assert_eq!(val.0, 0x00);
 
         val = val.set_speed_mode(SpeedMode::HighSpeed);
@@ -4776,22 +4776,22 @@ mod tests {
 
     #[test]
     fn struct_auto_cmd_error_status_functions() {
-        let mut val = AutoCMDErrorStatus(0x0080);
+        let mut val = AutoCmdErrorStatus(0x0080);
         assert!(val.is_cmd_not_issued());
 
-        val = AutoCMDErrorStatus(0x0010);
+        val = AutoCmdErrorStatus(0x0010);
         assert!(val.if_auto_cmd_index_err_occurs());
 
-        val = AutoCMDErrorStatus(0x0008);
+        val = AutoCmdErrorStatus(0x0008);
         assert!(val.if_auto_cmd_end_bit_err_occurs());
 
-        val = AutoCMDErrorStatus(0x0004);
+        val = AutoCmdErrorStatus(0x0004);
         assert!(val.if_auto_cmd_crc_err_occurs());
 
-        val = AutoCMDErrorStatus(0x0002);
+        val = AutoCmdErrorStatus(0x0002);
         assert!(val.if_auto_cmd_timeout_err_occurs());
 
-        val = AutoCMDErrorStatus(0x0001);
+        val = AutoCmdErrorStatus(0x0001);
         assert!(val.is_auto_cmd12_not_executed());
     }
 
@@ -4933,27 +4933,27 @@ mod tests {
 
     #[test]
     fn struct_force_event_auto_cmd_error_status_functions() {
-        let mut val = ForceEventAutoCMDErrorStatus(0x0);
+        let mut val = ForceEventAutoCmdErrorStatus(0x0);
         val = val.set_cmd_not_issued(0x1);
         assert_eq!(val.0, 0x0080);
 
-        val = ForceEventAutoCMDErrorStatus(0x0);
+        val = ForceEventAutoCmdErrorStatus(0x0);
         val = val.set_auto_cmd_index(0x1);
         assert_eq!(val.0, 0x0010);
 
-        val = ForceEventAutoCMDErrorStatus(0x0);
+        val = ForceEventAutoCmdErrorStatus(0x0);
         val = val.set_auto_cmd_end_bit(0x1);
         assert_eq!(val.0, 0x0008);
 
-        val = ForceEventAutoCMDErrorStatus(0x0);
+        val = ForceEventAutoCmdErrorStatus(0x0);
         val = val.set_auto_cmd_crc(0x1);
         assert_eq!(val.0, 0x0004);
 
-        val = ForceEventAutoCMDErrorStatus(0x0);
+        val = ForceEventAutoCmdErrorStatus(0x0);
         val = val.set_auto_cmd_timeout(0x1);
         assert_eq!(val.0, 0x0002);
 
-        val = ForceEventAutoCMDErrorStatus(0x0);
+        val = ForceEventAutoCmdErrorStatus(0x0);
         val = val.set_auto_cmd12_not_executed(0x1);
         assert_eq!(val.0, 0x0001);
     }
@@ -5007,16 +5007,16 @@ mod tests {
 
     #[test]
     fn struct_adma_error_status_functions() {
-        let mut val = ADMAErrorStatus(0x0000_0000_0000_0004);
+        let mut val = AdmaErrorStatus(0x0000_0000_0000_0004);
         assert!(val.if_adma_len_mismatch_err_occurs());
 
-        val = ADMAErrorStatus(0x0000_0000_0000_0001);
+        val = AdmaErrorStatus(0x0000_0000_0000_0001);
         assert_eq!(val.adma_err_state(), 0x1);
     }
 
     #[test]
     fn struct_adma_system_address_functions() {
-        let mut val = ADMASystemAddress(0x0);
+        let mut val = AdmaSystemAddress(0x0);
         val = val.set_adma_sys_addr(0xFFFF_FFFF_FFFF_FFFF);
         assert_eq!(val.adma_sys_addr(), 0xFFFF_FFFF_FFFF_FFFF);
         assert_eq!(val.0, 0xFFFF_FFFF_FFFF_FFFF);
@@ -5195,13 +5195,13 @@ mod tests {
 
     #[test]
     fn struct_spi_mode_functions() {
-        let mut val = SPIMode(0x0);
+        let mut val = SpiMode(0x0);
 
         val = val.set_spi_err_token(0x1F);
         assert_eq!(val.spi_err_token(), 0x1F);
         assert_eq!(val.0, 0x0000_1F00);
 
-        val = SPIMode(0x0);
+        val = SpiMode(0x0);
         val = val.enable_spi();
         assert!(val.is_spi_enabled());
         assert_eq!(val.0, 0x0000_0001);
@@ -5232,7 +5232,7 @@ mod tests {
 
     #[test]
     fn struct_tx_configuration_functions() {
-        let mut val = TXConfiguration(0x0);
+        let mut val = TxConfiguration(0x0);
         val = val.set_tx_int_clk_sel(0x1);
         assert_eq!(val.tx_int_clk_sel(), 0x1);
         assert_eq!(val.0, 0x4000_0000);

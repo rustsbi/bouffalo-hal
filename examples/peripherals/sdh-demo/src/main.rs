@@ -3,8 +3,8 @@
 
 use bouffalo_hal::{
     prelude::*,
-    sdio::{Config as sdhCfg, Sdh},
-    uart::Config as uartCfg,
+    sdio::{Config as SdhConfig, Sdh},
+    uart::Config as UartConfig,
 };
 use bouffalo_rt::{entry, Clocks, Peripherals};
 use embedded_sdmmc::VolumeManager;
@@ -33,7 +33,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let sig2 = p.uart_muxes.sig2.into_transmit::<0>();
     let sig3 = p.uart_muxes.sig3.into_receive::<0>();
 
-    let config = uartCfg::default().set_baudrate(2000000.Bd());
+    let config = UartConfig::default().set_baudrate(2000000.Bd());
     let mut serial = p
         .uart0
         .freerun(config, ((tx, sig2), (rx, sig3)), &c)
@@ -51,7 +51,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let pads = (sdh_clk, sdh_cmd, sdh_d0, sdh_d1, sdh_d2, sdh_d3);
 
     // Sdh init.
-    let config = sdhCfg::default();
+    let config = SdhConfig::default();
     let mut sdcard = Sdh::new(p.sdh, pads, config, &p.glb);
     sdcard.init(&mut serial, true);
     let time_source = MyTimeSource {};
