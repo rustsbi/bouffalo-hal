@@ -25,6 +25,7 @@ pub mod lz4d;
 pub mod psram;
 pub mod pwm;
 pub mod sdio;
+pub mod sec;
 pub mod spi;
 pub mod timer;
 pub mod uart;
