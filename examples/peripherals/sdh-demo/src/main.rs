@@ -1,7 +1,11 @@
 #![no_std]
 #![no_main]
 
-use bouffalo_hal::{prelude::*, sdio::Sdh, uart::Config};
+use bouffalo_hal::{
+    prelude::*,
+    sdio::{Config as sdhCfg, Sdh},
+    uart::Config as uartCfg,
+};
 use bouffalo_rt::{entry, Clocks, Peripherals};
 use embedded_sdmmc::VolumeManager;
 use embedded_time::rate::*;
@@ -29,7 +33,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let sig2 = p.uart_muxes.sig2.into_transmit::<0>();
     let sig3 = p.uart_muxes.sig3.into_receive::<0>();
 
-    let config = Config::default().set_baudrate(2000000.Bd());
+    let config = uartCfg::default().set_baudrate(2000000.Bd());
     let mut serial = p
         .uart0
         .freerun(config, ((tx, sig2), (rx, sig3)), &c)
@@ -47,7 +51,8 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let pads = (sdh_clk, sdh_cmd, sdh_d0, sdh_d1, sdh_d2, sdh_d3);
 
     // Sdh init.
-    let mut sdcard = Sdh::new(p.sdh, pads, &p.glb);
+    let config = sdhCfg::default();
+    let mut sdcard = Sdh::new(p.sdh, pads, config, &p.glb);
     sdcard.init(&mut serial, true);
     let time_source = MyTimeSource {};
     let mut volume_mgr = VolumeManager::new(sdcard, time_source);
@@ -64,7 +69,6 @@ fn main(p: Peripherals, c: Clocks) -> ! {
             writeln!(serial, "Entry: {:?}", entry).ok();
         })
         .unwrap();
-
     volume_mgr.close_dir(root_dir).unwrap();
 
     loop {
