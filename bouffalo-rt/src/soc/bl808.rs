@@ -563,7 +563,7 @@ pub static CLOCK_CONFIG: HalPllConfig = HalPllConfig::new(HalSysClkConfig {
 
     dsp_bclk_div: 0x01,
     dsp_pbclk: 0x02,
-    dsp_pbclk_div: 0x02,
+    dsp_pbclk_div: 0x00,
     emi_clk: 0x02,
 
     emi_clk_div: 0x01,
@@ -627,7 +627,17 @@ pub static CPU_CONFIG: [HalCpuCfg; 3] = [
         msp_val: 0,
     },
     #[cfg(not(feature = "bl808-lp"))]
-    HalCpuCfg::disabled(),
+    HalCpuCfg {
+        config_enable: 0,
+        halt_cpu: 0,
+        cache_flags: 0,
+        _rsvd: 0,
+        cache_range_h: 1476722688,
+        cache_range_l: 1476657152,
+        image_address_offset: 0x42000,
+        boot_entry: 0x58040000,
+        msp_val: 0,
+    },
 ];
 
 /// Code patches on flash reading.
@@ -799,7 +809,7 @@ impl HalCpuCfg {
             cache_range_h: 0,
             cache_range_l: 0,
             image_address_offset: 0,
-            boot_entry: 0x0,
+            boot_entry: 0x58000000,
             msp_val: 0,
         }
     }
@@ -1036,6 +1046,6 @@ mod tests {
         };
         let test_config = HalPllConfig::new(test_sys_clk_config);
         assert_eq!(test_config.magic, 0x47464350);
-        assert_eq!(test_config.crc32, 0x29e2c4c0);
+        assert_eq!(test_config.crc32, 0x864B890A);
     }
 }
