@@ -4,7 +4,7 @@
 use core::{arch::asm, ptr};
 
 use bouffalo_hal::{prelude::*, psram::init_psram, uart::Config};
-use bouffalo_rt::{entry, Clocks, Peripherals};
+use bouffalo_rt::{Clocks, Peripherals, entry};
 use embedded_time::rate::*;
 use panic_halt as _;
 

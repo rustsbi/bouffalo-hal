@@ -3715,19 +3715,19 @@ fn parse_csd_v2(csd: u128) -> (u32, u32) {
 pub trait Pads<const I: usize> {}
 
 impl<
-        'a,
-        'b,
-        'c,
-        'd,
-        'e,
-        'f,
-        const N1: usize,
-        const N2: usize,
-        const N3: usize,
-        const N4: usize,
-        const N5: usize,
-        const N6: usize,
-    > Pads<1>
+    'a,
+    'b,
+    'c,
+    'd,
+    'e,
+    'f,
+    const N1: usize,
+    const N2: usize,
+    const N3: usize,
+    const N4: usize,
+    const N5: usize,
+    const N6: usize,
+> Pads<1>
     for (
         Alternate<'a, N1, gpio::Sdh>,
         Alternate<'b, N2, gpio::Sdh>,

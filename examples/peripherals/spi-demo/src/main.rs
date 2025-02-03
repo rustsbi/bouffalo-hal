@@ -2,11 +2,11 @@
 #![no_main]
 
 use bouffalo_hal::{prelude::*, spi::Spi};
-use bouffalo_rt::{entry, Clocks, Peripherals};
+use bouffalo_rt::{Clocks, Peripherals, entry};
 use embedded_graphics::{
     draw_target::DrawTarget,
     image::*,
-    mono_font::{ascii::FONT_10X20, MonoTextStyle},
+    mono_font::{MonoTextStyle, ascii::FONT_10X20},
     pixelcolor::Rgb565,
     prelude::*,
     text::Text,

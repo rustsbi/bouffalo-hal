@@ -1,5 +1,5 @@
 use super::typestate::{Floating, Input, Output, PullDown, PullUp};
-use crate::glb::{v1, Drive, Pull};
+use crate::glb::{Drive, Pull, v1};
 use core::marker::PhantomData;
 use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 

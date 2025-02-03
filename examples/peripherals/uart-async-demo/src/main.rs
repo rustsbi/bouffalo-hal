@@ -6,9 +6,8 @@ use bouffalo_hal::{
     uart::{Config, SerialState},
 };
 use bouffalo_rt::{
-    entry, interrupt,
+    Clocks, Peripherals, entry, interrupt,
     soc::bl808::{D0Machine, DspInterrupt},
-    Clocks, Peripherals,
 };
 use embedded_time::rate::*;
 use panic_halt as _;

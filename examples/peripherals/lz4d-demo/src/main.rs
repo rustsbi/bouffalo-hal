@@ -2,7 +2,7 @@
 #![no_main]
 
 use bouffalo_hal::{clocks::Clocks, prelude::*, uart::Config};
-use bouffalo_rt::{entry, Peripherals};
+use bouffalo_rt::{Peripherals, entry};
 use core::pin::Pin;
 use embedded_time::rate::*;
 use panic_halt as _;

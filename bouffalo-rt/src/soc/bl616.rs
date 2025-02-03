@@ -48,7 +48,7 @@ extern "Rust" {
 
 /// Clock configuration at boot-time.
 #[cfg(any(doc, feature = "bl616"))]
-#[link_section = ".head.clock"]
+#[unsafe(link_section = ".head.clock")]
 pub static CLOCK_CONFIG: HalPllConfig = HalPllConfig::new(HalSysClkConfig {
     xtal_type: 0x07,
     mcu_clk: 0x05,
@@ -69,12 +69,12 @@ pub static CLOCK_CONFIG: HalPllConfig = HalPllConfig::new(HalSysClkConfig {
 
 /// Miscellaneous image flags.
 #[cfg(any(doc, feature = "bl616"))]
-#[link_section = ".head.base.flag"]
+#[unsafe(link_section = ".head.base.flag")]
 pub static BASIC_CONFIG_FLAGS: u32 = 0x654c0100;
 
 /// Processor core configuration.
 #[cfg(any(doc, feature = "bl616"))]
-#[link_section = ".head.cpu"]
+#[unsafe(link_section = ".head.cpu")]
 pub static CPU_CONFIG: [HalCpuCfg; 1] = [HalCpuCfg {
     config_enable: 1,
     halt_cpu: 0,
@@ -87,7 +87,7 @@ pub static CPU_CONFIG: [HalCpuCfg; 1] = [HalCpuCfg {
 
 /// Code patches on flash reading.
 #[cfg(any(doc, feature = "bl616"))]
-#[link_section = ".head.patch.on-read"]
+#[unsafe(link_section = ".head.patch.on-read")]
 pub static PATCH_ON_READ: [HalPatchCfg; 3] = [
     HalPatchCfg {
         addr: 0x20000548,
@@ -99,7 +99,7 @@ pub static PATCH_ON_READ: [HalPatchCfg; 3] = [
 
 /// Code patches on jump and run stage.
 #[cfg(any(doc, feature = "bl616"))]
-#[link_section = ".head.patch.on-jump"]
+#[unsafe(link_section = ".head.patch.on-jump")]
 pub static PATCH_ON_JUMP: [HalPatchCfg; 3] = [
     HalPatchCfg { addr: 0, value: 0 },
     HalPatchCfg { addr: 0, value: 0 },

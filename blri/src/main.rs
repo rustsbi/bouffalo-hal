@@ -25,7 +25,9 @@ fn main() {
                 return;
             }
             Error::HeadLength { wrong_length } => {
-                println!("File is too short to include an image header, it only includes {wrong_length} bytes");
+                println!(
+                    "File is too short to include an image header, it only includes {wrong_length} bytes"
+                );
                 return;
             }
             Error::FlashConfigMagic { wrong_magic } => {

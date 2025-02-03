@@ -14,13 +14,17 @@ pub enum Error {
     Io(#[from] io::Error),
     #[error("Wrong magic number")]
     MagicNumber { wrong_magic: u32 },
-    #[error("File is too short to include an image header, should include {HEAD_LENGTH} but only {wrong_length}")]
+    #[error(
+        "File is too short to include an image header, should include {HEAD_LENGTH} but only {wrong_length}"
+    )]
     HeadLength { wrong_length: u64 },
     #[error("Wrong flash config magic")]
     FlashConfigMagic { wrong_magic: u32 },
     #[error("Wrong clock config magic")]
     ClockConfigMagic { wrong_magic: u32 },
-    #[error("Image offset overflow, offset {wrong_image_offset} and length {wrong_image_length} expected, but file length is {file_length}")]
+    #[error(
+        "Image offset overflow, offset {wrong_image_offset} and length {wrong_image_length} expected, but file length is {file_length}"
+    )]
     ImageOffsetOverflow {
         file_length: u64,
         wrong_image_offset: u32,

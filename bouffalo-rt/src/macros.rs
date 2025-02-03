@@ -1,5 +1,5 @@
 macro_rules! soc {
-    ($($(#[$doc:meta])* pub struct $Ty: ident => $paddr: expr$(, $DerefTy: ty)+;)+) => {
+    ($($(#[$doc:meta])* pub struct $Ty: ident => $paddr: expr_2021$(, $DerefTy: ty)+;)+) => {
         $(
 $(#[$doc])*
 #[allow(non_camel_case_types)]

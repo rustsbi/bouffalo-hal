@@ -6,7 +6,7 @@ use bouffalo_hal::{
     sdio::{Config as SdhConfig, Sdh},
     uart::Config as UartConfig,
 };
-use bouffalo_rt::{entry, Clocks, Peripherals};
+use bouffalo_rt::{Clocks, Peripherals, entry};
 use embedded_sdmmc::VolumeManager;
 use embedded_time::rate::*;
 use panic_halt as _;

@@ -5,7 +5,7 @@ use bouffalo_hal::{
     prelude::*,
     pwm::{ClockSource::Xclk, Pwm, SingleEnd},
 };
-use bouffalo_rt::{entry, Clocks, Peripherals};
+use bouffalo_rt::{Clocks, Peripherals, entry};
 use embedded_time::rate::units::Extensions;
 use panic_halt as _;
 

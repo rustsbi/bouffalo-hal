@@ -2,7 +2,7 @@
 #![no_main]
 
 use bouffalo_hal::{prelude::*, spi::Spi, uart::Config};
-use bouffalo_rt::{entry, Clocks, Peripherals};
+use bouffalo_rt::{Clocks, Peripherals, entry};
 use embedded_hal::spi::MODE_3;
 use embedded_sdmmc::{SdCard, VolumeManager};
 use embedded_time::rate::*;

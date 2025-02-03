@@ -2,8 +2,8 @@
 #![no_main]
 
 use bouffalo_hal::{prelude::*, uart::Config};
-use bouffalo_rt::{entry, Clocks, Peripherals};
-use embedded_cli::{cli::CliBuilder, Command};
+use bouffalo_rt::{Clocks, Peripherals, entry};
+use embedded_cli::{Command, cli::CliBuilder};
 use embedded_time::rate::*;
 use panic_halt as _;
 

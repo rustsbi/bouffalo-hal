@@ -1,5 +1,5 @@
 use super::{
-    uart_config, Config, ConfigError, Error, Interrupt, InterruptClear, Pads, RegisterBlock,
+    Config, ConfigError, Error, Interrupt, InterruptClear, Pads, RegisterBlock, uart_config,
 };
 use crate::clocks::Clocks;
 use core::{

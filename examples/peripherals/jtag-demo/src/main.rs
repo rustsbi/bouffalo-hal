@@ -2,7 +2,7 @@
 #![no_main]
 
 use bouffalo_hal::prelude::*;
-use bouffalo_rt::{entry, Clocks, Peripherals};
+use bouffalo_rt::{Clocks, Peripherals, entry};
 use panic_halt as _;
 
 #[entry]
