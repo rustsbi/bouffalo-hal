@@ -329,7 +329,7 @@ pub struct HalPatchCfg {
 }
 
 /// Flash configuration at boot-time.
-#[unsafe(link_section = ".head.flash")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".head.flash"))]
 #[used]
 pub static FLASH_CONFIG: HalFlashConfig = HalFlashConfig::new(SpiFlashCfgType {
     io_mode: 0x11,
@@ -409,7 +409,7 @@ pub static FLASH_CONFIG: HalFlashConfig = HalFlashConfig::new(SpiFlashCfgType {
 /// Decrypt-on-fly region length.
 ///
 /// Fixed at 0 by now.
-#[unsafe(link_section = ".head.base.aes-region")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".head.base.aes-region"))]
 pub static BASIC_AES_REGION: u32 = 0;
 
 /// Image payload hash value.
@@ -417,13 +417,13 @@ pub static BASIC_AES_REGION: u32 = 0;
 /// It filles in 8 values of `0xdeadbeef` for we don't have method to emit
 /// hash value in compilation stages. The real value should be filled by
 /// following ROM image processing programs.
-#[unsafe(link_section = ".head.base.hash")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".head.base.hash"))]
 pub static BASIC_HASH: [u32; 8] = [0xdeadbeef; 8];
 
 /// Checksum of image header.
 ///
 /// Real value should be fixed by ROM image processing programs.
-#[unsafe(link_section = ".head.crc32")]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".head.crc32"))]
 pub static CRC32: u32 = 0xdeadbeef;
 
 #[cfg(test)]
