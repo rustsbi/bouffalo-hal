@@ -1023,7 +1023,7 @@ mod tests {
     #[test]
     fn magic_crc32_hal_pll_config() {
         let test_sys_clk_config = HalSysClkConfig {
-            xtal_type: 4,
+            xtal_type: 7,
             mcu_clk: 4,
             mcu_clk_div: 0,
             mcu_bclk_div: 0,
