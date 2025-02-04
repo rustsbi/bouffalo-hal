@@ -400,7 +400,7 @@ pub static FLASH_CONFIG: HalFlashConfig = HalFlashConfig::new(SpiFlashCfgType {
     time_e_sector: 300,
     time_e_32k: 1200,
     time_e_64k: 1200,
-    time_ce: 30000,
+    time_ce: 33000,
     time_page_pgm: 50,
     pd_delay: 20,
     qe_data: 0,
@@ -511,14 +511,14 @@ mod tests {
             time_e_sector: 300,
             time_e_32k: 1200,
             time_e_64k: 1200,
-            time_ce: 30000,
+            time_ce: 33000,
             time_page_pgm: 50,
             pd_delay: 20,
             qe_data: 0,
         };
         let test_config = HalFlashConfig::new(test_spi_flash_config);
         assert_eq!(test_config.magic, 0x47464346);
-        assert_eq!(test_config.crc32, 0x18c5feb5);
+        assert_eq!(test_config.crc32, 0x482adef8);
     }
 
     #[test]
