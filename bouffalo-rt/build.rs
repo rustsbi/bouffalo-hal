@@ -17,12 +17,7 @@ fn main() {
     #[cfg(feature = "bl702")]
     std::fs::write(&ld, LINKER_SCRIPT_BL702).unwrap();
 
-    #[cfg(target_os = "none")]
-    {
-        println!("cargo:rustc-link-arg=-T{}", ld.display());
-        println!("cargo:rustc-link-search={}", out.display());
-    }
-    #[cfg(not(target_os = "none"))]
+    println!("cargo:rustc-link-search={}", out.display());
     let _ = (ld, out);
 }
 
