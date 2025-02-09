@@ -42,16 +42,16 @@ unsafe extern "C" fn start() -> ! {
             li      t1, {stack_protect_pmp_address_end}
             csrw    pmpaddr1, t1
             li      t2, {stack_protect_pmp_flags}
-            csrw    pmpcfg1, t2",
-            "   sfence.vma x0, x0",
+            csrw    pmpcfg0, t2",
             "   call  {main}",
             stack = sym STACK,
             hart_stack_size = const LEN_STACK_MCU,
             trap_entry = sym trap_vectored,
             trap_mode = const 1, // RISC-V standard vectored trap
-            stack_protect_pmp_address_begin = const {0x61030000},
-            stack_protect_pmp_address_end = const {0x62030000},
-            stack_protect_pmp_flags = const 0b00001000, // -r, -w, -x, tor, not locked
+            // Set PMP entry to block U/S-mode stack access (TOR, no R/W/X permissions)
+            stack_protect_pmp_address_begin = const {0x62030000 >> 2},
+            stack_protect_pmp_address_end = const {(0x62030000 + 160 * 1024) >> 2},
+            stack_protect_pmp_flags = const 0b00001000 << 8,
             main = sym main,
         )
     }
@@ -91,8 +91,10 @@ unsafe extern "C" fn start() -> ! {
             "   la      t0, {trap_entry}
             ori     t0, t0, {trap_mode}
             csrw    mtvec, t0",
-            "   li      t1, {stack_protect_pmp_address}
+            "   li      t1, {stack_protect_pmp_address_begin}
             csrw    pmpaddr0, t1
+            li      t1, {stack_protect_pmp_address_end}
+            csrw    pmpaddr1, t1
             li      t2, {stack_protect_pmp_flags}
             csrw    pmpcfg0, t2",
             "   call    {main}",
@@ -100,8 +102,10 @@ unsafe extern "C" fn start() -> ! {
             hart_stack_size = const LEN_STACK_DSP,
             trap_entry = sym trap_vectored,
             trap_mode = const 1, // RISC-V standard vectored trap
-            stack_protect_pmp_address = const {(0x3E000000 >> 2) + (16 * 1024 * 1024 >> 3) - 1},
-            stack_protect_pmp_flags = const 0b00011000, // -r, -w, -x, napot, not locked
+            // Set PMP entry to block U/S-mode stack access (TOR, no R/W/X permissions)
+            stack_protect_pmp_address_begin = const {0x3F000000 >> 2},
+            stack_protect_pmp_address_end = const {(0x3F000000 + 32 * 1024) >> 2},
+            stack_protect_pmp_flags = const 0b00001000 << 8,
             main = sym main,
         )
     }
@@ -209,10 +213,7 @@ unsafe extern "C" fn reserved() -> ! {
     unsafe { core::arch::naked_asm!("1: j   1b") }
 }
 
-#[cfg(any(
-    all(feature = "bl808-mcu", target_arch = "riscv32"),
-    all(feature = "bl808-dsp", target_arch = "riscv64")
-))]
+#[cfg(any(all(feature = "bl808-dsp", target_arch = "riscv64")))]
 unsafe extern "C" {
     fn exceptions(tf: &mut crate::arch::rvi::TrapFrame);
 }
