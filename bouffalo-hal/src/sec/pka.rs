@@ -10,14 +10,18 @@ use volatile_register::RW;
 pub struct RegisterBlock {
     /// Control register 0
     pub control_0: RW<u32>,
-    /// TODO
+    _reserved0: [u8; 8],
+    /// Seed register
     pub seed: RW<u32>,
     /// Control register 1
     pub control_1: RW<u32>,
+    _reserved1: [u8; 44],
     /// single write for command
     pub rw: RW<u32>,
+    _reserved2: [u8; 28],
     /// burst write for data
     pub rw_burst: RW<u32>,
+    _reserved3: [u8; 152],
     /// Control protection register
     pub control_protection: RW<ControlProtection>,
 }
@@ -76,11 +80,11 @@ mod tests {
     #[test]
     fn struct_register_block_offset() {
         assert_eq!(offset_of!(RegisterBlock, control_0), 0x00);
-        assert_eq!(offset_of!(RegisterBlock, seed), 0x04);
-        assert_eq!(offset_of!(RegisterBlock, control_1), 0x08);
-        assert_eq!(offset_of!(RegisterBlock, rw), 0x0c);
-        assert_eq!(offset_of!(RegisterBlock, rw_burst), 0x10);
-        assert_eq!(offset_of!(RegisterBlock, control_protection), 0x14);
+        assert_eq!(offset_of!(RegisterBlock, seed), 0x0C);
+        assert_eq!(offset_of!(RegisterBlock, control_1), 0x10);
+        assert_eq!(offset_of!(RegisterBlock, rw), 0x40);
+        assert_eq!(offset_of!(RegisterBlock, rw_burst), 0x60);
+        assert_eq!(offset_of!(RegisterBlock, control_protection), 0xFC);
     }
 
     #[test]

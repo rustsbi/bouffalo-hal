@@ -13,15 +13,16 @@ pub struct RegisterBlock {
     /// Message source address register
     pub message_source_address: RW<u32>,
     /// Status register
-    pub status: RW<u32>,
+    pub status: RO<u32>,
     /// Endianness register
-    pub endianness: RO<Endianness>,
-    /// TODO
-    pub hash_i: [RO<u32>; 8],
-    /// TODO
+    pub endianness: RW<Endianness>,
+    /// SHA hash result low 32-bit register group
+    pub hash_l: [RO<u32>; 8],
+    /// SHA hash result high 32-bit register group
     pub hash_h: [RO<u32>; 8],
     /// AES link configuration address (word aligned)
     pub link_config_address: RW<u32>,
+    _reserved: [u8; 168],
     /// Control protection register
     pub control_protection: RW<ControlProtection>,
 }
@@ -325,10 +326,10 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, message_source_address), 0x04);
         assert_eq!(offset_of!(RegisterBlock, status), 0x08);
         assert_eq!(offset_of!(RegisterBlock, endianness), 0x0C);
-        assert_eq!(offset_of!(RegisterBlock, hash_i), 0x10);
+        assert_eq!(offset_of!(RegisterBlock, hash_l), 0x10);
         assert_eq!(offset_of!(RegisterBlock, hash_h), 0x30);
         assert_eq!(offset_of!(RegisterBlock, link_config_address), 0x50);
-        assert_eq!(offset_of!(RegisterBlock, control_protection), 0x54);
+        assert_eq!(offset_of!(RegisterBlock, control_protection), 0xFC);
     }
 
     #[test]

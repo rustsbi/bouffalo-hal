@@ -3,7 +3,7 @@
 //! This module provides access to the GMAC hardware accelerator peripheral,
 //! supporting message authentication using the Galois field multiplication.
 
-use volatile_register::RW;
+use volatile_register::{RO, RW};
 
 /// GMAC hardware registers block
 #[repr(C)]
@@ -13,7 +13,8 @@ pub struct RegisterBlock {
     /// GMAC link configuration address (word aligned)
     pub link_config_address: RW<u32>,
     /// Status register
-    pub status: RW<u32>,
+    pub status: RO<u32>,
+    _reserved: [u8; 240],
     /// Control protection register
     pub control_protection: RW<ControlProtection>,
 }
@@ -212,7 +213,7 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, control), 0x00);
         assert_eq!(offset_of!(RegisterBlock, link_config_address), 0x04);
         assert_eq!(offset_of!(RegisterBlock, status), 0x08);
-        assert_eq!(offset_of!(RegisterBlock, control_protection), 0x0C);
+        assert_eq!(offset_of!(RegisterBlock, control_protection), 0xFC);
     }
 
     #[test]

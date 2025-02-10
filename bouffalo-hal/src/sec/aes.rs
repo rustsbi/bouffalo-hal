@@ -4,7 +4,7 @@
 //! It supports various AES modes including 128-bit, 192-bit, and 256-bit key sizes,
 //! as well as ECB, CBC, CTR and XTS block cipher modes.
 
-use volatile_register::RW;
+use volatile_register::{RO, RW};
 
 /// AES hardware registers block
 #[repr(C)]
@@ -16,7 +16,7 @@ pub struct RegisterBlock {
     /// Destination address for output cipher/plain data  
     message_destination_address: RW<u32>,
     /// Status register indicating operation state
-    status: RW<u32>,
+    status: RO<u32>,
     /// Initial vector registers (big endian)
     initial_vector: [RW<u32>; 4],
     /// AES key registers (big endian)
@@ -32,6 +32,7 @@ pub struct RegisterBlock {
     secure_boot: RW<SecureBoot>,
     /// Link mode configuration address (word aligned)
     link_config_address: RW<u32>,
+    _reserved: [u8; 168],
     /// Access control protection register
     control_protection: RW<ControlProtection>,
 }
@@ -438,18 +439,12 @@ impl Endianness {
         self.0 |= (len << 30) & Self::COUNTER_LENGTH;
     }
 
-    /// 获取CTR模式下计数器的长度
     /// Get counter length for CTR mode
     #[inline]
     pub fn get_counter_length(&self) -> u32 {
         (self.0 & Self::COUNTER_LENGTH) >> 30
     }
 }
-
-// TODO
-/// Secure boot key selection options
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SecureBootKeySelect {}
 
 /// XTS (XEX-based tweaked-codebook mode with ciphertext stealing) operation modes
 ///
@@ -471,20 +466,25 @@ pub enum XtsMode {
 pub struct SecureBoot(u32);
 
 impl SecureBoot {
-    // TODO
-    // const SECURE_BOOT_KEY_SELECT: u32 = 1 << 0;
+    const SECURE_BOOT_KEY_SELECT: u32 = 1 << 0;
     const XTS_MODE: u32 = 1 << 15;
     const XTS_DATA_UINT_LENGTH: u32 = 0xffff << 16;
 
-    // TODO
-    // /// Set secure boot key selection
-    // #[inline]
-    // pub fn set_secure_boot_key_select(&mut self, sboot_key_select: SecureBootKeySelect) {}
+    /// Set secure boot key selection
+    #[inline]
+    pub fn set_secure_boot_key_select(&mut self, sboot_key_select: bool) {
+        if sboot_key_select {
+            self.0 |= Self::SECURE_BOOT_KEY_SELECT;
+        } else {
+            self.0 &= !Self::SECURE_BOOT_KEY_SELECT;
+        }
+    }
 
-    // TODO
-    // /// Get current secure boot key selection
-    // #[inline]
-    // pub fn get_secure_boot_key_select(&self) -> SecureBootKeySelect {}
+    /// Get current secure boot key selection
+    #[inline]
+    pub fn get_secure_boot_key_select(&self) -> bool {
+        (self.0 & Self::SECURE_BOOT_KEY_SELECT) != 0
+    }
 
     /// Set XTS operation mode
     #[inline]
@@ -583,7 +583,7 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, endianness), 0x48);
         assert_eq!(offset_of!(RegisterBlock, secure_boot), 0x4C);
         assert_eq!(offset_of!(RegisterBlock, link_config_address), 0x50);
-        assert_eq!(offset_of!(RegisterBlock, control_protection), 0x54);
+        assert_eq!(offset_of!(RegisterBlock, control_protection), 0xFC);
     }
 
     #[test]

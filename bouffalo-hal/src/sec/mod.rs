@@ -3,7 +3,7 @@
 //! This module provides access to the SEC hardware accelerator peripheral,
 //! which includes SHA, AES, TRNG, PKA, CDET and GMAC functionality.
 
-use volatile_register::RW;
+use volatile_register::{RO, RW};
 
 pub mod aes;
 pub mod cdet;
@@ -34,8 +34,12 @@ pub struct RegisterBlock {
     pub cdet: Cdet,
     /// Galois Message Authentication Code (GMAC) registers
     pub gmac: Gmac,
+    _reserved0: [u8; 2304],
     /// Control protection register for read access
-    pub control_protection_rd: RW<ControlProtectionRd>,
+    pub control_protection_rd: RO<ControlProtectionRd>,
+    pub control_reserved_0: RW<u32>,
+    pub control_reserved_1: RW<u32>,
+    pub control_reserved_2: RW<u32>,
 }
 
 /// Control protection register
@@ -144,13 +148,13 @@ mod tests {
 
     #[test]
     fn struct_register_block_offset() {
-        assert_eq!(offset_of!(RegisterBlock, sha), 0x00);
-        assert_eq!(offset_of!(RegisterBlock, aes), 0x58);
-        assert_eq!(offset_of!(RegisterBlock, trng), 0xb0);
-        assert_eq!(offset_of!(RegisterBlock, pka), 0xfc);
-        assert_eq!(offset_of!(RegisterBlock, cdet), 0x114);
-        assert_eq!(offset_of!(RegisterBlock, gmac), 0x120);
-        assert_eq!(offset_of!(RegisterBlock, control_protection_rd), 0x130);
+        assert_eq!(offset_of!(RegisterBlock, sha), 0x000);
+        assert_eq!(offset_of!(RegisterBlock, aes), 0x100);
+        assert_eq!(offset_of!(RegisterBlock, trng), 0x200);
+        assert_eq!(offset_of!(RegisterBlock, pka), 0x300);
+        assert_eq!(offset_of!(RegisterBlock, cdet), 0x400);
+        assert_eq!(offset_of!(RegisterBlock, gmac), 0x500);
+        assert_eq!(offset_of!(RegisterBlock, control_protection_rd), 0xF00);
     }
 
     #[test]

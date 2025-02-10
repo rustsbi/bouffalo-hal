@@ -21,8 +21,10 @@ pub struct RegisterBlock {
     pub control_2: RW<Control2>,
     /// Control register 3
     pub control_3: RW<Control3>,
+    _reserved0: [u8; 8],
     /// Test output data
     pub test_output: [RW<u32>; 4],
+    _reserved1: [u8; 172],
     /// Control protection register
     pub control_protection: RW<ControlProtection>,
 }
@@ -470,8 +472,8 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, control_1), 0x2C);
         assert_eq!(offset_of!(RegisterBlock, control_2), 0x30);
         assert_eq!(offset_of!(RegisterBlock, control_3), 0x34);
-        assert_eq!(offset_of!(RegisterBlock, test_output), 0x38);
-        assert_eq!(offset_of!(RegisterBlock, control_protection), 0x48);
+        assert_eq!(offset_of!(RegisterBlock, test_output), 0x40);
+        assert_eq!(offset_of!(RegisterBlock, control_protection), 0xFC);
     }
 
     #[test]
