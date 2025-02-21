@@ -15,7 +15,7 @@ use core::ops::Deref;
 const LEN_STACK: usize = 1 * 1024;
 
 #[cfg(feature = "bl702")]
-#[naked]
+#[naked_function::naked]
 #[unsafe(link_section = ".text.entry")]
 #[unsafe(export_name = "_start")]
 unsafe extern "C" fn start() -> ! {

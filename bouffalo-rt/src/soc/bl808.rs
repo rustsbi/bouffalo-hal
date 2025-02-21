@@ -4,7 +4,7 @@ use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
 use core::ops::Deref;
 
 #[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
-#[naked]
+#[naked_function::naked]
 #[unsafe(link_section = ".text.entry")]
 #[unsafe(export_name = "_start")]
 unsafe extern "C" fn start() -> ! {
@@ -58,7 +58,7 @@ unsafe extern "C" fn start() -> ! {
 }
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
-#[naked]
+#[naked_function::naked]
 #[unsafe(link_section = ".text.entry")]
 #[unsafe(export_name = "_start")]
 unsafe extern "C" fn start() -> ! {
@@ -112,7 +112,7 @@ unsafe extern "C" fn start() -> ! {
 }
 
 #[cfg(all(feature = "bl808-lp", target_arch = "riscv32"))]
-#[naked]
+#[naked_function::naked]
 #[unsafe(link_section = ".text.entry")]
 #[unsafe(export_name = "_start")]
 unsafe extern "C" fn start() -> ! {
@@ -168,7 +168,7 @@ unsafe extern "Rust" {
     all(feature = "bl808-dsp", target_arch = "riscv64")
 ))]
 #[unsafe(link_section = ".trap.trap-entry")]
-#[naked]
+#[naked_function::naked]
 unsafe extern "C" fn trap_vectored() -> ! {
     unsafe {
         core::arch::naked_asm!(
@@ -208,7 +208,7 @@ unsafe extern "C" fn trap_vectored() -> ! {
     all(feature = "bl808-mcu", target_arch = "riscv32"),
     all(feature = "bl808-dsp", target_arch = "riscv64")
 ))]
-#[naked]
+#[naked_function::naked]
 unsafe extern "C" fn reserved() -> ! {
     unsafe { core::arch::naked_asm!("1: j   1b") }
 }
@@ -220,13 +220,13 @@ unsafe extern "C" {
 
 // TODO exceptions_trampoline for bl808-mcu
 #[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
-#[naked]
+#[naked_function::naked]
 unsafe extern "C" fn exceptions_trampoline() -> ! {
     unsafe { core::arch::naked_asm!("") }
 }
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
-#[naked]
+#[naked_function::naked]
 unsafe extern "C" fn exceptions_trampoline() -> ! {
     unsafe {
         core::arch::naked_asm!(
@@ -287,13 +287,13 @@ unsafe extern "C" fn exceptions_trampoline() -> ! {
 
 // TODO machine_external_trampoline for bl808-mcu
 #[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
-#[naked]
+#[naked_function::naked]
 unsafe extern "C" fn machine_external_trampoline() -> ! {
     unsafe { core::arch::naked_asm!("") }
 }
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
-#[naked]
+#[naked_function::naked]
 unsafe extern "C" fn machine_external_trampoline() -> ! {
     unsafe {
         core::arch::naked_asm!(

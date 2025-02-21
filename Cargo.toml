@@ -22,4 +22,4 @@ members = [
     "examples/peripherals/psram-demo",
     "examples/peripherals/sdh-demo",
 ]
-resolver = "2"
+resolver = "3"

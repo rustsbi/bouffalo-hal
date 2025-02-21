@@ -2,6 +2,10 @@
 
 This repository contains `bouffalo-hal` and `bouffalo-rt` packages.
 
+## Minimum supported Rust version
+
+To compile the `bouffalo-hal` crates, you need at least stable Rust version of `rustc 1.85.0`.
+
 ## License
 
 Project is dual licensed under MIT or Mulan-PSL v2.
