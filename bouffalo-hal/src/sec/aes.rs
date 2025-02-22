@@ -7,87 +7,87 @@
 use crate::sec::Endian;
 use volatile_register::{RO, RW};
 
-/// AES hardware registers block
+/// AES hardware registers block.
 #[repr(C)]
 pub struct RegisterBlock {
-    /// Control register for configuring AES operations
+    /// Control register for configuring AES operations.
     control: RW<Control>,
-    /// Source address for input message data
+    /// Source address for input message data.
     message_source_address: RW<u32>,
-    /// Destination address for output cipher/plain data  
+    /// Destination address for output cipher/plain data.
     message_destination_address: RW<u32>,
-    /// Status register indicating operation state
+    /// Status register indicating operation state.
     status: RO<u32>,
-    /// Initial vector registers (big endian)
+    /// Initial vector registers (big endian).
     initial_vector: [RW<u32>; 4],
-    /// AES key registers (big endian)
-    /// Stores the encryption/decryption key
+    /// AES key registers (big endian).
+    /// Stores the encryption/decryption key.
     key: [RW<u32>; 8],
-    /// Key selection register 0
+    /// Key selection register 0.
     key_select_0: RW<u32>,
-    /// Key selection register 1
+    /// Key selection register 1.
     key_select_1: RW<u32>,
-    /// Endianness configuration register
+    /// Endianness configuration register.
     endianness: RW<Endianness>,
-    /// Secure boot configuration register
+    /// Secure boot configuration register.
     secure_boot: RW<SecureBoot>,
-    /// Link mode configuration address (word aligned)
+    /// Link mode configuration address (word aligned).
     link_config_address: RW<u32>,
     _reserved: [u8; 168],
-    /// Access control protection register
+    /// Access control protection register.
     control_protection: RW<ControlProtection>,
 }
 
-/// AES operation modes
-/// Defines the different key sizes and modes supported by the AES engine
+/// AES operation modes.
+/// Defines the different key sizes and modes supported by the AES engine.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AesMode {
-    /// Standard AES with 128-bit key
+    /// Standard AES with 128-bit key.
     Aes128 = 0,
-    /// Standard AES with 256-bit key
+    /// Standard AES with 256-bit key.
     Aes256 = 1,
-    /// Standard AES with 192-bit key
+    /// Standard AES with 192-bit key.
     Aes192 = 2,
-    /// AES-128 with double key mode
+    /// AES-128 with double key mode.
     Aes128DoubleKey = 3,
 }
 
-/// Decryption key selection mode
-/// Controls whether to use a new key or reuse the previous key
+/// Decryption key selection mode.
+/// Controls whether to use a new key or reuse the previous key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DecKeySelect {
-    /// Use a new decryption key
+    /// Use a new decryption key.
     NewKey = 0,
-    /// Reuse the previous decryption key
+    /// Reuse the previous decryption key.
     SameKeyAsLastOne = 1,
 }
 
-/// AES block cipher operation modes
-/// Defines how the AES algorithm processes blocks of data
+/// AES block cipher operation modes.
+/// Defines how the AES algorithm processes blocks of data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlockMode {
-    /// Electronic Codebook mode
+    /// Electronic Codebook mode.
     ECB = 0,
-    /// Counter mode
+    /// Counter mode.
     CTR = 1,
-    /// Cipher Block Chaining mode
+    /// Cipher Block Chaining mode.
     CBC = 2,
-    /// XEX-based tweaked-codebook mode with ciphertext stealing
+    /// XEX-based tweaked-codebook mode with ciphertext stealing.
     XTS = 3,
 }
 
-/// Initialization vector selection mode
-/// Controls whether to use a new IV or reuse the previous IV
+/// Initialization vector selection mode.
+/// Controls whether to use a new IV or reuse the previous IV.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IvSelect {
-    /// Use a new initialization vector
+    /// Use a new initialization vector.
     NewIv = 0,
-    /// Reuse the previous initialization vector
+    /// Reuse the previous initialization vector.
     SameIvAsLastOne = 1,
 }
 
-/// AES control register
-/// Contains configuration bits for controlling AES operations
+/// AES control register.
+/// Contains configuration bits for controlling AES operations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Control(u32);
@@ -108,46 +108,46 @@ impl Control {
     const LINK_MODE: u32 = 1 << 15;
     const MESSAGE_LENGTH: u32 = 0xffff << 16;
 
-    /// Check if AES engine is busy
+    /// Check if AES engine is busy.
     #[inline]
     pub fn is_busy(&self) -> bool {
         (self.0 & Self::BUSY) != 0
     }
 
-    /// Trigger AES operation
+    /// Trigger AES operation.
     #[inline]
     pub fn trigger(&mut self) {
         self.0 |= Self::TRIGGER;
     }
 
-    /// Enable AES engine
+    /// Enable AES engine.
     #[inline]
     pub fn enable(&mut self) {
         self.0 |= Self::ENABLE;
     }
 
-    /// Disable AES engine
+    /// Disable AES engine.
     #[inline]
     pub fn disable(&mut self) {
         self.0 &= !Self::ENABLE;
     }
 
-    /// Check if AES engine is enabled
+    /// Check if AES engine is enabled.
     #[inline]
     pub fn is_enabled(&self) -> bool {
         (self.0 & Self::ENABLE) != 0
     }
 
-    /// Set AES operation mode
+    /// Set AES operation mode.
     #[inline]
     pub fn set_aes_mode(&mut self, mode: AesMode) {
         self.0 &= !Self::MODE;
         self.0 |= ((mode as u32) << 3) & Self::MODE;
     }
 
-    /// Get current AES operation mode
+    /// Get current AES operation mode.
     #[inline]
-    pub fn get_aes_mode(&self) -> AesMode {
+    pub fn aes_mode(&self) -> AesMode {
         match (self.0 & Self::MODE) >> 3 {
             0 => AesMode::Aes128,
             1 => AesMode::Aes256,
@@ -157,25 +157,25 @@ impl Control {
         }
     }
 
-    /// Enable decryption mode
+    /// Enable decryption mode.
     #[inline]
     pub fn enable_dec(&mut self) {
         self.0 |= Self::DEC_ENABLE;
     }
 
-    /// Disable decryption mode
+    /// Disable decryption mode.
     #[inline]
     pub fn disable_dec(&mut self) {
         self.0 &= !Self::DEC_ENABLE;
     }
 
-    /// Check if decryption mode is enabled
+    /// Check if decryption mode is enabled.
     #[inline]
     pub fn is_dec_enabled(&self) -> bool {
         (self.0 & Self::DEC_ENABLE) != 0
     }
 
-    /// Set decryption key selection
+    /// Set decryption key selection.
     #[inline]
     pub fn set_dec_key_select(&mut self, dec_key: DecKeySelect) {
         match dec_key {
@@ -184,9 +184,9 @@ impl Control {
         }
     }
 
-    /// Get current decryption key selection
+    /// Get current decryption key selection.
     #[inline]
-    pub fn get_dec_key_select(&self) -> DecKeySelect {
+    pub fn dec_key_select(&self) -> DecKeySelect {
         if (self.0 & Self::DEC_KEY_SELECT) != 0 {
             DecKeySelect::SameKeyAsLastOne
         } else {
@@ -194,70 +194,70 @@ impl Control {
         }
     }
 
-    /// Enable hardware key
+    /// Enable hardware key.
     #[inline]
     pub fn enable_hw_key(&mut self) {
         self.0 |= Self::HW_KEY_ENABLE;
     }
 
-    /// Disable hardware key
+    /// Disable hardware key.
     #[inline]
     pub fn disable_hw_key(&mut self) {
         self.0 &= !Self::HW_KEY_ENABLE;
     }
 
-    /// Check if hardware key is enabled
+    /// Check if hardware key is enabled.
     #[inline]
     pub fn is_hw_key_enabled(&self) -> bool {
         (self.0 & Self::HW_KEY_ENABLE) != 0
     }
 
-    /// Check interrupt status
+    /// Check interrupt status.
     #[inline]
     pub fn is_interrupt(&self) -> bool {
         (self.0 & Self::INTERRUPT) != 0
     }
 
-    /// Clear interrupt flag
+    /// Clear interrupt flag.
     #[inline]
     pub fn clear_interrupt(&mut self) {
         self.0 |= Self::INTERRUPT_CLEAR;
     }
 
-    /// Set interrupt flag
+    /// Set interrupt flag.
     #[inline]
     pub fn set_interrupt(&mut self) {
         self.0 |= Self::INTERRUPT_SET;
     }
 
-    /// Enable interrupt mask
+    /// Enable interrupt mask.
     #[inline]
     pub fn enable_interrupt_mask(&mut self) {
         self.0 |= Self::INTERRUPT_MASK;
     }
 
-    /// Disable interrupt mask
+    /// Disable interrupt mask.
     #[inline]
     pub fn disable_interrupt_mask(&mut self) {
         self.0 &= !Self::INTERRUPT_MASK;
     }
 
-    /// Check if interrupt mask is enabled
+    /// Check if interrupt mask is enabled.
     #[inline]
     pub fn is_interrupt_mask_enabled(&self) -> bool {
         (self.0 & Self::INTERRUPT_MASK) != 0
     }
 
-    /// Set block operation mode
+    /// Set block operation mode.
     #[inline]
     pub fn set_block_mode(&mut self, block_mode: BlockMode) {
         self.0 &= !Self::BLOCK_MODE;
         self.0 |= ((block_mode as u32) << 12) & Self::BLOCK_MODE;
     }
 
-    /// Get current block operation mode
+    /// Get current block operation mode.
     #[inline]
-    pub fn get_block_mode(&self) -> BlockMode {
+    pub fn block_mode(&self) -> BlockMode {
         match (self.0 & Self::BLOCK_MODE) >> 12 {
             0 => BlockMode::ECB,
             1 => BlockMode::CTR,
@@ -267,7 +267,7 @@ impl Control {
         }
     }
 
-    /// Set IV selection mode
+    /// Set IV selection mode.
     #[inline]
     pub fn set_iv_select(&mut self, iv_select: IvSelect) {
         match iv_select {
@@ -276,9 +276,9 @@ impl Control {
         }
     }
 
-    /// Get current IV selection mode
+    /// Get current IV selection mode.
     #[inline]
-    pub fn get_iv_select(&self) -> IvSelect {
+    pub fn iv_select(&self) -> IvSelect {
         if (self.0 & Self::IV_SELECT) != 0 {
             IvSelect::SameIvAsLastOne
         } else {
@@ -286,39 +286,39 @@ impl Control {
         }
     }
 
-    /// Enable link mode
+    /// Enable link mode.
     #[inline]
     pub fn enable_link_mode(&mut self) {
         self.0 |= Self::LINK_MODE;
     }
 
-    /// Disable link mode
+    /// Disable link mode.
     #[inline]
     pub fn disable_link_mode(&mut self) {
         self.0 &= !Self::LINK_MODE;
     }
 
-    /// Check if link mode is enabled
+    /// Check if link mode is enabled.
     #[inline]
     pub fn is_link_mode_enabled(&self) -> bool {
         (self.0 & Self::LINK_MODE) != 0
     }
 
-    /// Set message length in bytes
+    /// Set message length in bytes.
     #[inline]
     pub fn set_message_length(&mut self, message_length: u32) {
         self.0 &= !Self::MESSAGE_LENGTH;
         self.0 |= (message_length << 16) & Self::MESSAGE_LENGTH;
     }
 
-    /// Get message length in bytes
+    /// Get message length in bytes.
     #[inline]
-    pub fn get_message_length(&self) -> u32 {
+    pub fn message_length(&self) -> u32 {
         (self.0 & Self::MESSAGE_LENGTH) >> 16
     }
 }
 
-/// Endianness register
+/// Endianness register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Endianness(u32);
@@ -331,7 +331,7 @@ impl Endianness {
     const TWEAK_ENDIAN: u32 = 1 << 4;
     const COUNTER_LENGTH: u32 = 0x3 << 30;
 
-    /// Set endianness for output data
+    /// Set endianness for output data.
     #[inline]
     pub fn set_output_data_endian(&mut self, endian: Endian) {
         match endian {
@@ -340,9 +340,9 @@ impl Endianness {
         }
     }
 
-    /// Get endianness of output data
+    /// Get endianness of output data.
     #[inline]
-    pub fn get_output_data_endian(&self) -> Endian {
+    pub fn output_data_endian(&self) -> Endian {
         if (self.0 & Self::OUTPUT_DATA_ENDIAN) != 0 {
             Endian::Big
         } else {
@@ -350,7 +350,7 @@ impl Endianness {
         }
     }
 
-    /// Set endianness for input data
+    /// Set endianness for input data.
     #[inline]
     pub fn set_input_data_endian(&mut self, endian: Endian) {
         match endian {
@@ -359,9 +359,9 @@ impl Endianness {
         }
     }
 
-    /// Get endianness of input data
+    /// Get endianness of input data.
     #[inline]
-    pub fn get_input_data_endian(&self) -> Endian {
+    pub fn input_data_endian(&self) -> Endian {
         if (self.0 & Self::INPUT_DATA_ENDIAN) != 0 {
             Endian::Big
         } else {
@@ -369,7 +369,7 @@ impl Endianness {
         }
     }
 
-    /// Set endianness for key
+    /// Set endianness for key.
     #[inline]
     pub fn set_key_endian(&mut self, endian: Endian) {
         match endian {
@@ -378,9 +378,9 @@ impl Endianness {
         }
     }
 
-    /// Get endianness of key
+    /// Get endianness of key.
     #[inline]
-    pub fn get_key_endian(&self) -> Endian {
+    pub fn key_endian(&self) -> Endian {
         if (self.0 & Self::KEY_ENDIAN) != 0 {
             Endian::Big
         } else {
@@ -388,7 +388,7 @@ impl Endianness {
         }
     }
 
-    /// Set endianness for initialization vector
+    /// Set endianness for initialization vector.
     #[inline]
     pub fn set_iv_endian(&mut self, endian: Endian) {
         match endian {
@@ -397,9 +397,9 @@ impl Endianness {
         }
     }
 
-    /// Get endianness of initialization vector
+    /// Get endianness of initialization vector.
     #[inline]
-    pub fn get_iv_endian(&self) -> Endian {
+    pub fn iv_endian(&self) -> Endian {
         if (self.0 & Self::INITIAL_VECTOR_ENDIAN) != 0 {
             Endian::Big
         } else {
@@ -407,7 +407,7 @@ impl Endianness {
         }
     }
 
-    /// Set endianness for XTS tweak value
+    /// Set endianness for XTS tweak value.
     #[inline]
     pub fn set_tweak_endian(&mut self, endian: Endian) {
         match endian {
@@ -416,9 +416,9 @@ impl Endianness {
         }
     }
 
-    /// Get endianness of XTS tweak value
+    /// Get endianness of XTS tweak value.
     #[inline]
-    pub fn get_tweak_endian(&self) -> Endian {
+    pub fn tweak_endian(&self) -> Endian {
         if (self.0 & Self::TWEAK_ENDIAN) != 0 {
             Endian::Big
         } else {
@@ -426,32 +426,32 @@ impl Endianness {
         }
     }
 
-    /// Set counter length for CTR mode
+    /// Set counter length for CTR mode.
     #[inline]
     pub fn set_counter_length(&mut self, len: u32) {
         self.0 &= !Self::COUNTER_LENGTH;
         self.0 |= (len << 30) & Self::COUNTER_LENGTH;
     }
 
-    /// Get counter length for CTR mode
+    /// Get counter length for CTR mode.
     #[inline]
-    pub fn get_counter_length(&self) -> u32 {
+    pub fn counter_length(&self) -> u32 {
         (self.0 & Self::COUNTER_LENGTH) >> 30
     }
 }
 
-/// XTS (XEX-based tweaked-codebook mode with ciphertext stealing) operation modes
+/// XTS (XEX-based tweaked-codebook mode with ciphertext stealing) operation modes.
 ///
-/// Defines the operation mode for XTS encryption/decryption
+/// Defines the operation mode for XTS encryption/decryption.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum XtsMode {
-    /// Normal XTS mode with multiple data units (value = 0)
+    /// Normal XTS mode with multiple data units (value = 0).
     Normal = 0,
-    /// XTS mode processing single data unit only (value = 1)
+    /// XTS mode processing single data unit only (value = 1).
     SingleUnit = 1,
 }
 
-/// Secure boot configuration structure
+/// Secure boot configuration structure.
 ///
 /// Contains settings for secure boot operations including key selection
 /// and XTS mode configuration. Internally represented as a 32-bit value.
@@ -464,7 +464,7 @@ impl SecureBoot {
     const XTS_MODE: u32 = 1 << 15;
     const XTS_DATA_UINT_LENGTH: u32 = 0xffff << 16;
 
-    /// Set secure boot key selection
+    /// Set secure boot key selection.
     #[inline]
     pub fn set_secure_boot_key_select(&mut self, sboot_key_select: bool) {
         if sboot_key_select {
@@ -474,13 +474,13 @@ impl SecureBoot {
         }
     }
 
-    /// Get current secure boot key selection
+    /// Get current secure boot key selection.
     #[inline]
-    pub fn get_secure_boot_key_select(&self) -> bool {
+    pub fn secure_boot_key_select(&self) -> bool {
         (self.0 & Self::SECURE_BOOT_KEY_SELECT) != 0
     }
 
-    /// Set XTS operation mode
+    /// Set XTS operation mode.
     #[inline]
     pub fn set_xts_mode(&mut self, xts_mode: XtsMode) {
         match xts_mode {
@@ -489,9 +489,9 @@ impl SecureBoot {
         }
     }
 
-    /// Get current XTS operation mode
+    /// Get current XTS operation mode.
     #[inline]
-    pub fn get_xts_mode(&self) -> XtsMode {
+    pub fn xts_mode(&self) -> XtsMode {
         if (self.0 & Self::XTS_MODE) != 0 {
             XtsMode::SingleUnit
         } else {
@@ -499,21 +499,21 @@ impl SecureBoot {
         }
     }
 
-    /// Set XTS data unit length (in bytes)
+    /// Set XTS data unit length (in bytes).
     #[inline]
     pub fn set_xts_data_uint_length(&mut self, len: u32) {
         self.0 &= !Self::XTS_DATA_UINT_LENGTH;
         self.0 |= (len << 16) & Self::XTS_DATA_UINT_LENGTH;
     }
 
-    /// Get current XTS data unit length (in bytes)
+    /// Get current XTS data unit length (in bytes).
     #[inline]
-    pub fn get_xts_data_uint_length(&self) -> u32 {
+    pub fn xts_data_uint_length(&self) -> u32 {
         (self.0 & Self::XTS_DATA_UINT_LENGTH) >> 16
     }
 }
 
-/// Control protection register
+/// Control protection register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ControlProtection(u32);
@@ -522,37 +522,37 @@ impl ControlProtection {
     const ENABLE_ID0_ACCESS_RIGHT: u32 = 1 << 1;
     const ENABLE_ID1_ACCESS_RIGHT: u32 = 1 << 2;
 
-    /// Enable ID0 access right
+    /// Enable ID0 access right.
     #[inline]
     pub fn enable_id0_access_right(&mut self) {
         self.0 |= Self::ENABLE_ID0_ACCESS_RIGHT;
     }
 
-    /// Disable ID0 access right
+    /// Disable ID0 access right.
     #[inline]
     pub fn disable_id0_access_right(&mut self) {
         self.0 &= !Self::ENABLE_ID0_ACCESS_RIGHT;
     }
 
-    /// Enable ID1 access right
+    /// Enable ID1 access right.
     #[inline]
     pub fn enable_id1_access_right(&mut self) {
         self.0 |= Self::ENABLE_ID1_ACCESS_RIGHT;
     }
 
-    /// Disable ID1 access right
+    /// Disable ID1 access right.
     #[inline]
     pub fn disable_id1_access_right(&mut self) {
         self.0 &= !Self::ENABLE_ID1_ACCESS_RIGHT;
     }
 
-    /// Check if ID0 access right is enabled
+    /// Check if ID0 access right is enabled.
     #[inline]
     pub fn is_id0_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_ID0_ACCESS_RIGHT) != 0
     }
 
-    /// Check if ID1 access right is enabled
+    /// Check if ID1 access right is enabled.
     #[inline]
     pub fn is_id1_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_ID1_ACCESS_RIGHT) != 0
@@ -598,15 +598,15 @@ mod tests {
         // Test AES mode setting and getting
         control = Control(0);
         control.set_aes_mode(AesMode::Aes128);
-        assert_eq!(control.get_aes_mode(), AesMode::Aes128);
+        assert_eq!(control.aes_mode(), AesMode::Aes128);
         assert_eq!(control.0, 0x0);
 
         control.set_aes_mode(AesMode::Aes192);
-        assert_eq!(control.get_aes_mode(), AesMode::Aes192);
+        assert_eq!(control.aes_mode(), AesMode::Aes192);
         assert_eq!(control.0, 0x10);
 
         control.set_aes_mode(AesMode::Aes256);
-        assert_eq!(control.get_aes_mode(), AesMode::Aes256);
+        assert_eq!(control.aes_mode(), AesMode::Aes256);
         assert_eq!(control.0, 0x8);
 
         // Test enable/disable functionality
@@ -632,10 +632,10 @@ mod tests {
         // Test decryption key selection related functions
         control = Control(0);
         control.set_dec_key_select(DecKeySelect::NewKey);
-        assert_eq!(control.get_dec_key_select(), DecKeySelect::NewKey);
+        assert_eq!(control.dec_key_select(), DecKeySelect::NewKey);
         assert_eq!(control.0, 0x0);
         control.set_dec_key_select(DecKeySelect::SameKeyAsLastOne);
-        assert_eq!(control.get_dec_key_select(), DecKeySelect::SameKeyAsLastOne);
+        assert_eq!(control.dec_key_select(), DecKeySelect::SameKeyAsLastOne);
         assert_eq!(control.0, 0x40);
 
         // Test hardware key related functions
@@ -669,19 +669,19 @@ mod tests {
         // Test block operation mode related functions
         control = Control(0);
         control.set_block_mode(BlockMode::ECB);
-        assert_eq!(control.get_block_mode(), BlockMode::ECB);
+        assert_eq!(control.block_mode(), BlockMode::ECB);
         assert_eq!(control.0, 0x0);
         control.set_block_mode(BlockMode::CBC);
-        assert_eq!(control.get_block_mode(), BlockMode::CBC);
+        assert_eq!(control.block_mode(), BlockMode::CBC);
         assert_eq!(control.0, 0x2000);
 
         // Test IV selection mode related functions
         control = Control(0);
         control.set_iv_select(IvSelect::NewIv);
-        assert_eq!(control.get_iv_select(), IvSelect::NewIv);
+        assert_eq!(control.iv_select(), IvSelect::NewIv);
         assert_eq!(control.0, 0x0);
         control.set_iv_select(IvSelect::SameIvAsLastOne);
-        assert_eq!(control.get_iv_select(), IvSelect::SameIvAsLastOne);
+        assert_eq!(control.iv_select(), IvSelect::SameIvAsLastOne);
         assert_eq!(control.0, 0x4000);
 
         // Test link mode
@@ -697,7 +697,7 @@ mod tests {
         // Test message length setting
         control = Control(0);
         control.set_message_length(123);
-        assert_eq!(control.get_message_length(), 123);
+        assert_eq!(control.message_length(), 123);
         assert_eq!(control.0, 0x7b0000);
     }
 
@@ -707,41 +707,41 @@ mod tests {
 
         // Test setting and getting data input endianness
         endianness.set_input_data_endian(Endian::Little);
-        assert_eq!(endianness.get_input_data_endian(), Endian::Little);
+        assert_eq!(endianness.input_data_endian(), Endian::Little);
         assert_eq!(endianness.0, 0x0);
 
         endianness.set_input_data_endian(Endian::Big);
-        assert_eq!(endianness.get_input_data_endian(), Endian::Big);
+        assert_eq!(endianness.input_data_endian(), Endian::Big);
         assert_eq!(endianness.0, 0x2);
 
         // Test setting and getting data output endianness
         endianness = Endianness(0);
         endianness.set_output_data_endian(Endian::Little);
-        assert_eq!(endianness.get_output_data_endian(), Endian::Little);
+        assert_eq!(endianness.output_data_endian(), Endian::Little);
         assert_eq!(endianness.0, 0x0);
 
         endianness.set_output_data_endian(Endian::Big);
-        assert_eq!(endianness.get_output_data_endian(), Endian::Big);
+        assert_eq!(endianness.output_data_endian(), Endian::Big);
         assert_eq!(endianness.0, 0x1);
 
         // Test setting and getting key endianness
         endianness = Endianness(0);
         endianness.set_key_endian(Endian::Little);
-        assert_eq!(endianness.get_key_endian(), Endian::Little);
+        assert_eq!(endianness.key_endian(), Endian::Little);
         assert_eq!(endianness.0, 0x0);
 
         endianness.set_key_endian(Endian::Big);
-        assert_eq!(endianness.get_key_endian(), Endian::Big);
+        assert_eq!(endianness.key_endian(), Endian::Big);
         assert_eq!(endianness.0, 0x4);
 
         // Test setting and getting IV endianness
         endianness = Endianness(0);
         endianness.set_iv_endian(Endian::Little);
-        assert_eq!(endianness.get_iv_endian(), Endian::Little);
+        assert_eq!(endianness.iv_endian(), Endian::Little);
         assert_eq!(endianness.0, 0x0);
 
         endianness.set_iv_endian(Endian::Big);
-        assert_eq!(endianness.get_iv_endian(), Endian::Big);
+        assert_eq!(endianness.iv_endian(), Endian::Big);
         assert_eq!(endianness.0, 0x8);
     }
 
@@ -751,25 +751,25 @@ mod tests {
 
         // Test XTS mode setting and getting
         secure_boot.set_xts_mode(XtsMode::Normal);
-        assert_eq!(secure_boot.get_xts_mode(), XtsMode::Normal);
+        assert_eq!(secure_boot.xts_mode(), XtsMode::Normal);
         assert_eq!(secure_boot.0, 0x0);
 
         secure_boot.set_xts_mode(XtsMode::SingleUnit);
-        assert_eq!(secure_boot.get_xts_mode(), XtsMode::SingleUnit);
+        assert_eq!(secure_boot.xts_mode(), XtsMode::SingleUnit);
         assert_eq!(secure_boot.0, 0x8000);
 
         // Test XTS data unit length setting and getting
         secure_boot = SecureBoot(0);
         secure_boot.set_xts_data_uint_length(1024);
-        assert_eq!(secure_boot.get_xts_data_uint_length(), 1024);
+        assert_eq!(secure_boot.xts_data_uint_length(), 1024);
         assert_eq!(secure_boot.0, 1024 << 16);
 
         // Test combination of settings
         secure_boot = SecureBoot(0);
         secure_boot.set_xts_mode(XtsMode::Normal);
         secure_boot.set_xts_data_uint_length(2048);
-        assert_eq!(secure_boot.get_xts_mode(), XtsMode::Normal);
-        assert_eq!(secure_boot.get_xts_data_uint_length(), 2048);
+        assert_eq!(secure_boot.xts_mode(), XtsMode::Normal);
+        assert_eq!(secure_boot.xts_data_uint_length(), 2048);
         assert_eq!(secure_boot.0, 2048 << 16);
     }
     #[test]

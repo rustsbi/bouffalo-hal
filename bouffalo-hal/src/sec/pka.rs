@@ -6,28 +6,28 @@
 use crate::sec::Endian;
 use volatile_register::RW;
 
-/// PKA hardware registers block
+/// PKA hardware registers block.
 #[repr(C)]
 pub struct RegisterBlock {
-    /// Control register 0
+    /// Control register 0.
     pub control_0: RW<Control0>,
     _reserved0: [u8; 8],
-    /// Seed register
+    /// Seed register.
     pub seed: RW<u32>,
-    /// Control register 1
+    /// Control register 1.
     pub control_1: RW<Control1>,
     _reserved1: [u8; 44],
-    /// single write for command
+    /// single write for command.
     pub rw: RW<u32>,
     _reserved2: [u8; 28],
-    /// burst write for data
+    /// burst write for data.
     pub rw_burst: RW<u32>,
     _reserved3: [u8; 152],
-    /// Control protection register
+    /// Control protection register.
     pub control_protection: RW<ControlProtection>,
 }
 
-/// Control register 0
+/// Control register 0.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Control0(u32);
@@ -49,88 +49,88 @@ impl Control0 {
     const STATUS_CLEAR: u32 = 1 << 15;
     const STATUS: u32 = 0xffff << 16;
     const STATUS_OFFSET: u32 = 16;
-    /// Check if PKA operation is done
+    /// Check if PKA operation is done.
     #[inline]
     pub fn is_done(&self) -> bool {
         (self.0 & Self::DONE) != 0
     }
 
-    /// Clear the done flag
+    /// Clear the done flag.
     #[inline]
     pub fn clear_done(&mut self) {
         self.0 |= Self::DONE_CLEAR;
     }
-    /// Check if PKA engine is busy
+    /// Check if PKA engine is busy.
     #[inline]
     pub fn is_busy(&self) -> bool {
         (self.0 & Self::BUSY) != 0
     }
 
-    /// Enable PKA engine
+    /// Enable PKA engine.
     #[inline]
     pub fn enable(&mut self) {
         self.0 |= Self::ENABLE;
     }
 
-    /// Disable PKA engine
+    /// Disable PKA engine.
     #[inline]
     pub fn disable(&mut self) {
         self.0 &= !Self::ENABLE;
     }
 
-    /// Check if PKA engine is enabled
+    /// Check if PKA engine is enabled.
     #[inline]
     pub fn is_enabled(&self) -> bool {
         (self.0 & Self::ENABLE) != 0
     }
-    /// Set protection mode
+    /// Set protection mode.
     #[inline]
     pub fn set_protection_mode(&mut self, mode: u32) {
         self.0 &= !Self::PROTECTION_MODE;
         self.0 |= (mode & 0xf) << 4;
     }
 
-    /// Get protection mode
+    /// Get protection mode.
     #[inline]
-    pub fn get_protection_mode(&self) -> u32 {
+    pub fn protection_mode(&self) -> u32 {
         (self.0 & Self::PROTECTION_MODE) >> 4
     }
 
-    /// Check interrupt status
+    /// Check interrupt status.
     #[inline]
     pub fn is_interrupt(&self) -> bool {
         (self.0 & Self::INTERRUPT) != 0
     }
 
-    /// Clear interrupt flag
+    /// Clear interrupt flag.
     #[inline]
     pub fn clear_interrupt(&mut self) {
         self.0 |= Self::INTERRUPT_CLEAR;
     }
 
-    /// Set interrupt flag
+    /// Set interrupt flag.
     #[inline]
     pub fn set_interrupt(&mut self) {
         self.0 |= Self::INTERRUPT_SET;
     }
-    /// Enable interrupt mask
+    /// Enable interrupt mask.
     #[inline]
     pub fn enable_interrupt_mask(&mut self) {
         self.0 |= Self::INTERRUPT_MASK;
     }
 
-    /// Disable interrupt mask
+    /// Disable interrupt mask.
     #[inline]
     pub fn disable_interrupt_mask(&mut self) {
         self.0 &= !Self::INTERRUPT_MASK;
     }
 
-    /// Check if interrupt mask is enabled
+    /// Check if interrupt mask is enabled.
     #[inline]
     pub fn is_interrupt_mask_enabled(&self) -> bool {
         (self.0 & Self::INTERRUPT_MASK) != 0
     }
-    /// Set the endianness of the PKA operation
+    /// Set the endianness of the PKA operation.
     #[inline]
     pub fn set_endian(&mut self, endian: Endian) {
         match endian {
@@ -139,9 +139,9 @@ impl Control0 {
         }
     }
 
-    /// Get the current endianness of the PKA operation
+    /// Get the current endianness of the PKA operation.
     #[inline]
-    pub fn get_endian(&self) -> Endian {
+    pub fn endian(&self) -> Endian {
         if (self.0 & Self::ENDIAN) != 0 {
             Endian::Big
         } else {
@@ -149,7 +149,7 @@ impl Control0 {
         }
     }
 
-    /// Set the RAM clear mode
+    /// Set the RAM clear mode.
     #[inline]
     pub fn set_ram_clr_mode(&mut self, mode: bool) {
         if mode {
@@ -159,20 +159,20 @@ impl Control0 {
         }
     }
 
-    /// Get the current RAM clear mode
+    /// Get the current RAM clear mode.
     #[inline]
-    pub fn get_ram_clear_mode(&self) -> bool {
+    pub fn ram_clear_mode(&self) -> bool {
         (self.0 & Self::RAM_CLEAR_MODE) != 0
     }
-    /// Clear the status register
+    /// Clear the status register.
     #[inline]
     pub fn clear_status(&mut self) {
         self.0 |= Self::STATUS_CLEAR;
     }
 
-    /// Get the current status
+    /// Get the current status.
     #[inline]
-    pub fn get_status(&self) -> u32 {
+    pub fn status(&self) -> u32 {
         (self.0 & Self::STATUS) >> Self::STATUS_OFFSET
     }
 }
@@ -180,40 +180,40 @@ impl Control0 {
 /// Defines different burst modes for data transfer in PKA operations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BurstMode {
-    /// Single transfer mode
+    /// Single transfer mode.
     Single = 0,
-    /// Incrementing burst mode
+    /// Incrementing burst mode.
     Incr = 1,
-    /// 4-beat wrap burst mode
+    /// 4-beat wrap burst mode.
     Beat4Wrap = 2,
-    /// 4-beat incrementing burst mode
+    /// 4-beat incrementing burst mode.
     Beat4Incr = 3,
-    /// 8-beat wrap burst mode
+    /// 8-beat wrap burst mode.
     Beat8Wrap = 4,
-    /// 8-beat incrementing burst mode
+    /// 8-beat incrementing burst mode.
     Beat8Incr = 5,
 }
 
-/// Control register 1
+/// Control register 1.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Control1(u32);
 
 impl Control1 {
-    // Register bit definitions
+    // Register bit definitions.
     const BURST_MODE: u32 = 0x7 << 0;
     const BYPASS_ENABLE: u32 = 1 << 3;
 
-    /// Set the burst mode for PKA operations
+    /// Set the burst mode for PKA operations.
     #[inline]
     pub fn set_burst_mode(&mut self, mode: BurstMode) {
         self.0 &= !Self::BURST_MODE;
         self.0 |= (mode as u32) & Self::BURST_MODE;
     }
 
-    /// Get the current burst mode
+    /// Get the current burst mode.
     #[inline]
-    pub fn get_burst_mode(&self) -> BurstMode {
+    pub fn burst_mode(&self) -> BurstMode {
         match self.0 & Self::BURST_MODE {
             0 => BurstMode::Single,
             1 => BurstMode::Incr,
@@ -225,26 +225,26 @@ impl Control1 {
         }
     }
 
-    /// Enable bypass mode
+    /// Enable bypass mode.
     #[inline]
     pub fn enable_bypass(&mut self) {
         self.0 |= Self::BYPASS_ENABLE;
     }
 
-    /// Disable bypass mode
+    /// Disable bypass mode.
     #[inline]
     pub fn disable_bypass(&mut self) {
         self.0 &= !Self::BYPASS_ENABLE;
     }
 
-    /// Check if bypass mode is enabled
+    /// Check if bypass mode is enabled.
     #[inline]
     pub fn is_bypass_enabled(&self) -> bool {
         (self.0 & Self::BYPASS_ENABLE) != 0
     }
 }
 
-/// Control protection register
+/// Control protection register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ControlProtection(u32);
@@ -253,37 +253,37 @@ impl ControlProtection {
     const ENABLE_ID0_ACCESS_RIGHT: u32 = 1 << 1;
     const ENABLE_ID1_ACCESS_RIGHT: u32 = 1 << 2;
 
-    /// Enable ID0 access right
+    /// Enable ID0 access right.
     #[inline]
     pub fn enable_id0_access_right(&mut self) {
         self.0 |= Self::ENABLE_ID0_ACCESS_RIGHT;
     }
 
-    /// Disable ID0 access right
+    /// Disable ID0 access right.
     #[inline]
     pub fn disable_id0_access_right(&mut self) {
         self.0 &= !Self::ENABLE_ID0_ACCESS_RIGHT;
     }
 
-    /// Enable ID1 access right
+    /// Enable ID1 access right.
     #[inline]
     pub fn enable_id1_access_right(&mut self) {
         self.0 |= Self::ENABLE_ID1_ACCESS_RIGHT;
     }
 
-    /// Disable ID1 access right
+    /// Disable ID1 access right.
     #[inline]
     pub fn disable_id1_access_right(&mut self) {
         self.0 &= !Self::ENABLE_ID1_ACCESS_RIGHT;
     }
 
-    /// Check if ID0 access right is enabled
+    /// Check if ID0 access right is enabled.
     #[inline]
     pub fn is_id0_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_ID0_ACCESS_RIGHT) != 0
     }
 
-    /// Check if ID1 access right is enabled
+    /// Check if ID1 access right is enabled.
     #[inline]
     pub fn is_id1_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_ID1_ACCESS_RIGHT) != 0
@@ -338,7 +338,7 @@ mod tests {
         // Test protection mode
         control_0 = Control0(0);
         control_0.set_protection_mode(5);
-        assert_eq!(control_0.get_protection_mode(), 5);
+        assert_eq!(control_0.protection_mode(), 5);
         assert_eq!(control_0.0, 0x50);
 
         // Test interrupt
@@ -364,24 +364,24 @@ mod tests {
         // Test endianness
         control_0 = Control0(0);
         control_0.set_endian(Endian::Little);
-        assert_eq!(control_0.get_endian(), Endian::Little);
+        assert_eq!(control_0.endian(), Endian::Little);
         assert_eq!(control_0.0, 0x0);
         control_0.set_endian(Endian::Big);
-        assert_eq!(control_0.get_endian(), Endian::Big);
+        assert_eq!(control_0.endian(), Endian::Big);
         assert_eq!(control_0.0, 0x1000);
 
         // Test RAM clear mode
         control_0 = Control0(0);
         control_0.set_ram_clr_mode(true);
-        assert!(control_0.get_ram_clear_mode());
+        assert!(control_0.ram_clear_mode());
         assert_eq!(control_0.0, 0x2000);
         control_0.set_ram_clr_mode(false);
-        assert!(!control_0.get_ram_clear_mode());
+        assert!(!control_0.ram_clear_mode());
         assert_eq!(control_0.0, 0x0);
 
         // Test status
         control_0 = Control0(0x12340000);
-        assert_eq!(control_0.get_status(), 0x1234);
+        assert_eq!(control_0.status(), 0x1234);
         assert_eq!(control_0.0, 0x12340000);
     }
 
@@ -391,27 +391,27 @@ mod tests {
 
         // Test burst mode setting and getting
         control_1.set_burst_mode(BurstMode::Single);
-        assert_eq!(control_1.get_burst_mode(), BurstMode::Single);
+        assert_eq!(control_1.burst_mode(), BurstMode::Single);
         assert_eq!(control_1.0, 0x0);
 
         control_1.set_burst_mode(BurstMode::Incr);
-        assert_eq!(control_1.get_burst_mode(), BurstMode::Incr);
+        assert_eq!(control_1.burst_mode(), BurstMode::Incr);
         assert_eq!(control_1.0, 0x1);
 
         control_1.set_burst_mode(BurstMode::Beat4Wrap);
-        assert_eq!(control_1.get_burst_mode(), BurstMode::Beat4Wrap);
+        assert_eq!(control_1.burst_mode(), BurstMode::Beat4Wrap);
         assert_eq!(control_1.0, 0x2);
 
         control_1.set_burst_mode(BurstMode::Beat4Incr);
-        assert_eq!(control_1.get_burst_mode(), BurstMode::Beat4Incr);
+        assert_eq!(control_1.burst_mode(), BurstMode::Beat4Incr);
         assert_eq!(control_1.0, 0x3);
 
         control_1.set_burst_mode(BurstMode::Beat8Wrap);
-        assert_eq!(control_1.get_burst_mode(), BurstMode::Beat8Wrap);
+        assert_eq!(control_1.burst_mode(), BurstMode::Beat8Wrap);
         assert_eq!(control_1.0, 0x4);
 
         control_1.set_burst_mode(BurstMode::Beat8Incr);
-        assert_eq!(control_1.get_burst_mode(), BurstMode::Beat8Incr);
+        assert_eq!(control_1.burst_mode(), BurstMode::Beat8Incr);
         assert_eq!(control_1.0, 0x5);
 
         // Test bypass enable and disable
