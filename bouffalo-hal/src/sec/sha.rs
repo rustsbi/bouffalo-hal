@@ -3,6 +3,7 @@
 //! This module provides access to the SHA hardware accelerator peripheral,
 //! supporting SHA-1, SHA-2 family, MD5 and CRC calculations.
 
+use crate::sec::Endian;
 use volatile_register::{RO, RW};
 
 /// SHA hardware registers block
@@ -232,13 +233,6 @@ impl Control {
     pub fn get_message_length(&self) -> u32 {
         (self.0 & Self::MESSAGE_LENGTH) >> 16
     }
-}
-
-/// Endianness configuration
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Endian {
-    Little = 0,
-    Big = 1,
 }
 
 /// Endianness register

@@ -3,6 +3,7 @@
 //! This module provides an interface to the PKA hardware peripheral.
 //! It allows configuring and controlling public key cryptographic operations.
 
+use crate::sec::Endian;
 use volatile_register::RW;
 
 /// PKA hardware registers block
@@ -24,13 +25,6 @@ pub struct RegisterBlock {
     _reserved3: [u8; 152],
     /// Control protection register
     pub control_protection: RW<ControlProtection>,
-}
-
-/// Endianness configuration
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Endian {
-    Little = 0,
-    Big = 1,
 }
 
 /// Control register 0

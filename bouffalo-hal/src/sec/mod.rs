@@ -5,6 +5,13 @@
 
 use volatile_register::{RO, RW};
 
+/// Endianness configuration
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Endian {
+    Little = 0,
+    Big = 1,
+}
+
 pub mod aes;
 pub mod cdet;
 pub mod gmac;

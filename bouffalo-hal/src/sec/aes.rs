@@ -4,6 +4,7 @@
 //! It supports various AES modes including 128-bit, 192-bit, and 256-bit key sizes,
 //! as well as ECB, CBC, CTR and XTS block cipher modes.
 
+use crate::sec::Endian;
 use volatile_register::{RO, RW};
 
 /// AES hardware registers block
@@ -315,13 +316,6 @@ impl Control {
     pub fn get_message_length(&self) -> u32 {
         (self.0 & Self::MESSAGE_LENGTH) >> 16
     }
-}
-
-/// Endianness configuration
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Endian {
-    Little = 0,
-    Big = 1,
 }
 
 /// Endianness register

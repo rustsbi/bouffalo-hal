@@ -3,6 +3,7 @@
 //! This module provides access to the GMAC hardware accelerator peripheral,
 //! supporting message authentication using the Galois field multiplication.
 
+use crate::sec::Endian;
 use volatile_register::{RO, RW};
 
 /// GMAC hardware registers block
@@ -17,13 +18,6 @@ pub struct RegisterBlock {
     _reserved: [u8; 240],
     /// Control protection register
     pub control_protection: RW<ControlProtection>,
-}
-
-/// Endianness configuration
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Endian {
-    Little = 0,
-    Big = 1,
 }
 
 /// Control register
