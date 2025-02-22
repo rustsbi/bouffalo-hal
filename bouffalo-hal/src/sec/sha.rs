@@ -3,30 +3,32 @@
 //! This module provides access to the SHA hardware accelerator peripheral,
 //! supporting SHA-1, SHA-2 family, MD5 and CRC calculations.
 
+use crate::sec::Endian;
 use volatile_register::{RO, RW};
 
-/// SHA hardware registers block
+/// SHA hardware registers block.
 #[repr(C)]
 pub struct RegisterBlock {
-    /// Control register
+    /// Control register.
     pub control: RW<Control>,
-    /// Message source address register
+    /// Message source address register.
     pub message_source_address: RW<u32>,
-    /// Status register
-    pub status: RW<u32>,
-    /// Endianness register
-    pub endianness: RO<Endianness>,
-    /// TODO
-    pub hash_i: [RO<u32>; 8],
-    /// TODO
+    /// Status register.
+    pub status: RO<u32>,
+    /// Endianness register.
+    pub endianness: RW<Endianness>,
+    /// SHA hash result low 32-bit register group.
+    pub hash_l: [RO<u32>; 8],
+    /// SHA hash result high 32-bit register group.
     pub hash_h: [RO<u32>; 8],
-    /// AES link configuration address (word aligned)
+    /// AES link configuration address (word aligned).
     pub link_config_address: RW<u32>,
-    /// Control protection register
+    _reserved: [u8; 168],
+    /// Control protection register.
     pub control_protection: RW<ControlProtection>,
 }
 
-/// Supported hash operation modes
+/// Supported hash operation modes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HashMode {
     SHA1,
@@ -41,16 +43,16 @@ pub enum HashMode {
     CRC32,
 }
 
-/// Hash calculation mode selection
+/// Hash calculation mode selection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HashSelect {
-    /// Start new hash calculation
+    /// Start new hash calculation.
     NewHash = 0,
-    /// Continue with previous hash value
+    /// Continue with previous hash value.
     AccumulateLastHash = 1,
 }
 
-/// Control register
+/// Control register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Control(u32);
@@ -70,19 +72,19 @@ impl Control {
     const LINK_MODE: u32 = 1 << 15;
     const MESSAGE_LENGTH: u32 = 0xffff << 16;
 
-    /// Check if SHA engine is busy
+    /// Check if SHA engine is busy.
     #[inline]
     pub fn is_busy(&self) -> bool {
         (self.0 & Self::BUSY) != 0
     }
 
-    /// Trigger SHA operation
+    /// Trigger SHA operation.
     #[inline]
     pub fn trigger(&mut self) {
         self.0 |= Self::TRIGGER;
     }
 
-    /// Set SHA operation mode
+    /// Set SHA operation mode.
     #[inline]
     pub fn set_hash_mode(&mut self, mode: HashMode) {
         // Clear existing mode bits
@@ -108,9 +110,9 @@ impl Control {
         }
     }
 
-    /// Get current operation mode
+    /// Get current operation mode.
     #[inline]
-    pub fn get_hash_mode(&self) -> HashMode {
+    pub fn hash_mode(&self) -> HashMode {
         let mode = (self.0 & Self::MODE) >> 2;
         let mode_ext = (self.0 & Self::MODE_EXTENSION) >> 12;
 
@@ -129,25 +131,25 @@ impl Control {
         }
     }
 
-    /// Enable SHA engine
+    /// Enable SHA engine.
     #[inline]
     pub fn enable(&mut self) {
         self.0 |= Self::ENABLE;
     }
 
-    /// Disable SHA engine
+    /// Disable SHA engine.
     #[inline]
     pub fn disable(&mut self) {
         self.0 &= !Self::ENABLE;
     }
 
-    /// Check if SHA engine is enabled
+    /// Check if SHA engine is enabled.
     #[inline]
     pub fn is_enabled(&self) -> bool {
         (self.0 & Self::ENABLE) != 0
     }
 
-    /// Set hash calculation mode
+    /// Set hash calculation mode.
     #[inline]
     pub fn set_hash_select(&mut self, select: HashSelect) {
         match select {
@@ -156,9 +158,9 @@ impl Control {
         }
     }
 
-    /// Get current hash calculation mode
+    /// Get current hash calculation mode.
     #[inline]
-    pub fn get_hash_select(&self) -> HashSelect {
+    pub fn hash_select(&self) -> HashSelect {
         if (self.0 & Self::HASH_SELECT) != 0 {
             HashSelect::AccumulateLastHash
         } else {
@@ -166,81 +168,74 @@ impl Control {
         }
     }
 
-    /// Check interrupt status
+    /// Check interrupt status.
     #[inline]
     pub fn is_interrupt(&self) -> bool {
         (self.0 & Self::INTERRUPT) != 0
     }
 
-    /// Clear interrupt flag
+    /// Clear interrupt flag.
     #[inline]
     pub fn clear_interrupt(&mut self) {
         self.0 |= Self::INTERRUPT_CLEAR;
     }
 
-    /// Set interrupt flag
+    /// Set interrupt flag.
     #[inline]
     pub fn set_interrupt(&mut self) {
         self.0 |= Self::INTERRUPT_SET;
     }
-    /// Enable interrupt mask
+    /// Enable interrupt mask.
     #[inline]
     pub fn enable_interrupt_mask(&mut self) {
         self.0 |= Self::INTERRUPT_MASK;
     }
 
-    /// Disable interrupt mask
+    /// Disable interrupt mask.
     #[inline]
     pub fn disable_interrupt_mask(&mut self) {
         self.0 &= !Self::INTERRUPT_MASK;
     }
 
-    /// Check if interrupt mask is enabled
+    /// Check if interrupt mask is enabled.
     #[inline]
     pub fn is_interrupt_mask_enabled(&self) -> bool {
         (self.0 & Self::INTERRUPT_MASK) != 0
     }
 
-    /// Enable link mode
+    /// Enable link mode.
     #[inline]
     pub fn enable_link_mode(&mut self) {
         self.0 |= Self::LINK_MODE;
     }
 
-    /// Disable link mode
+    /// Disable link mode.
     #[inline]
     pub fn disable_link_mode(&mut self) {
         self.0 &= !Self::LINK_MODE;
     }
 
-    /// Check if link mode is enabled
+    /// Check if link mode is enabled.
     #[inline]
     pub fn is_link_mode_enabled(&self) -> bool {
         (self.0 & Self::LINK_MODE) != 0
     }
 
-    /// Set number of 512-bit blocks to process
+    /// Set number of 512-bit blocks to process.
     #[inline]
     pub fn set_message_length(&mut self, length: u32) {
         self.0 &= !Self::MESSAGE_LENGTH;
         self.0 |= (length << 16) & Self::MESSAGE_LENGTH;
     }
 
-    /// Get number of 512-bit blocks to process
+    /// Get number of 512-bit blocks to process.
     #[inline]
-    pub fn get_message_length(&self) -> u32 {
+    pub fn message_length(&self) -> u32 {
         (self.0 & Self::MESSAGE_LENGTH) >> 16
     }
 }
 
-/// Endianness configuration
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Endian {
-    Little = 0,
-    Big = 1,
-}
-
-/// Endianness register
+/// Endianness register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Endianness(u32);
@@ -248,7 +243,7 @@ pub struct Endianness(u32);
 impl Endianness {
     const OUTPUT_DATA_ENDIAN: u32 = 1 << 0;
 
-    /// Set output data endianness
+    /// Set output data endianness.
     #[inline]
     pub fn set_data_out_endian(&mut self, endian: Endian) {
         match endian {
@@ -257,9 +252,9 @@ impl Endianness {
         }
     }
 
-    /// Get output data endianness
+    /// Get output data endianness.
     #[inline]
-    pub fn get_data_out_endian(&self) -> Endian {
+    pub fn data_out_endian(&self) -> Endian {
         if (self.0 & Self::OUTPUT_DATA_ENDIAN) != 0 {
             Endian::Big
         } else {
@@ -268,7 +263,7 @@ impl Endianness {
     }
 }
 
-/// Control protection register
+/// Control protection register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ControlProtection(u32);
@@ -277,37 +272,37 @@ impl ControlProtection {
     const ENABLE_ID0_ACCESS_RIGHT: u32 = 1 << 1;
     const ENABLE_ID1_ACCESS_RIGHT: u32 = 1 << 2;
 
-    /// Enable ID0 access right
+    /// Enable ID0 access right.
     #[inline]
     pub fn enable_id0_access_right(&mut self) {
         self.0 |= Self::ENABLE_ID0_ACCESS_RIGHT;
     }
 
-    /// Disable ID0 access right
+    /// Disable ID0 access right.
     #[inline]
     pub fn disable_id0_access_right(&mut self) {
         self.0 &= !Self::ENABLE_ID0_ACCESS_RIGHT;
     }
 
-    /// Enable ID1 access right
+    /// Enable ID1 access right.
     #[inline]
     pub fn enable_id1_access_right(&mut self) {
         self.0 |= Self::ENABLE_ID1_ACCESS_RIGHT;
     }
 
-    /// Disable ID1 access right
+    /// Disable ID1 access right.
     #[inline]
     pub fn disable_id1_access_right(&mut self) {
         self.0 &= !Self::ENABLE_ID1_ACCESS_RIGHT;
     }
 
-    /// Check if ID0 access right is enabled
+    /// Check if ID0 access right is enabled.
     #[inline]
     pub fn is_id0_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_ID0_ACCESS_RIGHT) != 0
     }
 
-    /// Check if ID1 access right is enabled
+    /// Check if ID1 access right is enabled.
     #[inline]
     pub fn is_id1_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_ID1_ACCESS_RIGHT) != 0
@@ -325,10 +320,10 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, message_source_address), 0x04);
         assert_eq!(offset_of!(RegisterBlock, status), 0x08);
         assert_eq!(offset_of!(RegisterBlock, endianness), 0x0C);
-        assert_eq!(offset_of!(RegisterBlock, hash_i), 0x10);
+        assert_eq!(offset_of!(RegisterBlock, hash_l), 0x10);
         assert_eq!(offset_of!(RegisterBlock, hash_h), 0x30);
         assert_eq!(offset_of!(RegisterBlock, link_config_address), 0x50);
-        assert_eq!(offset_of!(RegisterBlock, control_protection), 0x54);
+        assert_eq!(offset_of!(RegisterBlock, control_protection), 0xFC);
     }
 
     #[test]
@@ -349,11 +344,11 @@ mod tests {
         // Test hash mode setting and getting
         control = Control(0);
         control.set_hash_mode(HashMode::SHA256);
-        assert_eq!(control.get_hash_mode(), HashMode::SHA256);
+        assert_eq!(control.hash_mode(), HashMode::SHA256);
         assert_eq!(control.0, 0x0);
 
         control.set_hash_mode(HashMode::MD5);
-        assert_eq!(control.get_hash_mode(), HashMode::MD5);
+        assert_eq!(control.hash_mode(), HashMode::MD5);
         assert_eq!(control.0, 0x1000);
 
         // Test enable/disable functionality
@@ -369,10 +364,10 @@ mod tests {
         // Test hash selection mode
         control = Control(0);
         control.set_hash_select(HashSelect::NewHash);
-        assert_eq!(control.get_hash_select(), HashSelect::NewHash);
+        assert_eq!(control.hash_select(), HashSelect::NewHash);
         assert_eq!(control.0, 0x0);
         control.set_hash_select(HashSelect::AccumulateLastHash);
-        assert_eq!(control.get_hash_select(), HashSelect::AccumulateLastHash);
+        assert_eq!(control.hash_select(), HashSelect::AccumulateLastHash);
         assert_eq!(control.0, 0x40);
 
         // Test interrupt related functions
@@ -407,7 +402,7 @@ mod tests {
         // Test message length setting
         control = Control(0);
         control.set_message_length(123);
-        assert_eq!(control.get_message_length(), 123);
+        assert_eq!(control.message_length(), 123);
         assert_eq!(control.0, 0x7b0000);
     }
 
@@ -417,11 +412,11 @@ mod tests {
 
         // Test setting and getting data output endianness
         endianness.set_data_out_endian(Endian::Little);
-        assert_eq!(endianness.get_data_out_endian(), Endian::Little);
+        assert_eq!(endianness.data_out_endian(), Endian::Little);
         assert_eq!(endianness.0, 0x0);
 
         endianness.set_data_out_endian(Endian::Big);
-        assert_eq!(endianness.get_data_out_endian(), Endian::Big);
+        assert_eq!(endianness.data_out_endian(), Endian::Big);
         assert_eq!(endianness.0, 0x1);
     }
 
