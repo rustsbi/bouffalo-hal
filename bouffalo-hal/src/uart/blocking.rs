@@ -1,4 +1,4 @@
-use super::{uart_config, Config, ConfigError, Error, Pads, RegisterBlock};
+use super::{Config, ConfigError, Error, Pads, RegisterBlock, uart_config};
 use crate::clocks::Clocks;
 use core::ops::Deref;
 

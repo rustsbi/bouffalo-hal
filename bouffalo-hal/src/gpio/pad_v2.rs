@@ -1,11 +1,11 @@
 use super::{
+    Spi,
     typestate::{
         Floating, I2c, Input, JtagD0, JtagLp, JtagM0, MmUart, Output, PullDown, PullUp, Pwm, Sdh,
         Uart,
     },
-    Spi,
 };
-use crate::glb::{v2, Drive, Pull};
+use crate::glb::{Drive, Pull, v2};
 use core::marker::PhantomData;
 use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
 

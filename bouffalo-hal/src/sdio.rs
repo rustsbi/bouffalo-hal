@@ -6,18 +6,18 @@ use core::arch::asm;
 use core::ops::Deref;
 use embedded_io::Write;
 use embedded_sdmmc::{Block, BlockDevice, BlockIdx};
-use volatile_register::RW;
+use volatile_register::{RO, RW, WO};
 
 /// Secure Digital Input/Output peripheral registers.
 #[repr(C)]
 pub struct RegisterBlock {
-    /// 32-bit Block Count / (SDMA System Address) Register.
+    /// 32-bit block count / (SDMA system address) register.
     pub system_address: RW<SystemAddress>,
     /// Configuration register for number of bytes in a data block.
     pub block_size: RW<BlockSize>,
     /// Configuration register for number of data blocks.
     pub block_count: RW<BlockCount>,
-    /// Register that contains the SD Command Argument.
+    /// Register that contains the SD command argument.
     pub argument: RW<Argument>,
     /// Control register for the operation of data transfers.
     pub transfer_mode: RW<TransferMode>,
@@ -27,103 +27,103 @@ pub struct RegisterBlock {
     pub response: RW<Response>,
     /// 32-bit data port register to accesses internal buffer.
     pub buffer_data_port: RW<BufferDataPort>,
-    /// 32-bit read only register to get status of the Host Controller.
-    pub present_state: RW<PresentState>,
-    /// Host Control 1 Register.
+    /// 32-bit read only register to get status of the host controller.
+    pub present_state: RO<PresentState>,
+    /// Host control 1 register.
     pub host_control_1: RW<HostControl1>,
-    /// Power Control Register.
+    /// Power control register.
     pub power_control: RW<PowerControl>,
-    /// Block Gap Control Register.
+    /// Block gap control register.
     pub block_gap: RW<BlockGap>,
-    /// Register which is mandatory for the Host Controller.
+    /// Register which is mandatory for the host controller.
     pub wakeup_control: RW<WakeupControl>,
-    /// Control register for SDCLK in SD Mode and RCLK in UHS-II Mode.
+    /// Control register for SDCLK in SD mode and RCLK in UHS-II mode.
     pub clock_control: RW<ClockControl>,
-    /// Timeout Control Register.
+    /// Timeout control register.
     pub timeout_control: RW<TimeoutControl>,
     /// Writting 1 to each bit of this register to generate a reset pulse.
     pub software_reset: RW<SoftwareReset>,
-    /// The reads of register are affected by the Normal Interrupt Status Enable.  
+    /// Register that shows the defined normal interrupt status.
     pub normal_interrupt_status: RW<NormalInterruptStatus>,
-    /// Register that shows the defined Interrupt Status.
+    /// Register that shows the defined error interrupt status.
     pub error_interrupt_status: RW<ErrorInterruptStatus>,
-    /// Register that sets to 1 enables Interrupt Status.
+    /// Register that sets to 1 enables normal interrupt status.
     pub normal_interrupt_status_enable: RW<NormalInterruptStatusEnable>,
-    /// Register that sets to 1 enables Interrupt Status.
+    /// Register that sets to 1 enables error interrupt status.
     pub error_interrupt_status_enable: RW<ErrorInterruptStatusEnable>,
-    /// Register that selects which interrupt status is indicated to the Host System as the interrupt.
+    /// Register that selects which interrupt status is indicated to the host system as the interrupt.
     pub normal_interrupt_signal_enable: RW<NormalInterruptSignalEnable>,
-    /// Register that selects which interrupt status is notified to the Host System as the interrupt.
+    /// Register that selects which interrupt status is notified to the host system as the interrupt.
     pub error_interrupt_signal_enable: RW<ErrorInterruptSignalEnable>,
-    /// Register that indicates CMD12 response error of Auto CMD12 and CMD23 response error of Auto CMD23.
-    pub auto_cmd_error_status: RW<AutoCMDErrorStatus>,
-    /// Host Control 2 Register.
+    /// Register that indicates CMD12 response error of auto CMD12 and CMD23 response error of auto CMD23.
+    pub auto_cmd_error_status: RO<AutoCmdErrorStatus>,
+    /// Host control 2 register.
     pub host_control_2: RW<HostControl2>,
-    /// Register that provides the Host Driver with information specific to the Host Controller implementation.
-    pub capabilities: RW<Capabilities>,
+    /// Register that provides the host driver with information specific to the host controller implementation.
+    pub capabilities: RO<Capabilities>,
     /// Registers that indicates maximum current capability fo each voltage.
-    pub max_current_capabilities: RW<MaxCurrentCapabilities>,
-    /// Register that simplifies test of the Auto CMD Error Status register.
-    pub force_event_auto_cmd_error_status: RW<ForceEventAutoCMDErrorStatus>,
-    /// Register that simplifies test of the Error Interrupt Status register.
-    pub force_event_error_interrupt_status: RW<ForceEventErrorInterruptStatus>,
-    /// Register that holds the ADMA state when ADMA Error Interrupt is occurred.
-    pub adma_error_status: RW<ADMAErrorStatus>,
-    /// Register that contains the physical Descriptor address used for ADMA data transfer.
-    pub adma_system_address: RW<ADMASystemAddress>,
-    /// Preset Value Registers.
+    pub max_current_capabilities: RO<MaxCurrentCapabilities>,
+    /// Register that simplifies test of the auto command error status register.
+    pub force_event_auto_cmd_error_status: WO<ForceEventAutoCmdErrorStatus>,
+    /// Register that simplifies test of the error interrupt status register.
+    pub force_event_error_interrupt_status: WO<ForceEventErrorInterruptStatus>,
+    /// Register that holds the ADMA state when ADMA error interrupt is occurred.
+    pub adma_error_status: RO<AdmaErrorStatus>,
+    /// Register that contains the physical descriptor address used for ADMA data transfer.
+    pub adma_system_address: RW<AdmaSystemAddress>,
+    /// Preset value register.
     pub preset_value: RW<PresetValue>,
     _reserved0: [u8; 8],
-    /// ADMA3 Intergrated Descriptor Address Register.
-    pub adma3_integrated_descriptor_address: RW<ADMA3IntegratedDescriptorAddress>,
+    /// ADMA2 intergrated descriptor address register.
+    pub adma2_integrated_descriptor_address: RW<ADMA2IntegratedDescriptorAddress>,
     _reserved1: [u8; 96],
-    /// Shared Bus Control Register.
+    /// Shared bus control register.
     pub shared_bus_control: RW<SharedBusControl>,
     _reserved2: [u8; 24],
-    /// Slot Interrupt Status Register.
-    pub slot_interrupt_status: RW<SlotInterruptStatus>,
-    /// Host Controller Version Register.
-    pub host_controller_version: RW<HostControllerVersion>,
-    /// SD Extra Parameters Register.
+    /// Slot interrupt status register.
+    pub slot_interrupt_status: RO<SlotInterruptStatus>,
+    /// Host controller version register.
+    pub host_controller_version: RO<HostControllerVersion>,
+    /// SD extra parameters register.
     pub sd_extra_parameters: RW<SDExtraParameters>,
-    /// FIFO Parameters Register.
-    pub fifo_parameters: RW<FIFOParameters>,
-    /// SPI Mode Register.
-    pub spi_mode: RW<SPIMode>,
-    /// Clock and Burst Size Setup Register.
+    /// FIFO parameters register.
+    pub fifo_parameters: RW<FifoParameters>,
+    /// SPI mode register.
+    pub spi_mode: RW<SpiMode>,
+    /// Clock and burst size setup register.
     pub clock_and_burst_size_setup: RW<ClockAndBurstSizeSetup>,
-    /// CE-ATA Register.
-    pub ce_ata: RW<CEATA>,
-    /// PAD I/O Setup Register.
-    pub pad_io_setup: RW<PADIOSetup>,
-    /// RX Configuration Register.
-    pub rx_configuration: RW<RXConfiguration>,
-    /// TX Configuration Register.
-    pub tx_configuration: RW<TXConfiguration>,
-    /// TUNING CONFIG Register.
-    pub tuning_configuration: RW<TUNINGConfiguration>,
+    /// CE-ATA register.
+    pub ce_ata: RW<CeAta>,
+    /// PAD I/O setup register.
+    pub pad_io_setup: RW<PadIoSetup>,
+    /// RX configuration register.
+    pub rx_configuration: RW<RxConfiguration>,
+    /// TX configuration register.
+    pub tx_configuration: RW<TxConfiguration>,
+    /// Tuning config register.
+    pub tuning_configuration: RW<TuningConfiguration>,
 }
 
-/// 32-bit Block Count / (SDMA System Address) Register.
+/// 32-bit block count / (SDMA system address) register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SystemAddress(u32);
 
 impl SystemAddress {
-    /// Get SDMA System Address.
+    /// Get sdma system address.
     /// It can be accessed only if no transaction is executing.
     #[inline]
     pub const fn addr(self) -> u32 {
         self.0
     }
-    /// Set Argument2.
-    /// Used with the Auto CMD23 to set a 32-bit block count value to the argument of the CMD23 while executing Auto CMD23.
+    /// Set argument2.
+    /// Used with the auto CMD23 to set a 32-bit block count value to the argument of the CMD23 while executing auto CMD23.
     /// It can be accessed only if no transaction is executing.
     #[inline]
     pub const fn set_arg2(self, val: u32) -> Self {
         Self(val)
     }
-    /// Get Argument2.
+    /// Get argument2.
     /// It can be accessed only if no transaction is executing.
     #[inline]
     pub const fn arg2(self) -> u32 {
@@ -141,21 +141,21 @@ impl BlockSize {
     const TRANSFER_BLOCK: u16 = 0xFFF;
 
     /// In case of this register is set to 0 (buffer size = 4K bytes), lower 12-bit of byte address points data in the contiguous buffer and the upper 20-bit points the location of the buffer in the system memory.
-    /// The SDMA transfer stops when the Host Controller detects carry out of the address from bit 11 to 12.
-    /// These bits shall be supported when the SDMA Support in the Capabilities register is set to 1 and this function is active when the DMA Enable in the Transfer Mode register is set to 1.
+    /// The SDMA transfer stops when the host controller detects carry out of the address from bit 11 to 12.
+    /// These bits shall be supported when the SDMA support in the capabilities register is set to 1 and this function is active when the DMA Enable in the transfer mode register is set to 1.
     /// ADMA does not use this register.
     #[inline]
     pub const fn set_host_sdma(self, val: u8) -> Self {
         Self((self.0 & !Self::HOST_SDMA) | (Self::HOST_SDMA & ((val as u16) << 12)))
     }
-    /// Get HOST SDMA register.
+    /// Get host SDMA register.
     #[inline]
     pub const fn host_sdma(self) -> u8 {
         ((self.0 & Self::HOST_SDMA) >> 12) as u8
     }
     /// Specifies the block size of data transfers for CMD17, CMD18, CMD24, CMD25, and CMD53.
     /// Values ranging from 1 up to the maximum buffer size can be set.
-    /// In case of memory, it shall be set up to 512 bytes (Refer to Implementation Note in Section 1.7.2).
+    /// In case of memory, it shall be set up to 512 bytes (Refer to implementation note in Section 1.7.2).
     /// It can be accessed only if no transaction is executing.
     #[inline]
     pub const fn set_transfer_block(self, val: u16) -> Self {
@@ -175,15 +175,15 @@ impl BlockSize {
 pub struct BlockCount(u16);
 
 impl BlockCount {
-    /// Set Left Blocks Count For Current Transfer.
-    /// This register is enabled when Block Count Enable in the Transfer Mode register is set to 1 and is valid only for multiple block transfers.
-    /// The Host Driver shall set this register to a value between 1 and the maximum block count.
+    /// Set left blocks count for current transfer.
+    /// This register is enabled when block count enable in the transfer mode register is set to 1 and is valid only for multiple block transfers.
+    /// The host driver shall set this register to a value between 1 and the maximum block count.
     /// This register should be accessed only when no transaction is executing.
     #[inline]
     pub const fn set_blocks_count(self, val: u16) -> Self {
         Self(val)
     }
-    /// Get Left Blocks Count For Current Transfer.
+    /// Get left blocks count for current transfer.
     /// This register should be accessed only when no transaction is executing.
     #[inline]
     pub const fn blocks_count(self) -> u16 {
@@ -191,19 +191,19 @@ impl BlockCount {
     }
 }
 
-/// Register that contains the SD Command Argument.
+/// Register that contains the SD command argument.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Argument(u32);
 
 impl Argument {
-    /// Set Command Argument 1.
-    /// The SD command argument is specified as bit39-8 of Command-Format in the Physical Layer Specification.
+    /// Set command argument 1.
+    /// The SD command argument is specified as bit39-8 of command-format in the physical layer specification.
     #[inline]
     pub const fn set_cmd_arg(self, val: u32) -> Self {
         Self(val)
     }
-    /// Get Command Argument 1.
+    /// Get command argument 1.
     #[inline]
     pub const fn cmd_arg(self) -> u32 {
         self.0
@@ -215,16 +215,16 @@ impl Argument {
 #[repr(transparent)]
 pub struct TransferMode(u16);
 
-/// Multi/Single Block Select.
+/// Multi/Single block select.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BlockMode {
     /// Other commands.
     Other,
-    /// Multiple-block transfer commands using DAT line.
+    /// Multiple-block transfer commands using data line.
     MultiBlock,
 }
 
-/// Data Transfer Mode.
+/// Data transfer mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum DataTransferMode {
     /// Other modes.
@@ -233,12 +233,12 @@ pub enum DataTransferMode {
     MISO,
 }
 
-/// Auto CMD Mode.
+/// Auto command mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum AutoCMDMode {
-    /// Auto CMD12 Enable.
+    /// Auto CMD12 enable.
     CMD12 = 1,
-    /// Auto CMD23 Enable.
+    /// Auto CMD23 enable.
     CMD23 = 2,
     /// Set this bit to zero.
     None = 0,
@@ -251,12 +251,12 @@ impl TransferMode {
     const BLOCK_COUNT: u16 = 0x1 << 1;
     const DMA_ENABLE: u16 = 0x1;
 
-    /// Set Multi/Single Block Mode.
+    /// Set multi/single block mode.
     #[inline]
     pub const fn set_block_mode(self, val: BlockMode) -> Self {
         Self((self.0 & !Self::BLOCK_SELECT) | (Self::BLOCK_SELECT & ((val as u16) << 5)))
     }
-    /// Get Multi/Single Block Mode.
+    /// Get multi/single block mode.
     #[inline]
     pub const fn block_mode(self) -> BlockMode {
         match (self.0 & Self::BLOCK_SELECT) >> 5 {
@@ -264,12 +264,12 @@ impl TransferMode {
             _ => BlockMode::Other,
         }
     }
-    /// Set Data Transfer Direction.
+    /// Set data transfer direction.
     #[inline]
     pub const fn set_data_transfer_mode(self, val: DataTransferMode) -> Self {
         Self((self.0 & !Self::DATA_TRANSFER) | (Self::DATA_TRANSFER & ((val as u16) << 4)))
     }
-    /// Get Data Transfer Direction.
+    /// Get data transfer direction.
     #[inline]
     pub const fn data_transfer_mode(self) -> DataTransferMode {
         match (self.0 & Self::DATA_TRANSFER) >> 4 {
@@ -277,12 +277,12 @@ impl TransferMode {
             _ => DataTransferMode::Other,
         }
     }
-    /// Set Auto CMD Mode.
+    /// Set auto command mode.
     #[inline]
     pub const fn set_auto_cmd_mode(self, val: AutoCMDMode) -> Self {
         Self((self.0 & !Self::AUTO_CMD) | (Self::AUTO_CMD & ((val as u16) << 2)))
     }
-    /// Get Auto CMD Mode
+    /// Get auto command mode.
     #[inline]
     pub const fn auto_cmd_mode(self) -> AutoCMDMode {
         match (self.0 & Self::AUTO_CMD) >> 2 {
@@ -291,17 +291,17 @@ impl TransferMode {
             _ => AutoCMDMode::None,
         }
     }
-    /// Enable Block Count register.
+    /// Enable block count register.
     #[inline]
     pub const fn enable_block_count(self) -> Self {
         Self((self.0 & !Self::BLOCK_COUNT) | Self::BLOCK_COUNT & (1 << 1))
     }
-    /// Disable Block Count register.
+    /// Disable block count register.
     #[inline]
     pub const fn disable_block_count(self) -> Self {
         Self((self.0 & !Self::BLOCK_COUNT) | Self::BLOCK_COUNT & (0 << 1))
     }
-    /// Check if Block Count register is enabled.
+    /// Check if block count register is enabled.
     #[inline]
     pub const fn is_block_count_enabled(self) -> bool {
         (self.0 & Self::BLOCK_COUNT) >> 1 == 1
@@ -328,7 +328,7 @@ impl TransferMode {
 #[repr(transparent)]
 pub struct Command(u16);
 
-/// CMD Type.
+/// Command type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CmdType {
     Normal,
@@ -337,16 +337,16 @@ pub enum CmdType {
     Abort,
     Empty,
 }
-/// Response Type.
+/// Response type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ResponseType {
-    /// No Response.
+    /// No response.
     NoResponse,
-    /// Response Length 136.
+    /// Response length 136.
     ResponseLen136,
-    /// Response Length 48.
+    /// Response length 48.
     ResponseLen48,
-    /// Response Length 48 check Busy after response.
+    /// Response length 48 check Busy after response.
     ResponseLen48Check,
 }
 
@@ -358,7 +358,7 @@ impl Command {
     const CMD_CRC: u16 = 0x1 << 3;
     const RESPONSE_TYPE: u16 = 0x3;
 
-    /// These bits shall be set to the command number (CMD0-63, ACMD0-63) that is specified in bits 45-40 of the Command-Format in the Physical Layer Specification and SDIO Card Specification.
+    /// These bits shall be set to the command number (CMD0-63, ACMD0-63) that is specified in bits 45-40 of the command-format in the physical layer specification and SDIO Card Specification.
     #[inline]
     pub const fn set_cmd_idx(self, val: u16) -> Self {
         Self((self.0 & !Self::CMD_INDEX) | (Self::CMD_INDEX & (val << 8)))
@@ -384,35 +384,35 @@ impl Command {
             _ => CmdType::Empty,
         }
     }
-    /// Set this bit to 1 to indicate that data is present and shall be transferred using the DAT line.
+    /// Set this bit to 1 to indicate that data is present and shall be transferred using the data line.
     #[inline]
     pub const fn set_data_present(self) -> Self {
         Self((self.0 & !Self::DATA_PRSENT) | (Self::DATA_PRSENT & (1 << 5)))
     }
     /// Set this bit to 0 for the following:
-    /// (1) Commands using only CMD line (ex.CMD52).
-    /// (2) Commands with no data transfer but using busy signal on DAT\[0\] line (R1b or R5b ex. CMD38).
+    /// (1) Commands using only command line (ex.CMD52).
+    /// (2) Commands with no data transfer but using busy signal on data line (R1b or R5b ex. CMD38).
     /// (3) Resume command.
     #[inline]
     pub const fn unset_data_present(self) -> Self {
         Self((self.0 & !Self::DATA_PRSENT) | (Self::DATA_PRSENT & (0 << 5)))
     }
-    /// Check if Data Present bit is set.
+    /// Check if data present bit is set.
     #[inline]
     pub const fn is_data_present(self) -> bool {
         (self.0 & Self::DATA_PRSENT) >> 5 == 1
     }
-    /// Enable check the Index field.
+    /// Enable check the index field.
     #[inline]
     pub const fn enable_index_check(self) -> Self {
         Self((self.0 & !Self::CMD_INDEX_CHECK) | (Self::CMD_INDEX_CHECK & (1 << 4)))
     }
-    /// Disable check the Index field.
+    /// Disable check the index field.
     #[inline]
     pub const fn disable_index_check(self) -> Self {
         Self((self.0 & !Self::CMD_INDEX_CHECK) | (Self::CMD_INDEX_CHECK & (0 << 4)))
     }
-    /// Check if check the Index field is enabled.
+    /// Check if check the index field is enabled.
     #[inline]
     pub const fn is_index_check_enabled(self) -> bool {
         (self.0 & Self::CMD_INDEX_CHECK) >> 4 == 1
@@ -455,12 +455,12 @@ impl Command {
 pub struct Response(u128);
 
 impl Response {
-    /// Set Command Response.
+    /// Set command response.
     #[inline]
     pub const fn set_response(self, val: u128) -> Self {
         Self(val)
     }
-    /// Get Command Response.
+    /// Get command response.
     #[inline]
     pub const fn response(self) -> u128 {
         self.0
@@ -473,8 +473,8 @@ impl Response {
 pub struct BufferDataPort(u32);
 
 impl BufferDataPort {
-    /// Set Buffer Data
-    /// The Host Controller buffer can be accessed through this 32-bit Data Port register.
+    /// Set buffer data.
+    /// The host controller buffer can be accessed through this 32-bit data port register.
     #[inline]
     pub const fn set_buffer_data(self, val: u32) -> Self {
         Self(val)
@@ -486,7 +486,7 @@ impl BufferDataPort {
     }
 }
 
-/// 32-bit read only register to get status of the Host Controller.
+/// 32-bit read only register to get status of the host controller.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PresentState(u32);
@@ -507,12 +507,12 @@ impl PresentState {
     const CMD_INHIBIT1: u32 = 0x1 << 1;
     const CMD_INHIBIT0: u32 = 0x1;
 
-    /// Get CMD line signal level.
+    /// Get command line signal level.
     #[inline]
     pub const fn cmd_line(self) -> u8 {
         ((self.0 & Self::CMD_LINE) >> 24) as u8
     }
-    /// Get DAT line signal level.
+    /// Get data line signal level.
     #[inline]
     pub const fn dat_line(self) -> u8 {
         ((self.0 & Self::DAT_LINE) >> 20) as u8
@@ -565,24 +565,24 @@ impl PresentState {
     pub const fn if_re_tuning_occurs(self) -> bool {
         (self.0 & Self::RE_TUNING_REQUEST) >> 3 == 1
     }
-    /// Check if DAT line is active.
+    /// Check if data line is active.
     #[inline]
     pub const fn is_dat_line_active(self) -> bool {
         (self.0 & Self::DAT_LINE_ACTIVE) >> 2 == 1
     }
-    /// Check if DAT line is busy.
+    /// Check if data line is busy.
     #[inline]
     pub const fn is_dat_line_busy(self) -> bool {
         (self.0 & Self::CMD_INHIBIT1) >> 1 == 1
     }
-    /// Check if CMD line is busy.
+    /// Check if command line is busy.
     #[inline]
     pub const fn is_cmd_line_busy(self) -> bool {
         (self.0 & Self::CMD_INHIBIT0) == 1
     }
 }
 
-/// Host Control 1 Register.
+/// Host control 1 register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct HostControl1(u8);
@@ -592,29 +592,31 @@ pub struct HostControl1(u8);
 pub enum CardSignal {
     /// SDCD# is selected (for normal use)
     SDCD,
-    /// The Card Detect Test Level is selected (for test purpose)
+    /// The card detect test level is selected (for test purpose)
     TestLevel,
 }
 
 /// Bus width mode for embedded device.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BusWidthMode {
-    /// 8-bit Bus Width.
+    /// 8-bit bus width.
     SelectByDataTransferWidth,
-    /// Bus Width is Selected by Data Transfer Width.
+    /// Bus width is selected by data transfer width.
     EightBitWidth,
 }
 
 /// DMA mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum DMAMode {
+pub enum DmaMode {
     /// SDMA is selected.
     SDMA = 0,
-    /// 32-bit Address ADMA2 is selected.
+    /// 32-bit address ADMA2 is selected.
     ADMA2 = 2,
+    /// Do not use DMA.
+    None = 5,
 }
 
-/// Speed Mode.
+/// Speed mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SpeedMode {
     NormalSpeed,
@@ -630,7 +632,7 @@ pub enum TransferWidth {
     FourBitMode,
 }
 
-/// Caution LED state.
+/// Caution led state.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum LedState {
     Off,
@@ -671,7 +673,7 @@ impl HostControl1 {
         )
     }
     /// Check if the card is detected.
-    /// Enabled while card_detect_signal is TestLevel.
+    /// Enabled while card_detect_signal is testLevel.
     #[inline]
     pub const fn is_card_detected(self) -> bool {
         (self.0 & Self::CARD_DETECT_TEST_LEVEL) >> 6 == 1
@@ -691,16 +693,16 @@ impl HostControl1 {
     }
     /// Set DMA mode.
     #[inline]
-    pub const fn set_dma_mode(self, val: DMAMode) -> Self {
+    pub const fn set_dma_mode(self, val: DmaMode) -> Self {
         Self((self.0 & !Self::DMA_SELECT) | (Self::DMA_SELECT & ((val as u8) << 3)))
     }
     /// Get DMA mode.
     #[inline]
-    pub const fn dma_mode(self) -> DMAMode {
+    pub const fn dma_mode(self) -> DmaMode {
         match (self.0 & Self::DMA_SELECT) >> 3 {
-            0 => DMAMode::SDMA,
-            2 => DMAMode::ADMA2,
-            _ => unreachable!(),
+            0 => DmaMode::SDMA,
+            2 => DmaMode::ADMA2,
+            _ => DmaMode::None,
         }
     }
     /// Set speed mode.
@@ -744,7 +746,7 @@ impl HostControl1 {
     }
 }
 
-/// Power Control Register.
+/// Power control register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PowerControl(u8);
@@ -763,12 +765,12 @@ impl PowerControl {
     const SD_BUS_VOLTAGE: u8 = 0x7 << 1;
     const SD_BUS_POWER: u8 = 0x1;
 
-    /// Set SD Bus Voltage.
+    /// Set SD bus voltage.
     #[inline]
     pub const fn set_bus_voltage(self, val: BusVoltage) -> Self {
         Self((self.0 & !Self::SD_BUS_VOLTAGE) | (Self::SD_BUS_VOLTAGE & ((val as u8) << 1)))
     }
-    /// Get SD Bus Voltage.
+    /// Get SD bus voltage.
     #[inline]
     pub const fn bus_voltage(self) -> BusVoltage {
         match (self.0 & Self::SD_BUS_VOLTAGE) >> 1 {
@@ -778,14 +780,14 @@ impl PowerControl {
             _ => unreachable!(),
         }
     }
-    /// Enable SD Bus power.
-    /// Before setting this bit, the SD Host Driver shall set SD Bus Voltage Select.
+    /// Enable SD bus power.
+    /// Before setting this bit, the SD host driver shall set SD bus voltage select.
     #[inline]
     pub const fn enable_bus_power(self) -> Self {
         Self((self.0 & !Self::SD_BUS_POWER) | (Self::SD_BUS_POWER & 1))
     }
-    /// Disable SD Bus power.
-    /// Host Controller detects the No Card state, this bit shall be cleared.
+    /// Disable SD bus power.
+    /// Host controller detects the no card state, this bit shall be cleared.
     #[inline]
     pub const fn disable_bus_power(self) -> Self {
         Self((self.0 & !Self::SD_BUS_POWER) | (Self::SD_BUS_POWER & 0))
@@ -842,25 +844,25 @@ impl BlockGap {
         (self.0 & Self::READ_WAIT) >> 2 == 1
     }
     /// Restart transaction.
-    /// To cancel stop at the block gap, set Stop At Block Gap Request to 0 and set this bit 1 to restart the transfer.
-    /// The Host Controller automatically clears this bit.
+    /// To cancel stop at the block gap, set stop at block gap request to 0 and set this bit 1 to restart the transfer.
+    /// The host controller automatically clears this bit.
     #[inline]
     pub const fn restart_transaction(self) -> Self {
         Self((self.0 & !Self::CONTINUE_REQUEST_CTRL) | (Self::CONTINUE_REQUEST_CTRL & (1 << 1)))
     }
-    /// Set Stop At Block Gap Request bit.
+    /// Set stop at block gap request bit.
     #[inline]
     pub const fn set_stop_at_block_gap_req(self, val: u8) -> Self {
         Self((self.0 & !Self::STOP_AT_BG) | (Self::STOP_AT_BG & val))
     }
-    /// Get Stop At Block Gap Request bit.
+    /// Get stop at block gap request bit.
     #[inline]
     pub const fn stop_at_block_gap_req(self) -> u8 {
         self.0 & Self::STOP_AT_BG
     }
 }
 
-/// Register which is mandatory for the Host Controller.
+/// Register which is mandatory for the host controller.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct WakeupControl(u8);
@@ -870,54 +872,54 @@ impl WakeupControl {
     const CARD_INSERTED: u8 = 0x1 << 1;
     const CARD_INTERRUPT: u8 = 0x1;
 
-    /// Wakeup Event Enable On SD Card Removal.
+    /// Wakeup event enable on SD card removal.
     #[inline]
     pub const fn enable_card_removal(self) -> Self {
         Self((self.0 & !Self::CARD_REMOVAL) | (Self::CARD_REMOVAL & (1 << 2)))
     }
-    /// Wakeup Event Disable On SD Card Removal.
+    /// Wakeup event disable on SD card removal.
     #[inline]
     pub const fn disable_card_removal(self) -> Self {
         Self((self.0 & !Self::CARD_REMOVAL) | (Self::CARD_REMOVAL & (0 << 2)))
     }
-    /// Check if Wakeup Event On SD Card Removal is enabled.
+    /// Check if wakeup event on SD card removal is enabled.
     #[inline]
     pub const fn is_card_removal_enable(self) -> bool {
         (self.0 & Self::CARD_REMOVAL) >> 2 == 1
     }
-    /// Wakeup Event Enable On SD Card Insertion.
+    /// Wakeup event enable on SD card insertion.
     #[inline]
     pub const fn enable_card_insertion(self) -> Self {
         Self((self.0 & !Self::CARD_INSERTED) | (Self::CARD_INSERTED & (1 << 1)))
     }
-    /// Wakeup Event Disable On SD Card Insertion.
+    /// Wakeup event disable on SD card insertion.
     #[inline]
     pub const fn disable_card_insertion(self) -> Self {
         Self((self.0 & !Self::CARD_INSERTED) | (Self::CARD_INSERTED & (0 << 1)))
     }
-    /// Check if Wakeup Event On SD Card Insertion is enabled.
+    /// Check if wakeup event on SD card insertion is enabled.
     #[inline]
     pub const fn is_card_insertion_enable(self) -> bool {
         (self.0 & Self::CARD_INSERTED) >> 1 == 1
     }
-    /// Wakeup Event Enable On Card Interrupt.
+    /// Wakeup event enable on card interrupt.
     #[inline]
     pub const fn enable_card_int(self) -> Self {
         Self((self.0 & !Self::CARD_INTERRUPT) | (Self::CARD_INTERRUPT & 1))
     }
-    /// Wakeup Event Disable On Card Interrupt.
+    /// Wakeup event disable on card interrupt.
     #[inline]
     pub const fn disable_card_int(self) -> Self {
         Self((self.0 & !Self::CARD_INTERRUPT) | (Self::CARD_INTERRUPT & 0))
     }
-    /// Check if Wakeup Event On SD Card Interrupt is enabled.
+    /// Check if wakeup event on SD card interrupt is enabled.
     #[inline]
     pub const fn is_card_int_enable(self) -> bool {
         self.0 & Self::CARD_INTERRUPT == 1
     }
 }
 
-/// Control register for SDCLK in SD Mode and RCLK in UHS-II Mode.
+/// Control register for SDCLK in SD mode and RCLK in UHS-II mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ClockControl(u16);
@@ -925,9 +927,9 @@ pub struct ClockControl(u16);
 /// Clock generator mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ClkGenMode {
-    /// Divided Clock Mode.
+    /// Divided clock mode.
     DividedClk,
-    /// Programmable Clock Mode.
+    /// Programmable clock mode.
     ProgrammableClk,
 }
 
@@ -939,34 +941,34 @@ impl ClockControl {
     const INTERNAL_CLK_STABLE: u16 = 0x1 << 1;
     const INTERNAL_CLK_EN: u16 = 0x1;
 
-    /// Set SDCLK Frequency.
+    /// Set SDCLK frequency.
     #[inline]
     pub const fn set_sd_clk_freq(self, val: u8) -> Self {
         Self((self.0 & !Self::SD_CLK_FREQ) | (Self::SD_CLK_FREQ & ((val as u16) << 8)))
     }
-    /// Get SDCLK Frequency.
+    /// Get SDCLK frequency.
     #[inline]
     pub const fn sd_clk_freq(self) -> u8 {
         ((self.0 & Self::SD_CLK_FREQ) >> 8) as u8
     }
-    /// Set Upper SDCLK Frequency.
-    /// Host Controller Version 1.00 and 2.00 do not support these bits and they are treated as 00b fixed value.
+    /// Set upper SDCLK frequency.
+    /// Host controller version 1.00 and 2.00 do not support these bits and they are treated as 00b fixed value.
     #[inline]
     pub const fn set_sd_clk_freq_upper(self, val: u8) -> Self {
         Self((self.0 & !Self::SD_CLK_FREQ_UPPER) | (Self::SD_CLK_FREQ_UPPER & ((val as u16) << 6)))
     }
-    /// Get Upper SDCLK Frequency.
-    /// Host Controller Version 1.00 and 2.00 do not support these bits and they are treated as 00b fixed value.
+    /// Get upper SDCLK frequency.
+    /// Host controller version 1.00 and 2.00 do not support these bits and they are treated as 00b fixed value.
     #[inline]
     pub const fn sd_clk_freq_upper(self) -> u8 {
         ((self.0 & Self::SD_CLK_FREQ_UPPER) >> 6) as u8
     }
-    /// Set Clock Generato mode.
+    /// Set clock generate mode.
     #[inline]
     pub const fn set_clk_gen_mode(self, val: ClkGenMode) -> Self {
         Self((self.0 & !Self::CLK_GENERATOR) | (Self::CLK_GENERATOR & ((val as u16) << 5)))
     }
-    /// Get Clock Generato mode.
+    /// Get clock generate mode.
     #[inline]
     pub const fn clk_gen_mode(self) -> ClkGenMode {
         match (self.0 & Self::CLK_GENERATOR) >> 5 {
@@ -974,22 +976,22 @@ impl ClockControl {
             _ => ClkGenMode::DividedClk,
         }
     }
-    /// Enable SD Clock.
+    /// Enable SD clock.
     #[inline]
     pub const fn enable_sd_clk(self) -> Self {
         Self((self.0 & !Self::SD_CLK_EN) | (Self::SD_CLK_EN & (1 << 2)))
     }
-    /// Disable SD Clock.
+    /// Disable SD clock.
     #[inline]
     pub const fn disable_sd_clk(self) -> Self {
         Self((self.0 & !Self::SD_CLK_EN) | (Self::SD_CLK_EN & (0 << 2)))
     }
-    /// Check if SD Clock is enabled.
+    /// Check if SD clock is enabled.
     #[inline]
     pub const fn is_sd_clk_enabled(self) -> bool {
         (self.0 & Self::SD_CLK_EN) >> 2 == 1
     }
-    /// Check if Internal Clock stable.
+    /// Check if internal clock stable.
     #[inline]
     pub const fn is_internal_clk_stable(self) -> bool {
         (self.0 & Self::INTERNAL_CLK_STABLE) >> 1 == 1
@@ -1004,14 +1006,14 @@ impl ClockControl {
     pub const fn disable_internal_clk(self) -> Self {
         Self((self.0 & !Self::INTERNAL_CLK_EN) | (Self::INTERNAL_CLK_EN & 0))
     }
-    /// Check if internal clk is enablee.
+    /// Check if internal clk is enable.
     #[inline]
     pub const fn is_internal_clk_enable(self) -> bool {
         self.0 & Self::INTERNAL_CLK_EN == 1
     }
 }
 
-/// Timeout Control Register.
+/// Timeout control register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct TimeoutControl(u8);
@@ -1019,12 +1021,12 @@ pub struct TimeoutControl(u8);
 impl TimeoutControl {
     const DATA_TIMEOUT_CNT: u8 = 0xF;
 
-    /// Set Data Timeout Counter Value.
+    /// Set data timeout counter value.
     #[inline]
     pub const fn set_timeout_val(self, val: u8) -> Self {
         Self((self.0 & !Self::DATA_TIMEOUT_CNT) | (Self::DATA_TIMEOUT_CNT & val))
     }
-    /// Get Data Timeout Counter Value.
+    /// Get data timeout counter value.
     #[inline]
     pub const fn timeout_val(self) -> u8 {
         self.0 & Self::DATA_TIMEOUT_CNT
@@ -1041,28 +1043,28 @@ impl SoftwareReset {
     const SOFT_RESET_CMD: u8 = 0x1 << 1;
     const SOFT_RESET_ALL: u8 = 0x1;
 
-    /// Software reset DAT line.
+    /// Software reset data line.
     #[inline]
     pub const fn reset_dat(self) -> Self {
         Self((self.0 & !Self::SOFT_RESET_DAT) | (Self::SOFT_RESET_DAT & (1 << 2)))
     }
-    /// Check if dat line reset is finished (Cleared to 0).
+    /// Check if data line reset is finished (Cleared to 0).
     #[inline]
     pub const fn is_reset_dat_finished(self) -> bool {
         (self.0 & Self::SOFT_RESET_DAT) >> 2 == 0
     }
-    /// Software reset CMD line.
+    /// Software reset command line.
     #[inline]
     pub const fn reset_cmd(self) -> Self {
         Self((self.0 & !Self::SOFT_RESET_CMD) | (Self::SOFT_RESET_CMD & (1 << 1)))
     }
-    /// Check if cmd line reset is finished (Cleared to 0).
+    /// Check if command line reset is finished (Cleared to 0).
     #[inline]
     pub const fn is_reset_cmd_finished(self) -> bool {
         (self.0 & Self::SOFT_RESET_CMD) >> 1 == 0
     }
     /// Software reset all.
-    /// This reset affects the entire Host Controller except for the card detection circuit.
+    /// This reset affects the entire host controller except for the card detection circuit.
     #[inline]
     pub const fn reset_all(self) -> Self {
         Self((self.0 & !Self::SOFT_RESET_ALL) | (Self::SOFT_RESET_ALL & 1))
@@ -1074,7 +1076,7 @@ impl SoftwareReset {
     }
 }
 
-/// The reads of register are affected by the Normal Interrupt Status Enable.  
+/// Register that shows the defined normal interrupt status.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NormalInterruptStatus(u16);
@@ -1095,12 +1097,12 @@ impl NormalInterruptStatus {
     const TRANSFER_COMPLETE: u16 = 0x1 << 1;
     const CMD_COMPLETE: u16 = 0x1;
 
-    /// Check if Error Interrupt occurs.
+    /// Check if error interrupt occurs.
     #[inline]
     pub const fn if_err_int_occurs(self) -> bool {
         (self.0 & Self::ERROR_INT) >> 15 == 1
     }
-    /// Check if Re-Tuning Event occurs.
+    /// Check if re-tuning Event occurs.
     #[inline]
     pub const fn if_re_tuning_occurs(self) -> bool {
         (self.0 & Self::RE_TUNING_EVENT) >> 12 == 1
@@ -1120,7 +1122,7 @@ impl NormalInterruptStatus {
     pub const fn is_int_a_enabled(self) -> bool {
         (self.0 & Self::INT_A) >> 9 == 1
     }
-    /// Check if Card Interrupt occurs.
+    /// Check if card interrupt occurs.
     #[inline]
     pub const fn if_card_int_occurs(self) -> bool {
         (self.0 & Self::CARD_INT) >> 8 == 1
@@ -1207,7 +1209,7 @@ impl NormalInterruptStatus {
     }
 }
 
-/// Register that shows the defined Interrupt Status.
+/// Register that shows the defined error interrupt status.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ErrorInterruptStatus(u16);
@@ -1215,7 +1217,7 @@ pub struct ErrorInterruptStatus(u16);
 impl ErrorInterruptStatus {
     const VENDOR_SPECIFIC_ERROR: u16 = 0xF << 12;
     const TUNING_ERROR: u16 = 0x1 << 10;
-    const ADMA_EROR: u16 = 0x1 << 9;
+    const ADMA_ERROR: u16 = 0x1 << 9;
     const AUTO_CMD_ERROR: u16 = 0x1 << 8;
     const CURRENT_LIMIT_ERROR: u16 = 0x1 << 7;
     const DATA_END_BIT_ERROR: u16 = 0x1 << 6;
@@ -1226,128 +1228,128 @@ impl ErrorInterruptStatus {
     const CMD_CRC_ERROR: u16 = 0x1 << 1;
     const CMD_TIMEOUT_ERROR: u16 = 0x1;
 
-    /// Get Vendor Specific Error Status.
+    /// Get vendor specific error status.
     #[inline]
     pub const fn vendor_specific_err(self) -> u8 {
         ((self.0 & Self::VENDOR_SPECIFIC_ERROR) >> 12) as u8
     }
-    /// Clear Vendor Specific Error Status.
+    /// Clear vendor specific error status.
     #[inline]
     pub const fn clear_vendor_specific_err(self) -> Self {
         Self((self.0 & !Self::VENDOR_SPECIFIC_ERROR) | (Self::VENDOR_SPECIFIC_ERROR & (0xF << 12)))
     }
-    /// Check if Tuning Error occurs.
+    /// Check if tuning error occurs.
     #[inline]
     pub const fn if_tuning_err_occurs(self) -> bool {
         (self.0 & Self::TUNING_ERROR) >> 10 == 1
     }
-    /// Clear Tuning Error bit.
+    /// Clear tuning error bit.
     pub const fn clear_tuning_err(self) -> Self {
         Self((self.0 & !Self::TUNING_ERROR) | (Self::TUNING_ERROR & (1 << 10)))
     }
-    /// Check if ADMA Error occurs.
+    /// Check if ADMA error occurs.
     #[inline]
     pub const fn if_adma_err_occurs(self) -> bool {
-        (self.0 & Self::ADMA_EROR) >> 9 == 1
+        (self.0 & Self::ADMA_ERROR) >> 9 == 1
     }
-    /// Clear ADMA Error bit.
+    /// Clear ADMA error bit.
     #[inline]
     pub const fn clear_adma_err(self) -> Self {
-        Self((self.0 & !Self::ADMA_EROR) | (Self::ADMA_EROR & (1 << 9)))
+        Self((self.0 & !Self::ADMA_ERROR) | (Self::ADMA_ERROR & (1 << 9)))
     }
-    /// Check if Auto CMD Error occurs.
+    /// Check if auto command error occurs.
     #[inline]
     pub const fn if_auto_cmd_err_occurs(self) -> bool {
         (self.0 & Self::AUTO_CMD_ERROR) >> 8 == 1
     }
-    /// Clear Auto CMD Error bit.
+    /// Clear auto command error bit.
     #[inline]
     pub const fn clear_auto_cmd_err(self) -> Self {
         Self((self.0 & !Self::AUTO_CMD_ERROR) | (Self::AUTO_CMD_ERROR & (1 << 8)))
     }
-    /// Check if Current Limit Error occurs.
+    /// Check if current limit error occurs.
     #[inline]
     pub const fn if_current_limit_err_occurs(self) -> bool {
         (self.0 & Self::CURRENT_LIMIT_ERROR) >> 7 == 1
     }
-    /// Clear Current Limit Error bit.
+    /// Clear current limit error bit.
     #[inline]
     pub const fn clear_current_limit_err(self) -> Self {
         Self((self.0 & !Self::CURRENT_LIMIT_ERROR) | (Self::CURRENT_LIMIT_ERROR & (1 << 7)))
     }
-    /// Check if Data End Bit Error occurs.
+    /// Check if data end bit error occurs.
     #[inline]
     pub const fn if_data_end_bit_err_occurs(self) -> bool {
         (self.0 & Self::DATA_END_BIT_ERROR) >> 6 == 1
     }
-    /// Clear Data End Bit Error bit.
+    /// Clear data end bit error bit.
     #[inline]
     pub const fn clear_data_end_bit_err(self) -> Self {
         Self((self.0 & !Self::DATA_END_BIT_ERROR) | (Self::DATA_END_BIT_ERROR & (1 << 6)))
     }
-    /// Check if Data CRC Error occurs.
+    /// Check if data crc error occurs.
     #[inline]
     pub const fn if_data_crc_err_occurs(self) -> bool {
         (self.0 & Self::DATA_CRC_ERROR) >> 5 == 1
     }
-    /// Clear Data CRC Error bit.
+    /// Clear data crc error bit.
     #[inline]
     pub const fn clear_data_crc_err(self) -> Self {
         Self((self.0 & Self::DATA_CRC_ERROR) | (Self::DATA_CRC_ERROR & (1 << 5)))
     }
-    /// Check if Data Timeout Error occurs.
+    /// Check if data timeout error occurs.
     #[inline]
     pub const fn if_data_timeout_err_occurs(self) -> bool {
         (self.0 & Self::DATA_TIMEOUT_ERROR) >> 4 == 1
     }
-    /// Clear Data Timeout Error bit.
+    /// Clear data timeout error bit.
     #[inline]
     pub const fn clear_data_timeout_err(self) -> Self {
         Self((self.0 & !Self::DATA_TIMEOUT_ERROR) | (Self::DATA_TIMEOUT_ERROR & (1 << 4)))
     }
-    /// Check if Command Index Error occurs.
+    /// Check if command index error occurs.
     #[inline]
     pub const fn if_cmd_index_err_occurs(self) -> bool {
         (self.0 & Self::CMD_INDEX_ERROR) >> 3 == 1
     }
-    /// Clear Command Index Error bit.
+    /// Clear command index error bit.
     #[inline]
     pub const fn clear_cmd_index_err(self) -> Self {
         Self((self.0 & !Self::CMD_INDEX_ERROR) | (Self::CMD_INDEX_ERROR & (1 << 3)))
     }
-    /// Check if Command End Bit Error occurs.
+    /// Check if command end bit error occurs.
     #[inline]
     pub const fn if_cmd_end_bit_err_occurs(self) -> bool {
         (self.0 & Self::CMD_END_BIT_ERROR) >> 2 == 1
     }
-    /// Clear Command End Bit Error bit.
+    /// Clear command end bit error bit.
     #[inline]
     pub const fn clear_cmd_end_bit_err(self) -> Self {
         Self((self.0 & !Self::CMD_END_BIT_ERROR) | (Self::CMD_END_BIT_ERROR & (1 << 2)))
     }
-    /// Check if Command CRC Error occurs.
+    /// Check if command crc error occurs.
     #[inline]
     pub const fn if_cmd_crc_err_occurs(self) -> bool {
         (self.0 & Self::CMD_CRC_ERROR) >> 1 == 1
     }
-    /// Clear Command CRC Error bit.
+    /// Clear command crc error bit.
     #[inline]
     pub const fn clear_cmd_crc_err(self) -> Self {
         Self((self.0 & !Self::CMD_CRC_ERROR) | (Self::CMD_CRC_ERROR & (1 << 1)))
     }
-    /// Check if Command Timeout Error occurs.
+    /// Check if command timeout error occurs.
     #[inline]
     pub const fn if_cmd_timeout_err_occurs(self) -> bool {
         self.0 & Self::CMD_TIMEOUT_ERROR == 1
     }
-    /// Clear Command Timeout Error bit.
+    /// Clear command timeout error bit.
     #[inline]
     pub const fn clear_cmd_timeout_err(self) -> Self {
         Self((self.0 & !Self::CMD_TIMEOUT_ERROR) | (Self::CMD_TIMEOUT_ERROR & 1))
     }
 }
 
-/// Register that sets to 1 enables Interrupt Status.
+/// Register that sets to 1 enables normal interrupt status.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NormalInterruptStatusEnable(u16);
@@ -1373,57 +1375,57 @@ impl NormalInterruptStatusEnable {
     pub const fn is_fixed_to_zero(self) -> bool {
         (self.0 & Self::FIXED_TO_ZERO) >> 15 == 0
     }
-    /// Enable Re-Tuning Event Status.
+    /// Enable re-tuning event status.
     #[inline]
     pub const fn enable_re_tuning(self) -> Self {
         Self((self.0 & !Self::RE_TUNING_EVENT) | (Self::RE_TUNING_EVENT & (1 << 12)))
     }
-    /// Disable Re-Tuning Event Status.
+    /// Disable re-tuning event status.
     #[inline]
     pub const fn disable_re_tuning(self) -> Self {
         Self((self.0 & !Self::RE_TUNING_EVENT) | (Self::RE_TUNING_EVENT & (0 << 12)))
     }
-    /// Check if Re-Tuning Event Status is enabled.
+    /// Check if re-tuning event status is enabled.
     #[inline]
     pub const fn is_retuning_enabled(self) -> bool {
         (self.0 & Self::RE_TUNING_EVENT) >> 12 == 1
     }
-    /// Enable INT_C Status.
+    /// Enable INT_C status.
     #[inline]
     pub const fn enable_int_c(self) -> Self {
         Self((self.0 & !Self::INT_C) | (Self::INT_C & (1 << 11)))
     }
-    /// Disable INT_C Status.
+    /// Disable INT_C status.
     #[inline]
     pub const fn disable_int_c(self) -> Self {
         Self((self.0 & !Self::INT_C) | (Self::INT_C & (0 << 11)))
     }
-    /// Check if INT_C Status is enabled.
+    /// Check if INT_C status is enabled.
     #[inline]
     pub const fn is_int_c_enabled(self) -> bool {
         (self.0 & Self::INT_C) >> 11 == 1
     }
-    /// Enable INT_B Status.
+    /// Enable INT_B status.
     #[inline]
     pub const fn enable_int_b(self) -> Self {
         Self((self.0 & !Self::INT_B) | (Self::INT_B & (1 << 10)))
     }
-    /// Disable INT_B Status.
+    /// Disable INT_B status.
     #[inline]
     pub const fn disable_int_b(self) -> Self {
         Self((self.0 & !Self::INT_B) | (Self::INT_B & (0 << 10)))
     }
-    /// Check if INT_B Status is enabled.
+    /// Check if INT_B status is enabled.
     #[inline]
     pub const fn is_int_b_enabled(self) -> bool {
         (self.0 & Self::INT_B) >> 10 == 1
     }
-    /// Enable INT_A Status.
+    /// Enable INT_A status.
     #[inline]
     pub const fn enable_int_a(self) -> Self {
         Self((self.0 & !Self::INT_A) | (Self::INT_A & (1 << 9)))
     }
-    /// Disable INT_B Status.
+    /// Disable INT_A status.
     #[inline]
     pub const fn disable_int_a(self) -> Self {
         Self((self.0 & !Self::INT_A) | (Self::INT_A & (0 << 9)))
@@ -1433,145 +1435,144 @@ impl NormalInterruptStatusEnable {
     pub const fn is_int_a_enabled(self) -> bool {
         (self.0 & Self::INT_A) >> 9 == 1
     }
-    /// Enable Card Interrupt.
+    /// Enable card interrupt.
     #[inline]
     pub const fn enable_card_int(self) -> Self {
         Self((self.0 & !Self::CARD_INT) | (Self::CARD_INT & (1 << 8)))
     }
-    /// Disable Card Interrupt.
+    /// Disable card interrupt.
     #[inline]
     pub const fn disable_card_int(self) -> Self {
         Self((self.0 & !Self::CARD_INT) | (Self::CARD_INT & (0 << 8)))
     }
-    /// Check if Card Interrupt is enabled.
+    /// Check if card interrupt is enabled.
     #[inline]
     pub const fn is_card_int_enabled(self) -> bool {
         (self.0 & Self::CARD_INT) >> 8 == 1
     }
-    /// Enable Card Removal Status.
+    /// Enable card removal status.
     #[inline]
     pub const fn enable_card_removal(self) -> Self {
         Self((self.0 & !Self::CARD_REMOVAL) | (Self::CARD_REMOVAL & (1 << 7)))
     }
-    /// Disable Card Removal Status.
+    /// Disable card removal status.
     #[inline]
     pub const fn disable_card_removal(self) -> Self {
         Self((self.0 & !Self::CARD_REMOVAL) | (Self::CARD_REMOVAL & (0 << 7)))
     }
-    /// Check if Card Removal Status is enabled.
+    /// Check if card removal status is enabled.
     #[inline]
     pub const fn is_card_removal_enabled(self) -> bool {
         (self.0 & Self::CARD_REMOVAL) >> 7 == 1
     }
-    /// Enable Card Insertion Status.
+    /// Enable card insertion status.
     #[inline]
     pub const fn enable_card_insertion(self) -> Self {
         Self((self.0 & !Self::CARD_INSERTION) | (Self::CARD_INSERTION & (1 << 6)))
     }
-    /// Disable Card Insertion Status.
+    /// Disable card insertion status.
     #[inline]
     pub const fn disable_card_insertion(self) -> Self {
         Self((self.0 & !Self::CARD_INSERTION) | (Self::CARD_INSERTION & (0 << 6)))
     }
-    /// Check if Card Insertion Status is enabled.
+    /// Check if card insertion status is enabled.
     #[inline]
     pub const fn is_card_insertion_enabled(self) -> bool {
         (self.0 & Self::CARD_INSERTION) >> 6 == 1
     }
-    /// Enable Buffer Read Ready Status.
+    /// Enable buffer read ready status.
     #[inline]
     pub const fn enable_buffer_read_ready(self) -> Self {
         Self((self.0 & !Self::BUFFER_READ) | (Self::BUFFER_READ & (1 << 5)))
     }
-    /// Disable Buffer Read Ready Status.
+    /// Disable buffer read ready status.
     #[inline]
     pub const fn disable_buffer_read_ready(self) -> Self {
         Self((self.0 & !Self::BUFFER_READ) | (Self::BUFFER_READ & (0 << 5)))
     }
-    /// Check if Buffer Read Ready Status is enabled.
+    /// Check if buffer read ready status is enabled.
     #[inline]
     pub const fn is_buffer_read_ready_enabled(self) -> bool {
         (self.0 & Self::BUFFER_READ) >> 5 == 1
     }
-    /// Enable Buffer Write Ready Status.
+    /// Enable buffer write ready status.
     #[inline]
     pub const fn enable_buffer_write_ready(self) -> Self {
         Self((self.0 & !Self::BUFFER_WRITE) | (Self::BUFFER_WRITE & (1 << 4)))
     }
-    /// Disable Buffer Write Ready  Status.
+    /// Disable buffer write ready status.
     #[inline]
     pub const fn disable_buffer_write_ready(self) -> Self {
         Self((self.0 & !Self::BUFFER_WRITE) | (Self::BUFFER_WRITE & (0 << 4)))
     }
-    /// Check if Buffer Write Ready Status is enabled.
+    /// Check if buffer write ready status is enabled.
     #[inline]
     pub const fn is_buffer_write_ready_enabled(self) -> bool {
         (self.0 & Self::BUFFER_WRITE) >> 4 == 1
     }
-    /// Enable DMA Interrupt Status.
+    /// Enable DMA interrupt status.
     #[inline]
     pub const fn enable_dma_int(self) -> Self {
         Self((self.0 & !Self::DMA_INT) | (Self::DMA_INT & (1 << 3)))
     }
-    /// Disable DMA Interrupt Status.
+    /// Disable DMA interrupt status.
     #[inline]
     pub const fn disable_dma_int(self) -> Self {
         Self((self.0 & !Self::DMA_INT) | (Self::DMA_INT & (0 << 3)))
     }
-    /// Check if DMA Interrupt Status is enabled.
+    /// Check if DMA interrupt status is enabled.
     #[inline]
     pub const fn is_dma_int_enabled(self) -> bool {
         (self.0 & Self::DMA_INT) >> 3 == 1
     }
-    /// Enable Block Gap Status.
+    /// Enable block gap status.
     #[inline]
     pub const fn enable_block_gap(self) -> Self {
         Self((self.0 & !Self::BLOCK_GAP) | (Self::BLOCK_GAP & (1 << 2)))
     }
-    /// Disable Block Gap Status.
+    /// Disable block gap status.
     #[inline]
     pub const fn disable_block_gap(self) -> Self {
         Self((self.0 & !Self::BLOCK_GAP) | (Self::BLOCK_GAP & (0 << 2)))
     }
-    /// Check if Block Gap Status is enabled.
+    /// Check if block gap status is enabled.
     #[inline]
     pub const fn is_block_gap_enabled(self) -> bool {
         (self.0 & Self::BLOCK_GAP) >> 2 == 1
     }
-
-    /// Enable Transfer Complete Status.
+    /// Enable transfer complete status.
     #[inline]
     pub const fn enable_transfer_complete(self) -> Self {
         Self((self.0 & !Self::TRANSFER_COMPLETE) | (Self::TRANSFER_COMPLETE & (1 << 1)))
     }
-    /// Disable Transfer Complete Status.
+    /// Disable transfer complete status.
     #[inline]
     pub const fn disable_transfer_complete(self) -> Self {
         Self((self.0 & !Self::TRANSFER_COMPLETE) | (Self::TRANSFER_COMPLETE & (0 << 1)))
     }
-    /// Check if Transfer Complete Status is enabled.
+    /// Check if transfer complete status is enabled.
     #[inline]
     pub const fn is_transfer_complete_enabled(self) -> bool {
         (self.0 & Self::TRANSFER_COMPLETE) >> 1 == 1
     }
-    /// Enable Command Complete Status.
+    /// Enable command complete status.
     #[inline]
     pub const fn enable_cmd_complete(self) -> Self {
         Self((self.0 & !Self::CMD_COMPLETE) | (Self::CMD_COMPLETE & 1))
     }
-    /// Disable Command Complete Status.
+    /// Disable command complete status.
     #[inline]
     pub const fn disable_cmd_complete(self) -> Self {
         Self((self.0 & !Self::CMD_COMPLETE) | (Self::CMD_COMPLETE & 0))
     }
-    /// Check if Command Complete is enabled.
+    /// Check if command complete is enabled.
     #[inline]
     pub const fn is_cmd_complete_enabled(self) -> bool {
         self.0 & Self::CMD_COMPLETE == 1
     }
 }
 
-/// Register that sets to 1 enables Interrupt Status.
+/// Register that sets to 1 enables error interrupt status.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ErrorInterruptStatusEnable(u16);
@@ -1583,197 +1584,196 @@ impl ErrorInterruptStatusEnable {
     const AUTO_CMD_ERROR: u16 = 0x1 << 8;
     const CURRENT_LIMIT_ERROR: u16 = 0x1 << 7;
     const DATA_END_BIT_ERROR: u16 = 0x1 << 6;
-    const DATA_CRC_EROOR: u16 = 0x1 << 5;
+    const DATA_CRC_ERROR: u16 = 0x1 << 5;
     const DATA_TIMEOUE_ERROR: u16 = 0x1 << 4;
-    const CMD_INDEX_EROOR: u16 = 0x1 << 3;
+    const CMD_INDEX_ERROR: u16 = 0x1 << 3;
     const CMD_END_BIT_ERROR: u16 = 0x1 << 2;
     const CMD_CRC_ERROR: u16 = 0x1 << 1;
     const CMD_TIMEOUT_ERROR: u16 = 0x1;
 
-    /// Enable Vendor Specific Error Status.
+    /// Enable vendor specific error status.
     #[inline]
     pub const fn enable_vendor_specific_err(self) -> Self {
         Self((self.0 & !Self::VENDOR_SPECIFIC_ERROR) | (Self::VENDOR_SPECIFIC_ERROR & (0xF << 12)))
     }
-    /// Disable Vendor Specific Error Status.
+    /// Disable vendor specific error status.
     #[inline]
     pub const fn disable_vendor_specific_err(self) -> Self {
         Self((self.0 & !Self::VENDOR_SPECIFIC_ERROR) | (Self::VENDOR_SPECIFIC_ERROR & (0 << 12)))
     }
-    /// Check if Vendor Specific Error Status is enabled.
+    /// Check if vendor specific error status is enabled.
     #[inline]
     pub const fn is_vendor_specific_err_enabled(self) -> bool {
         (self.0 & Self::VENDOR_SPECIFIC_ERROR) >> 12 == 0xF
     }
-    /// Enable Tuning Error Status.
+    /// Enable tuning error status.
     #[inline]
     pub const fn enable_tuning_err(self) -> Self {
         Self((self.0 & !Self::TUNING_ERROR) | (Self::TUNING_ERROR & (1 << 10)))
     }
-    /// Disable Tuning Error Status.
+    /// Disable tuning error status.
     #[inline]
     pub const fn disable_tuning_err(self) -> Self {
         Self((self.0 & !Self::TUNING_ERROR) | (Self::TUNING_ERROR & (0 << 10)))
     }
-    /// Check if Tuning Error Status is enabled.
+    /// Check if tuning error status is enabled.
     #[inline]
     pub const fn is_tuning_err_enabled(self) -> bool {
         (self.0 & Self::TUNING_ERROR) >> 10 == 1
     }
-    /// Enable ADMA Error Status.
+    /// Enable ADMA error status.
     #[inline]
     pub const fn enable_adma_err(self) -> Self {
         Self((self.0 & !Self::ADMA_ERROR) | (Self::ADMA_ERROR & (1 << 9)))
     }
-    /// Disable ADMA Error Status.
+    /// Disable ADMA error status.
     #[inline]
     pub const fn disable_adma_err(self) -> Self {
         Self((self.0 & !Self::ADMA_ERROR) | (Self::ADMA_ERROR & (0 << 9)))
     }
-    /// Check if ADMA Error Status is enabled.
+    /// Check if ADMA error status is enabled.
     #[inline]
     pub const fn is_adma_err_enabled(self) -> bool {
         (self.0 & Self::ADMA_ERROR) >> 9 == 1
     }
-    /// Enable Auto CMD Error Status.
+    /// Enable auto command error status.
     #[inline]
     pub const fn enable_auto_cmd_err(self) -> Self {
         Self((self.0 & !Self::AUTO_CMD_ERROR) | (Self::AUTO_CMD_ERROR & (1 << 8)))
     }
-    /// Disable Auto CMD Error Status.
+    /// Disable auto command error status.
     #[inline]
     pub const fn disable_auto_cmd_err(self) -> Self {
         Self((self.0 & !Self::AUTO_CMD_ERROR) | (Self::AUTO_CMD_ERROR & (0 << 8)))
     }
-    /// Check if Auto CMD Error Status is enabled.
+    /// Check if auto command error status is enabled.
     #[inline]
     pub const fn is_auto_cmd_err_enabled(self) -> bool {
         (self.0 & Self::AUTO_CMD_ERROR) >> 8 == 1
     }
-    /// Enable Current Limit Error Status.
+    /// Enable current limit error status.
     #[inline]
     pub const fn enable_current_limit_err(self) -> Self {
         Self((self.0 & !Self::CURRENT_LIMIT_ERROR) | (Self::CURRENT_LIMIT_ERROR & (1 << 7)))
     }
-    /// Disable Current Limit Error Status.
+    /// Disable current limit error status.
     #[inline]
     pub const fn disable_current_limit_err(self) -> Self {
         Self((self.0 & !Self::CURRENT_LIMIT_ERROR) | (Self::CURRENT_LIMIT_ERROR & (0 << 7)))
     }
-    /// Check if Current Limit Error Status is enabled.
+    /// Check if current limit error status is enabled.
     #[inline]
     pub const fn is_current_limit_err_enabled(self) -> bool {
         (self.0 & Self::CURRENT_LIMIT_ERROR) >> 7 == 1
     }
-    /// Enable Data End Bit Error Status.
+    /// Enable data end bit error Status.
     #[inline]
     pub const fn enable_data_end_bit_err(self) -> Self {
         Self((self.0 & !Self::DATA_END_BIT_ERROR) | (Self::DATA_END_BIT_ERROR & (1 << 6)))
     }
-    /// Disable Data End Bit Error Status.
+    /// Disable data end bit error Status.
     #[inline]
     pub const fn disable_data_end_bit_err(self) -> Self {
         Self((self.0 & !Self::DATA_END_BIT_ERROR) | (Self::DATA_END_BIT_ERROR & (0 << 6)))
     }
-    /// Check if Data End Bit Error Status is enabled.
+    /// Check if data end bit error status is enabled.
     #[inline]
     pub const fn is_data_end_bit_err_enabled(self) -> bool {
         (self.0 & Self::DATA_END_BIT_ERROR) >> 6 == 1
     }
-    /// Enable Data CRC Error Status.
+    /// Enable data crc error status.
     #[inline]
     pub const fn enable_data_crc_err(self) -> Self {
-        Self((self.0 & !Self::DATA_CRC_EROOR) | (Self::DATA_CRC_EROOR & (1 << 5)))
+        Self((self.0 & !Self::DATA_CRC_ERROR) | (Self::DATA_CRC_ERROR & (1 << 5)))
     }
-    /// Disable Data CRC Error Status.
+    /// Disable data crc error status.
     #[inline]
     pub const fn disable_data_crc_err(self) -> Self {
-        Self((self.0 & !Self::DATA_CRC_EROOR) | (Self::DATA_CRC_EROOR & (0 << 5)))
+        Self((self.0 & !Self::DATA_CRC_ERROR) | (Self::DATA_CRC_ERROR & (0 << 5)))
     }
-    /// Check if Data CRC Error Status is enabled.
+    /// Check if data crc error status is enabled.
     #[inline]
     pub const fn is_data_crc_err_enabled(self) -> bool {
-        (self.0 & Self::DATA_CRC_EROOR) >> 5 == 1
+        (self.0 & Self::DATA_CRC_ERROR) >> 5 == 1
     }
-    /// Enable Data Timeout Error Status.
+    /// Enable data timeout error status.
     #[inline]
     pub const fn enable_data_timeout_err(self) -> Self {
         Self((self.0 & !Self::DATA_TIMEOUE_ERROR) | (Self::DATA_TIMEOUE_ERROR & (1 << 4)))
     }
-    /// Disable Data Timeout Error Status.
+    /// Disable data timeout error status.
     #[inline]
     pub const fn disable_data_timeout_err(self) -> Self {
         Self((self.0 & !Self::DATA_TIMEOUE_ERROR) | (Self::DATA_TIMEOUE_ERROR & (0 << 4)))
     }
-    /// Check if Data Timeout Error Status is enabled.
+    /// Check if data timeout error status is enabled.
     #[inline]
     pub const fn is_data_timeout_err_enabled(self) -> bool {
         (self.0 & Self::DATA_TIMEOUE_ERROR) >> 4 == 1
     }
-
-    /// Enable Command Index Error Status.
+    /// Enable command index error status.
     #[inline]
     pub const fn enable_cmd_index_err(self) -> Self {
-        Self((self.0 & !Self::CMD_INDEX_EROOR) | (Self::CMD_INDEX_EROOR & (1 << 3)))
+        Self((self.0 & !Self::CMD_INDEX_ERROR) | (Self::CMD_INDEX_ERROR & (1 << 3)))
     }
-    /// Disable Command Index Error Status.
+    /// Disable command index error status.
     #[inline]
     pub const fn disable_cmd_index_err(self) -> Self {
-        Self((self.0 & !Self::CMD_INDEX_EROOR) | (Self::CMD_INDEX_EROOR & (0 << 3)))
+        Self((self.0 & !Self::CMD_INDEX_ERROR) | (Self::CMD_INDEX_ERROR & (0 << 3)))
     }
-    /// Check if Command Index Error Status is enabled.
+    /// Check if command index error status is enabled.
     #[inline]
     pub const fn is_cmd_index_err_enabled(self) -> bool {
-        (self.0 & Self::CMD_INDEX_EROOR) >> 3 == 1
+        (self.0 & Self::CMD_INDEX_ERROR) >> 3 == 1
     }
-    /// Enable Command End Bit Error Status.
+    /// Enable command end bit error status.
     #[inline]
     pub const fn enable_cmd_end_bit_err(self) -> Self {
         Self((self.0 & !Self::CMD_END_BIT_ERROR) | (Self::CMD_END_BIT_ERROR & (1 << 2)))
     }
-    /// Disable Command End Bit Error Status.
+    /// Disable command end bit error status.
     #[inline]
     pub const fn disable_cmd_end_bit_err(self) -> Self {
         Self((self.0 & !Self::CMD_END_BIT_ERROR) | (Self::CMD_END_BIT_ERROR & (0 << 2)))
     }
-    /// Check if Command End Bit Error Status is enabled.
+    /// Check if command end bit error status is enabled.
     #[inline]
     pub const fn is_cmd_end_bit_err_enabled(self) -> bool {
         (self.0 & Self::CMD_END_BIT_ERROR) >> 2 == 1
     }
-    /// Enable Command CRC Error Status.
+    /// Enable command crc error status.
     #[inline]
     pub const fn enable_cmd_crc_err(self) -> Self {
         Self((self.0 & !Self::CMD_CRC_ERROR) | (Self::CMD_CRC_ERROR & (1 << 1)))
     }
-    /// Disable Command CRC Error Status.
+    /// Disable command crc error status.
     #[inline]
     pub const fn disable_cmd_crc_err(self) -> Self {
         Self((self.0 & !Self::CMD_CRC_ERROR) | (Self::CMD_CRC_ERROR & (0 << 1)))
     }
-    /// Check if Command CRC Error Status is enabled.
+    /// Check if command crc error status is enabled.
     #[inline]
     pub const fn is_cmd_crc_err_enabled(self) -> bool {
         (self.0 & Self::CMD_CRC_ERROR) >> 1 == 1
     }
-    /// Enable Command Timeout Error Status.
+    /// Enable command timeout error status.
     #[inline]
     pub const fn enable_cmd_timeout_err(self) -> Self {
         Self((self.0 & !Self::CMD_TIMEOUT_ERROR) | (Self::CMD_TIMEOUT_ERROR & 1))
     }
-    /// Disable Command Timeout Error Status.
+    /// Disable command timeout error status.
     #[inline]
     pub const fn disable_cmd_timeout_err(self) -> Self {
         Self((self.0 & !Self::CMD_TIMEOUT_ERROR) | (Self::CMD_TIMEOUT_ERROR & 0))
     }
-    /// Check if Command Timeout Error Status is enabled.
+    /// Check if command timeout error status is enabled.
     #[inline]
     pub const fn is_cmd_timeout_err_enabled(self) -> bool {
         self.0 & Self::CMD_TIMEOUT_ERROR == 1
     }
 }
 
-/// Register that selects which interrupt status is indicated to the Host System as the interrupt.
+/// Register that selects which interrupt status is indicated to the host system as the interrupt.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NormalInterruptSignalEnable(u16);
@@ -1799,204 +1799,204 @@ impl NormalInterruptSignalEnable {
     pub const fn is_fixed_to_zero(self) -> bool {
         (self.0 & Self::FIXED_TO_ZERO) >> 15 == 0
     }
-    /// Enable Re-Tuning Event Signal.
+    /// Enable re-tuning event signal.
     #[inline]
     pub const fn enable_re_tuning(self) -> Self {
         Self((self.0 & !Self::RE_TUNING) | (Self::RE_TUNING & (1 << 12)))
     }
-    /// Disable Re-Tuning Event Signal.
+    /// Disable re-tuning event signal.
     #[inline]
     pub const fn disable_re_tuning(self) -> Self {
         Self((self.0 & !Self::RE_TUNING) | (Self::RE_TUNING & (0 << 12)))
     }
-    /// Check if Re-Tuning Event Signal is enabled.
+    /// Check if re-tuning event signal is enabled.
     #[inline]
     pub const fn is_re_tuning_enabled(self) -> bool {
         (self.0 & Self::RE_TUNING) >> 12 == 1
     }
-    /// Enable INT_C Signal.
+    /// Enable INT_C signal.
     #[inline]
     pub const fn enable_int_c(self) -> Self {
         Self((self.0 & !Self::INT_C) | (Self::INT_C & (1 << 11)))
     }
-    /// Disable INT_C Signal.
+    /// Disable INT_C signal.
     #[inline]
     pub const fn disable_int_c(self) -> Self {
         Self((self.0 & !Self::INT_C) | (Self::INT_C & (0 << 11)))
     }
-    /// Check if INT_C Signal is enabled.
+    /// Check if INT_C signal is enabled.
     #[inline]
     pub const fn is_int_c_enabled(self) -> bool {
         (self.0 & Self::INT_C) >> 11 == 1
     }
-    /// Enable INT_B Signal.
+    /// Enable INT_B signal.
     #[inline]
     pub const fn enable_int_b(self) -> Self {
         Self((self.0 & !Self::INT_B) | (Self::INT_B & (1 << 10)))
     }
-    /// Disable INT_B Signal.
+    /// Disable INT_B signal.
     #[inline]
     pub const fn disable_int_b(self) -> Self {
         Self((self.0 & !Self::INT_B) | (Self::INT_B & (0 << 10)))
     }
-    /// Check if INT_B Signal is enabled.
+    /// Check if INT_B signal is enabled.
     #[inline]
     pub const fn is_int_b_enabled(self) -> bool {
         (self.0 & Self::INT_B) >> 10 == 1
     }
-    /// Enable INT_A Signal.
+    /// Enable INT_A signal.
     #[inline]
     pub const fn enable_int_a(self) -> Self {
         Self((self.0 & !Self::INT_A) | (Self::INT_A & (1 << 9)))
     }
-    /// Disable INT_A Signal.
+    /// Disable INT_A signal.
     #[inline]
     pub const fn disable_int_a(self) -> Self {
         Self((self.0 & !Self::INT_A) | (Self::INT_A & (0 << 9)))
     }
-    /// Check if INT_A Signal is enabled.
+    /// Check if INT_A signal is enabled.
     #[inline]
     pub const fn is_int_a_enabled(self) -> bool {
         (self.0 & Self::INT_A) >> 9 == 1
     }
-    /// Enable Card Interrupt Signal.
+    /// Enable card interrupt signal.
     #[inline]
     pub const fn enable_card_int(self) -> Self {
         Self((self.0 & !Self::CARD_INT) | (Self::CARD_INT & (1 << 8)))
     }
-    /// Disable Card Interrupt Signal.
+    /// Disable card interrupt signal.
     #[inline]
     pub const fn disable_card_int(self) -> Self {
         Self((self.0 & !Self::CARD_INT) | (Self::CARD_INT & (0 << 8)))
     }
-    /// Check if Card Interrupt Signal is enabled.
+    /// Check if card interrupt signal is enabled.
     #[inline]
     pub const fn is_card_int_enabled(self) -> bool {
         (self.0 & Self::CARD_INT) >> 8 == 1
     }
-    /// Enable Card Removal Signal.
+    /// Enable card removal signal.
     #[inline]
     pub const fn enable_card_removal(self) -> Self {
         Self((self.0 & !Self::CARD_REMOVAL) | (Self::CARD_REMOVAL & (1 << 7)))
     }
-    /// Disable Card Removal Signal.
+    /// Disable card removal signal.
     #[inline]
     pub const fn disable_card_removal(self) -> Self {
         Self((self.0 & !Self::CARD_REMOVAL) | (Self::CARD_REMOVAL & (0 << 7)))
     }
-    /// Check if Card Removal Signal is enabled.
+    /// Check if card removal signal is enabled.
     #[inline]
     pub const fn is_card_removal_enabled(self) -> bool {
         (self.0 & Self::CARD_REMOVAL) >> 7 == 1
     }
-    /// Enable Card Insertion Signal.
+    /// Enable card insertion signal.
     #[inline]
     pub const fn enable_card_insertion(self) -> Self {
         Self((self.0 & !Self::CARD_INSERTION) | (Self::CARD_INSERTION & (1 << 6)))
     }
-    /// Disable Card Insertion Signal.
+    /// Disable card insertion signal.
     #[inline]
     pub const fn disable_card_insertion(self) -> Self {
         Self((self.0 & !Self::CARD_INSERTION) | (Self::CARD_INSERTION & (0 << 6)))
     }
-    /// Check if Card Insertion Signal is enabled.
+    /// Check if card insertion signal is enabled.
     #[inline]
     pub const fn is_card_insertion_enabled(self) -> bool {
         (self.0 & Self::CARD_INSERTION) >> 6 == 1
     }
-    /// Enable Buffer Read Ready Signal.
+    /// Enable buffer read ready signal.
     #[inline]
     pub const fn enable_buffer_read_ready(self) -> Self {
         Self((self.0 & !Self::BUFFER_READ) | (Self::BUFFER_READ & (1 << 5)))
     }
-    /// Disable Buffer Read Ready Signal.
+    /// Disable buffer read ready signal.
     #[inline]
     pub const fn disable_buffer_read_ready(self) -> Self {
         Self((self.0 & !Self::BUFFER_READ) | (Self::BUFFER_READ & (0 << 5)))
     }
-    /// Check if Buffer Read Ready Signal is enabled.
+    /// Check if buffer read ready signal is enabled.
     #[inline]
     pub const fn is_buffer_read_ready_enabled(self) -> bool {
         (self.0 & Self::BUFFER_READ) >> 5 == 1
     }
-    /// Enable Buffer Write Ready Signal.
+    /// Enable buffer write ready signal.
     #[inline]
     pub const fn enable_buffer_write_ready(self) -> Self {
         Self((self.0 & !Self::BUFFER_WRITE) | (Self::BUFFER_WRITE & (1 << 4)))
     }
-    /// Disable Buffer Write Ready Signal.
+    /// Disable buffer write ready signal.
     #[inline]
     pub const fn disable_buffer_write_ready(self) -> Self {
         Self((self.0 & !Self::BUFFER_WRITE) | (Self::BUFFER_WRITE & (0 << 4)))
     }
-    /// Check if Buffer Write Ready Signal is enabled.
+    /// Check if buffer write ready signal is enabled.
     #[inline]
     pub const fn is_buffer_write_ready_enabled(self) -> bool {
         (self.0 & Self::BUFFER_WRITE) >> 4 == 1
     }
-    /// Enable DMA Interrupt Signal.
+    /// Enable DMA interrupt signal.
     #[inline]
     pub const fn enable_dma_int(self) -> Self {
         Self((self.0 & !Self::DMA_INT) | (Self::DMA_INT & (1 << 3)))
     }
-    /// Disable DMA Interrupt Signal.
+    /// Disable DMA interrupt signal.
     #[inline]
     pub const fn disable_dma_int(self) -> Self {
         Self((self.0 & !Self::DMA_INT) | (Self::DMA_INT & (0 << 3)))
     }
-    /// Check if DMA Interrupt Signal is enabled.
+    /// Check if DMA interrupt signal is enabled.
     #[inline]
     pub const fn is_dma_int_enabled(self) -> bool {
         (self.0 & Self::DMA_INT) >> 3 == 1
     }
-    /// Enable Block Gap Event Signal.
+    /// Enable block gap event signal.
     #[inline]
     pub const fn enable_block_gap(self) -> Self {
         Self((self.0 & !Self::BLOCK_GAP) | (Self::BLOCK_GAP & (1 << 2)))
     }
-    /// Disable Block Gap Event Signal.
+    /// Disable block gap event signal.
     #[inline]
     pub const fn disable_block_gap(self) -> Self {
         Self((self.0 & !Self::BLOCK_GAP) | (Self::BLOCK_GAP & (0 << 2)))
     }
-    /// Check if Block Gap Event Signal is enabled.
+    /// Check if block gap event signal is enabled.
     #[inline]
     pub const fn is_block_gap_enabled(self) -> bool {
         (self.0 & Self::BLOCK_GAP) >> 2 == 1
     }
-    /// Enable Transfer Complete Signal.
+    /// Enable transfer complete signal.
     #[inline]
     pub const fn enable_transfer_complete(self) -> Self {
         Self((self.0 & !Self::TRANSFER_COMPLETE) | (Self::TRANSFER_COMPLETE & (1 << 1)))
     }
-    /// Disable Transfer Complete Signal.
+    /// Disable transfer complete signal.
     #[inline]
     pub const fn disable_transfer_complete(self) -> Self {
         Self((self.0 & !Self::TRANSFER_COMPLETE) | (Self::TRANSFER_COMPLETE & (0 << 1)))
     }
-    /// Check if Transfer Complete Signal is enabled.
+    /// Check if transfer complete signal is enabled.
     #[inline]
     pub const fn is_transfer_complete_enabled(self) -> bool {
         (self.0 & Self::TRANSFER_COMPLETE) >> 1 == 1
     }
-    /// Enable Command Complete Signal.
+    /// Enable command complete signal.
     #[inline]
     pub const fn enable_cmd_complete(self) -> Self {
         Self((self.0 & !Self::CMD_COMPLETE) | (Self::CMD_COMPLETE & 1))
     }
-    /// Disable Command Complete Signal.
+    /// Disable command complete signal.
     #[inline]
     pub const fn disable_cmd_complete(self) -> Self {
         Self((self.0 & !Self::CMD_COMPLETE) | (Self::CMD_COMPLETE & 0))
     }
-    /// Check if Command Complete Signal is enabled.
+    /// Check if command complete signal is enabled.
     #[inline]
     pub const fn is_cmd_complete_enabled(self) -> bool {
         self.0 & Self::CMD_COMPLETE == 1
     }
 }
 
-/// Register that selects which interrupt status is notified to the Host System as the interrupt.
+/// Register that selects which interrupt status is notified to the host system as the interrupt.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ErrorInterruptSignalEnable(u16);
@@ -2015,194 +2015,194 @@ impl ErrorInterruptSignalEnable {
     const CMD_CRC_ERROR: u16 = 0x1 << 1;
     const CMD_TIMEOUT_ERROR: u16 = 0x1;
 
-    /// Enable Vendor Specific Error Signal.
+    /// Enable vendor specific error signal.
     #[inline]
     pub const fn enable_vendor_specific_err(self) -> Self {
         Self((self.0 & !Self::VENDOR_SPECIFIC_ERROR) | (Self::VENDOR_SPECIFIC_ERROR & (0xF << 12)))
     }
-    /// Disable Vendor Specific Error Signal.
+    /// Disable vendor specific error signal.
     #[inline]
     pub const fn disable_vendor_specific_err(self) -> Self {
         Self((self.0 & !Self::VENDOR_SPECIFIC_ERROR) | (Self::VENDOR_SPECIFIC_ERROR & (0 << 12)))
     }
-    /// Check if Vendor Specific Error Signal is enabled.
+    /// Check if vendor specific error signal is enabled.
     #[inline]
     pub const fn is_vendor_specific_err_enabled(self) -> bool {
         (self.0 & Self::VENDOR_SPECIFIC_ERROR) >> 12 == 0xF
     }
-    /// Enable Tuning Error Signal.
+    /// Enable tuning error signal.
     #[inline]
     pub const fn enable_tuning_err(self) -> Self {
         Self((self.0 & !Self::TUNING_ERROR) | (Self::TUNING_ERROR & (1 << 10)))
     }
-    /// Disable Tuning Error Signal.
+    /// Disable tuning error signal.
     #[inline]
     pub const fn disable_tuning_err(self) -> Self {
         Self((self.0 & !Self::TUNING_ERROR) | (Self::TUNING_ERROR & (0 << 10)))
     }
-    /// Check if Tuning Error Signal is enabled.
+    /// Check if tuning error signal is enabled.
     #[inline]
     pub const fn is_tuning_err_enabled(self) -> bool {
         (self.0 & Self::TUNING_ERROR) >> 10 == 1
     }
-    /// Enable ADMA Error Signal.
+    /// Enable ADMA error signal.
     #[inline]
     pub const fn enable_adma_err(self) -> Self {
         Self((self.0 & !Self::ADMA_ERROR) | (Self::ADMA_ERROR & (1 << 9)))
     }
-    /// Disable ADMA Error Signal.
+    /// Disable ADMA error signal.
     #[inline]
     pub const fn disable_adma_err(self) -> Self {
         Self((self.0 & !Self::ADMA_ERROR) | (Self::ADMA_ERROR & (0 << 9)))
     }
-    /// Check if ADMA Error Signal is enabled.
+    /// Check if ADMA error signal is enabled.
     #[inline]
     pub const fn is_adma_err_enabled(self) -> bool {
         (self.0 & Self::ADMA_ERROR) >> 9 == 1
     }
-    /// Enable Auto CMD Error Signal.
+    /// Enable auto command error signal.
     #[inline]
     pub const fn enable_auto_cmd_err(self) -> Self {
         Self((self.0 & !Self::AUTO_CMD_ERROR) | (Self::AUTO_CMD_ERROR & (1 << 8)))
     }
-    /// Disable Auto CMD Error Signal.
+    /// Disable auto command error signal.
     #[inline]
     pub const fn disable_auto_cmd_err(self) -> Self {
         Self((self.0 & !Self::AUTO_CMD_ERROR) | (Self::AUTO_CMD_ERROR & (0 << 8)))
     }
-    /// Check if Auto CMD Error Signal is enabled.
+    /// Check if auto command error signal is enabled.
     #[inline]
     pub const fn is_auto_cmd_err_enabled(self) -> bool {
         (self.0 & Self::AUTO_CMD_ERROR) >> 8 == 1
     }
-    /// Enable Current Limit Error Signal.
+    /// Enable current limit error signal.
     #[inline]
     pub const fn enable_current_limit_err(self) -> Self {
         Self((self.0 & !Self::CURRENT_LIMIT_ERROR) | (Self::CURRENT_LIMIT_ERROR & (1 << 7)))
     }
-    /// Disable Current Limit Error Signal.
+    /// Disable current limit error signal.
     #[inline]
     pub const fn disable_current_limit_err(self) -> Self {
         Self((self.0 & !Self::CURRENT_LIMIT_ERROR) | (Self::CURRENT_LIMIT_ERROR & (0 << 7)))
     }
-    /// Check if Current Limit Error Signal is enabled.
+    /// Check if current limit error signal is enabled.
     #[inline]
     pub const fn is_current_limit_err_enabled(self) -> bool {
         (self.0 & Self::CURRENT_LIMIT_ERROR) >> 7 == 1
     }
-    /// Enable Data End Bit Error Signal.
+    /// Enable data end bit error signal.
     #[inline]
     pub const fn enable_data_end_bit_err(self) -> Self {
         Self((self.0 & !Self::DATA_END_BIT_ERROR) | (Self::DATA_END_BIT_ERROR & (1 << 6)))
     }
-    /// Disable Data End Bit Error Signal.
+    /// Disable data end bit error signal.
     #[inline]
     pub const fn disable_data_end_bit_err(self) -> Self {
         Self((self.0 & !Self::DATA_END_BIT_ERROR) | (Self::DATA_END_BIT_ERROR & (0 << 6)))
     }
-    /// Check if Data End Bit Error Signal is enabled.
+    /// Check if data end bit error signal is enabled.
     #[inline]
     pub const fn is_data_end_bit_err_enabled(self) -> bool {
         (self.0 & Self::DATA_END_BIT_ERROR) >> 6 == 1
     }
-    /// Enable Data CRC Error Signal.
+    /// Enable data crc error signal.
     #[inline]
     pub const fn enable_data_crc_err(self) -> Self {
         Self((self.0 & !Self::DATA_CRC_EROOR) | (Self::DATA_CRC_EROOR & (1 << 5)))
     }
-    /// Disable Data CRC Error Signal.
+    /// Disable data crc error signal.
     #[inline]
     pub const fn disable_data_crc_err(self) -> Self {
         Self((self.0 & !Self::DATA_CRC_EROOR) | (Self::DATA_CRC_EROOR & (0 << 5)))
     }
-    /// Check if Data CRC Error Signal is enabled.
+    /// Check if data crc error signal is enabled.
     #[inline]
     pub const fn is_data_crc_err_enabled(self) -> bool {
         (self.0 & Self::DATA_CRC_EROOR) >> 5 == 1
     }
-    /// Enable Data Timeout Error Signal.
+    /// Enable data timeout error signal.
     #[inline]
     pub const fn enable_data_timeout_err(self) -> Self {
         Self((self.0 & !Self::DATA_TIMEOUE_ERROR) | (Self::DATA_TIMEOUE_ERROR & (1 << 4)))
     }
-    /// Disable Data Timeout Error Signal.
+    /// Disable data timeout error signal.
     #[inline]
     pub const fn disable_data_timeout_err(self) -> Self {
         Self((self.0 & !Self::DATA_TIMEOUE_ERROR) | (Self::DATA_TIMEOUE_ERROR & (0 << 4)))
     }
-    /// Check if Data Timeout Error Signal is enabled.
+    /// Check if data timeout error signal is enabled.
     #[inline]
     pub const fn is_data_timeout_err_enabled(self) -> bool {
         (self.0 & Self::DATA_TIMEOUE_ERROR) >> 4 == 1
     }
-    /// Enable Command Index Error Signal.
+    /// Enable command index error signal.
     #[inline]
     pub const fn enable_cmd_index_err(self) -> Self {
         Self((self.0 & !Self::CMD_INDEX_EROOR) | (Self::CMD_INDEX_EROOR & (1 << 3)))
     }
-    /// Disable Command Index Error Signal.
+    /// Disable command index error signal.
     #[inline]
     pub const fn disable_cmd_index_err(self) -> Self {
         Self((self.0 & !Self::CMD_INDEX_EROOR) | (Self::CMD_INDEX_EROOR & (0 << 3)))
     }
-    /// Check if Command Index Error Signal is enabled.
+    /// Check if command index error signal is enabled.
     #[inline]
     pub const fn is_cmd_index_err_enabled(self) -> bool {
         (self.0 & Self::CMD_INDEX_EROOR) >> 3 == 1
     }
-    /// Enable Command End Bit Error Signal.
+    /// Enable command end bit error signal.
     #[inline]
     pub const fn enable_cmd_end_bit_err(self) -> Self {
         Self((self.0 & !Self::CMD_END_BIT_ERROR) | (Self::CMD_END_BIT_ERROR & (1 << 2)))
     }
-    /// Disable Command End Bit Error Signal.
+    /// Disable command end bit error signal.
     #[inline]
     pub const fn disable_cmd_end_bit_err(self) -> Self {
         Self((self.0 & !Self::CMD_END_BIT_ERROR) | (Self::CMD_END_BIT_ERROR & (0 << 2)))
     }
-    /// Check if Command End Bit Error Signal is enabled.
+    /// Check if command end bit error signal is enabled.
     #[inline]
     pub const fn is_cmd_end_bit_err_enabled(self) -> bool {
         (self.0 & Self::CMD_END_BIT_ERROR) >> 2 == 1
     }
-    /// Enable Command CRC Error Signal.
+    /// Enable command crc error signal.
     #[inline]
     pub const fn enable_cmd_crc_err(self) -> Self {
         Self((self.0 & !Self::CMD_CRC_ERROR) | (Self::CMD_CRC_ERROR & (1 << 1)))
     }
-    /// Disable Command CRC Error Signal.
+    /// Disable command crc error signal.
     #[inline]
     pub const fn disable_cmd_crc_err(self) -> Self {
         Self((self.0 & !Self::CMD_CRC_ERROR) | (Self::CMD_CRC_ERROR & (0 << 1)))
     }
-    /// Check if Command CRC Error Signal is enabled.
+    /// Check if command crc error signal is enabled.
     #[inline]
     pub const fn is_cmd_crc_err_enabled(self) -> bool {
         (self.0 & Self::CMD_CRC_ERROR) >> 1 == 1
     }
-    /// Enable Command Timeout Error Signal.
+    /// Enable command timeout error signal.
     #[inline]
     pub const fn enable_cmd_timeout_err(self) -> Self {
         Self((self.0 & !Self::CMD_TIMEOUT_ERROR) | (Self::CMD_TIMEOUT_ERROR & 1))
     }
-    /// Disable Command Timeout Error Signal.
+    /// Disable command timeout error signal.
     #[inline]
     pub const fn disable_cmd_timeout_err(self) -> Self {
         Self((self.0 & !Self::CMD_TIMEOUT_ERROR) | (Self::CMD_TIMEOUT_ERROR & 0))
     }
-    /// Check if Command Timeout Error Signal is enabled.
+    /// Check if command timeout error signal is enabled.
     #[inline]
     pub const fn is_cmd_timeout_err_enabled(self) -> bool {
         self.0 & Self::CMD_TIMEOUT_ERROR == 1
     }
 }
 
-/// Register that indicates CMD12 response error of Auto CMD12 and CMD23 response error of Auto CMD23.
+/// Register that indicates CMD12 response error of auto CMD12 and CMD23 response error of auto CMD23.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct AutoCMDErrorStatus(u16);
+pub struct AutoCmdErrorStatus(u16);
 
-impl AutoCMDErrorStatus {
+impl AutoCmdErrorStatus {
     const CMD_NOT_ISSUED: u16 = 0x1 << 7;
     const AUTO_CMD_INDEX_ERROR: u16 = 0x1 << 4;
     const AUTO_CMD_END_BIT_ERROR: u16 = 0x1 << 3;
@@ -2210,39 +2210,39 @@ impl AutoCMDErrorStatus {
     const AUTO_CMD_TIMEOUT_ERROR: u16 = 0x1 << 1;
     const AUTO_CMD_NOT_EXECUTED: u16 = 0x1;
 
-    /// Check if Command is not issued by Auto CMD12.
+    /// Check if command is not issued by auto CMD12.
     #[inline]
     pub const fn is_cmd_not_issued(self) -> bool {
         (self.0 & Self::CMD_NOT_ISSUED) >> 7 == 1
     }
-    /// Check if Auto CMD Index Error occurs.
+    /// Check if auto command index error occurs.
     #[inline]
     pub const fn if_auto_cmd_index_err_occurs(self) -> bool {
         (self.0 & Self::AUTO_CMD_INDEX_ERROR) >> 4 == 1
     }
-    /// Check if Auto CMD End Bit Error occurs.
+    /// Check if auto command end bit error occurs.
     #[inline]
     pub const fn if_auto_cmd_end_bit_err_occurs(self) -> bool {
         (self.0 & Self::AUTO_CMD_END_BIT_ERROR) >> 3 == 1
     }
-    /// Check if Auto CMD CRC Error occurs.
+    /// Check if auto command crc error occurs.
     #[inline]
     pub const fn if_auto_cmd_crc_err_occurs(self) -> bool {
         (self.0 & Self::AUTO_CMD_CRC_ERROR) >> 2 == 1
     }
-    /// Check if Auto CMD Timeout Error occurs.
+    /// Check if auto command timeout error occurs.
     #[inline]
     pub const fn if_auto_cmd_timeout_err_occurs(self) -> bool {
         (self.0 & Self::AUTO_CMD_TIMEOUT_ERROR) >> 1 == 1
     }
-    /// Check if Auto CMD12 is not executed.
+    /// Check if auto CMD12 is not executed.
     #[inline]
     pub const fn is_auto_cmd12_not_executed(self) -> bool {
         self.0 & Self::AUTO_CMD_NOT_EXECUTED == 1
     }
 }
 
-/// Host Control 2 Register.
+/// Host control 2 register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct HostControl2(u16);
@@ -2256,38 +2256,38 @@ impl HostControl2 {
     const SIGNALING_1_8_V_EN: u16 = 0x1 << 3;
     const UHS_MODE_SELECT: u16 = 0x7;
 
-    /// Enable Preset Value.
+    /// Enable preset value.
     #[inline]
     pub const fn enable_preset_val(self) -> Self {
         Self((self.0 & !Self::PRESET_VAL_EN) | (Self::PRESET_VAL_EN & (1 << 15)))
     }
-    /// Disable Preset Value.
+    /// Disable preset value.
     #[inline]
     pub const fn disable_preset_val(self) -> Self {
         Self((self.0 & !Self::PRESET_VAL_EN) | (Self::PRESET_VAL_EN & (0 << 15)))
     }
-    /// Check if Preset value is enabled.
+    /// Check if preset value is enabled.
     #[inline]
     pub const fn is_preset_val_enabled(self) -> bool {
         (self.0 & Self::PRESET_VAL_EN) >> 15 == 1
     }
-    /// Enable Asynchronous Interrupt.
+    /// Enable asynchronous interrupt.
     #[inline]
     pub const fn enable_async_int(self) -> Self {
         Self((self.0 & !Self::ASYNCHRONOUS_INT_EN) | (Self::ASYNCHRONOUS_INT_EN & (1 << 14)))
     }
-    /// Disable Asynchronous Interrupt.
+    /// Disable asynchronous interrupt.
     #[inline]
     pub const fn disable_async_int(self) -> Self {
         Self((self.0 & !Self::ASYNCHRONOUS_INT_EN) | (Self::ASYNCHRONOUS_INT_EN & (0 << 14)))
     }
-    /// Check if Asynchronous Interrupt is enabled.
+    /// Check if asynchronous interrupt is enabled.
     #[inline]
     pub const fn is_async_int_enabled(self) -> bool {
         (self.0 & Self::ASYNCHRONOUS_INT_EN) >> 14 == 1
     }
-    /// Set Sampling Clock Select bit.
-    /// Host Controller uses this bit to select sampling clock to receive CMD and DAT.
+    /// Set sampling clock select bit.
+    /// Host controller uses this bit to select sampling clock to receive command and data.
     /// Setting 1 means that tuning is completed successfully and setting 0 means that tuning is failed.
     #[inline]
     pub const fn set_sample_clk_select(self, val: u8) -> Self {
@@ -2296,7 +2296,7 @@ impl HostControl2 {
                 | (Self::SAMPLING_CLK_SELECT & ((val as u16) << 7)),
         )
     }
-    /// Get Sampling Clock Select bit.
+    /// Get sampling clock select bit.
     #[inline]
     pub const fn sample_clk_select(self) -> u8 {
         ((self.0 & Self::SAMPLING_CLK_SELECT) >> 7) as u8
@@ -2316,7 +2316,7 @@ impl HostControl2 {
     pub const fn is_tuning_finished(self) -> bool {
         (self.0 & Self::EXECUTE_TUNING) >> 6 == 0
     }
-    /// Set Driver Strength Select bit.
+    /// Set driver strength select bit.
     #[inline]
     pub const fn set_driver_strength_select(self, val: u8) -> Self {
         Self(
@@ -2324,27 +2324,27 @@ impl HostControl2 {
                 | (Self::DRIVER_STRENGTH_SELECT & ((val as u16) << 4)),
         )
     }
-    /// Get Driver Strength Select bit.
+    /// Get driver strength select bit.
     #[inline]
     pub const fn driver_strength_select(self) -> u8 {
         ((self.0 & Self::DRIVER_STRENGTH_SELECT) >> 4) as u8
     }
-    /// Change card signal voltage from 3.3V to 1.8V.
+    /// Change card signal voltage from 3.3v to 1.8v.
     #[inline]
     pub const fn change_3_3v_to_1_8v(self) -> Self {
         Self((self.0 & !Self::SIGNALING_1_8_V_EN) | (Self::SIGNALING_1_8_V_EN & (1 << 3)))
     }
-    /// Check if changing card signal voltage from 3.3V to 1.8V is finished.
+    /// Check if changing card signal voltage from 3.3v to 1.8v is finished.
     #[inline]
     pub const fn is_3_3v_to_1_8v_finished(self) -> bool {
         (self.0 & Self::SIGNALING_1_8_V_EN) >> 3 == 1
     }
-    /// Change card signal voltage from 1.8V to 3.3V.
+    /// Change card signal voltage from 1.8v to 3.3v.
     #[inline]
     pub const fn change_1_8v_to_3_3v(self) -> Self {
         Self((self.0 & !Self::SIGNALING_1_8_V_EN) | (Self::SIGNALING_1_8_V_EN & (0 << 3)))
     }
-    /// Check if changing card signal voltage from 1.8V to 3.3V is finished.
+    /// Check if changing card signal voltage from 1.8v to 3.3v is finished.
     #[inline]
     pub const fn is_1_8v_to_3_3v_finished(self) -> bool {
         (self.0 & Self::SIGNALING_1_8_V_EN) >> 3 == 0
@@ -2361,18 +2361,18 @@ impl HostControl2 {
     }
 }
 
-/// Register that provides the Host Driver with information specific to the Host Controller implementation.
+/// Register that provides the host driver with information specific to the host controller implementation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Capabilities(u64);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SlotType {
-    /// Removable Card Slot.
+    /// Removable card slot.
     RemovableCardSlot,
-    /// Embedded Slot for One Device.
+    /// Embedded slot for one device.
     EmbeddedSlotforOneDevice,
-    /// Shared Bus Slot.
+    /// Shared bus slot.
     SharedBusSlot,
 }
 
@@ -2405,11 +2405,6 @@ impl Capabilities {
     const SDR104_SUPPORT: u64 = 0x1 << 1;
     const SDR50_SUPPORT: u64 = 0x1;
 
-    /// Set slot type.
-    #[inline]
-    pub const fn set_slot_type(self, val: SlotType) -> Self {
-        Self((self.0 & !Self::SLOT_TYPE) | (Self::SLOT_TYPE & ((val as u64) << 62)))
-    }
     /// Get slot type.
     #[inline]
     pub const fn slot_type(self) -> SlotType {
@@ -2420,333 +2415,124 @@ impl Capabilities {
             _ => unreachable!(),
         }
     }
-    /// Enable Asynchronous Interrupt Support.
+    /// Check if asynchronous interrupt is supported.
     #[inline]
-    pub const fn enable_async_int(self) -> Self {
-        Self((self.0 & !Self::ASYNCHRONOUS_INT) | (Self::ASYNCHRONOUS_INT & (1 << 61)))
-    }
-    /// Disable Asynchronous Interrupt Support.
-    #[inline]
-    pub const fn disable_async_int(self) -> Self {
-        Self((self.0 & !Self::ASYNCHRONOUS_INT) | (Self::ASYNCHRONOUS_INT & (0 << 61)))
-    }
-    /// Check if Asynchronous Interrupt Support is enabled.
-    #[inline]
-    pub const fn is_async_int_enabled(self) -> bool {
+    pub const fn is_async_int_supported(self) -> bool {
         (self.0 & Self::ASYNCHRONOUS_INT) >> 61 == 1
     }
-    /// Enable 64-bit System Bus Support.
+    /// Check if 64-bit system bus is supported.
     #[inline]
-    pub const fn enable_64_bit_bus(self) -> Self {
-        Self((self.0 & !Self::BIT_64_SYS_SUPPORT) | (Self::BIT_64_SYS_SUPPORT & (1 << 60)))
-    }
-    /// Disable 64-bit System Bus Support.
-    #[inline]
-    pub const fn disable_64_bit_bus(self) -> Self {
-        Self((self.0 & !Self::BIT_64_SYS_SUPPORT) | (Self::BIT_64_SYS_SUPPORT & (0 << 60)))
-    }
-    /// Check if 64-bit System Bus Support is enabled.
-    #[inline]
-    pub const fn is_64_bit_bus_enabled(self) -> bool {
+    pub const fn is_64_bit_bus_supported(self) -> bool {
         (self.0 & Self::BIT_64_SYS_SUPPORT) >> 60 == 1
     }
-    /// Enable Voltage Support 1.8V.
+    /// Check if voltage 1.8v is supported.
     #[inline]
-    pub const fn enable_1_8v(self) -> Self {
-        Self((self.0 & !Self::VOLTAGE_SUPPORT_1_8_V) | (Self::VOLTAGE_SUPPORT_1_8_V & (1 << 58)))
-    }
-    /// Disable Voltage Support 1.8V.
-    #[inline]
-    pub const fn disable_1_8v(self) -> Self {
-        Self((self.0 & !Self::VOLTAGE_SUPPORT_1_8_V) | (Self::VOLTAGE_SUPPORT_1_8_V & (0 << 58)))
-    }
-    /// Check if Voltage Support 1.8V is enabled.
-    #[inline]
-    pub const fn is_1_8v_enabled(self) -> bool {
+    pub const fn is_1_8v_supported(self) -> bool {
         (self.0 & Self::VOLTAGE_SUPPORT_1_8_V) >> 58 == 1
     }
-    /// Enable Voltage Support 3.0V.
+    /// Check if voltage 3.0v is supported.
     #[inline]
-    pub const fn enable_3_0v(self) -> Self {
-        Self((self.0 & !Self::VOLTAGE_SUPPORT_3_0_V) | (Self::VOLTAGE_SUPPORT_3_0_V & (1 << 57)))
-    }
-    /// Disable Voltage Support 3.0V.
-    #[inline]
-    pub const fn disable_3_0v(self) -> Self {
-        Self((self.0 & !Self::VOLTAGE_SUPPORT_3_0_V) | (Self::VOLTAGE_SUPPORT_3_0_V & (0 << 57)))
-    }
-    /// Check if Voltage Support 3.0V is enabled.
-    #[inline]
-    pub const fn is_3_0v_enabled(self) -> bool {
+    pub const fn is_3_0v_supported(self) -> bool {
         (self.0 & Self::VOLTAGE_SUPPORT_3_0_V) >> 57 == 1
     }
-    /// Enable Voltage Support 3.3V.
+    /// Check if voltage 3.3v is supported.
     #[inline]
-    pub const fn enable_3_3v(self) -> Self {
-        Self((self.0 & !Self::VOLTAGE_SUPPORT_3_3_V) | (Self::VOLTAGE_SUPPORT_3_3_V & (1 << 56)))
-    }
-    /// Disable Voltage Support 3.3V.
-    #[inline]
-    pub const fn disable_3_3v(self) -> Self {
-        Self((self.0 & !Self::VOLTAGE_SUPPORT_3_3_V) | (Self::VOLTAGE_SUPPORT_3_3_V & (0 << 56)))
-    }
-    /// Check if Voltage Support 3.3V is enabled.
-    #[inline]
-    pub const fn is_3_3v_enabled(self) -> bool {
+    pub const fn is_3_3v_supported(self) -> bool {
         (self.0 & Self::VOLTAGE_SUPPORT_3_3_V) >> 56 == 1
     }
-    /// Enable Suspend/Resume Support.
+    /// Check if suspend/resume is supported.
     #[inline]
-    pub const fn enable_suspend_resume(self) -> Self {
-        Self((self.0 & !Self::SUSPEND_RESUME_SUPPORT) | (Self::SUSPEND_RESUME_SUPPORT & (1 << 55)))
-    }
-    /// Disable Suspend/Resume Support.
-    #[inline]
-    pub const fn disable_suspend_resume(self) -> Self {
-        Self((self.0 & !Self::SUSPEND_RESUME_SUPPORT) | (Self::SUSPEND_RESUME_SUPPORT & (0 << 5)))
-    }
-    /// Check if Suspend/Resume Support is enabled.
-    #[inline]
-    pub const fn is_suspend_resume_enabled(self) -> bool {
+    pub const fn is_suspend_resume_supported(self) -> bool {
         (self.0 & Self::SUSPEND_RESUME_SUPPORT) >> 55 == 1
     }
-    /// Enable SDMA Support.
+    /// Check if SDMA is supported.
     #[inline]
-    pub const fn enable_sdma(self) -> Self {
-        Self((self.0 & !Self::SDMA_SUPOORT) | (Self::SDMA_SUPOORT & (1 << 54)))
-    }
-    /// Disable SDMA Support.
-    #[inline]
-    pub const fn disable_sdma(self) -> Self {
-        Self((self.0 & !Self::SDMA_SUPOORT) | (Self::SDMA_SUPOORT & (0 << 54)))
-    }
-    /// Check if SDMA Support is enabled.
-    #[inline]
-    pub const fn is_sdma_enabled(self) -> bool {
+    pub const fn is_sdma_supported(self) -> bool {
         (self.0 & Self::SDMA_SUPOORT) >> 54 == 1
     }
-    /// Enable High Speed Support.
+    /// Check if 64-bit high speed is supported.
     #[inline]
-    pub const fn enable_high_speed(self) -> Self {
-        Self((self.0 & !Self::HIGH_SPEED_SUPPORT) | (Self::HIGH_SPEED_SUPPORT & (1 << 53)))
-    }
-    /// Disable High Speed Support.
-    #[inline]
-    pub const fn disable_high_speed(self) -> Self {
-        Self((self.0 & !Self::HIGH_SPEED_SUPPORT) | (Self::HIGH_SPEED_SUPPORT & (0 << 53)))
-    }
-    /// Check if 64-bit High Speed Support is enabled.
-    #[inline]
-    pub const fn is_high_speed_enabled(self) -> bool {
+    pub const fn is_high_speed_supported(self) -> bool {
         (self.0 & Self::HIGH_SPEED_SUPPORT) >> 53 == 1
     }
-    /// Enable ADMA2 Support.
+    /// Check if ADMA2 is supported.
     #[inline]
-    pub const fn enable_adma2(self) -> Self {
-        Self((self.0 & !Self::ADMA2_SUPPORT) | (Self::ADMA2_SUPPORT & (1 << 51)))
-    }
-    /// Disable ADMA2 Support.
-    #[inline]
-    pub const fn disable_adma2(self) -> Self {
-        Self((self.0 & !Self::ADMA2_SUPPORT) | (Self::ADMA2_SUPPORT & (0 << 51)))
-    }
-    /// Check if ADMA2 Support is enabled.
-    #[inline]
-    pub const fn is_adma2_enabled(self) -> bool {
+    pub const fn is_adma2_supported(self) -> bool {
         (self.0 & Self::ADMA2_SUPPORT) >> 51 == 1
     }
-    /// Enable 8-bit Bus Support for Embedded Device.
+    /// Check if 8-bit bus for embedded device is supported.
     #[inline]
-    pub const fn enable_8_bit_bus(self) -> Self {
-        Self((self.0 & !Self::BIT_8_SUPPORT) | (Self::BIT_8_SUPPORT & (1 << 50)))
-    }
-    /// Disable 8-bit Bus Support for Embedded Device.
-    #[inline]
-    pub const fn disable_8_bit_bus(self) -> Self {
-        Self((self.0 & !Self::BIT_8_SUPPORT) | (Self::BIT_8_SUPPORT & (0 << 50)))
-    }
-    /// Check if 8-bit Bus Support for Embedded Device.
-    #[inline]
-    pub const fn is_8_bit_bus_enabled(self) -> bool {
+    pub const fn is_8_bit_bus_supported(self) -> bool {
         (self.0 & Self::BIT_8_SUPPORT) >> 50 == 1
     }
-    /// Set Max Block Length.
-    #[inline]
-    pub const fn set_max_block_len(self, val: u8) -> Self {
-        Self((self.0 & !Self::MAX_BLOCK_LEN) | (Self::MAX_BLOCK_LEN & ((val as u64) << 48)))
-    }
-    /// Get Max Block Length.
+    /// Get max block length.
     #[inline]
     pub const fn max_block_len(self) -> u8 {
         ((self.0 & Self::MAX_BLOCK_LEN) >> 48) as u8
     }
-    /// Set Base Clock Frequency For SD Clock.
-    #[inline]
-    pub const fn set_base_clk(self, val: u8) -> Self {
-        Self((self.0 & !Self::BASE_CLK_FREQ) | (Self::BASE_CLK_FREQ & ((val as u64) << 40)))
-    }
-    /// Get Base Clock Frequency For SD Clock.
+    /// Get base clock frequency for SD clock.
     #[inline]
     pub const fn base_clk(self) -> u8 {
         ((self.0 & Self::BASE_CLK_FREQ) >> 40) as u8
     }
-    /// Set Timeout Clock Unit.
-    #[inline]
-    pub const fn set_timeout_clk_unit(self, val: u8) -> Self {
-        Self((self.0 & !Self::TIMEOUT_CLK_UNIT) | (Self::TIMEOUT_CLK_UNIT & ((val as u64) << 39)))
-    }
-    /// Get Timeout Clock Unit.
+    /// Get timeout clock unit.
     #[inline]
     pub const fn timeout_clk_unit(self) -> u8 {
         ((self.0 & Self::TIMEOUT_CLK_UNIT) >> 39) as u8
     }
-    /// Set Timeout Clock Frequency.
-    #[inline]
-    pub const fn set_timeout_clk_freq(self, val: u8) -> Self {
-        Self((self.0 & !Self::TIMEOUT_CLK_FREQ) | (Self::TIMEOUT_CLK_FREQ & ((val as u64) << 32)))
-    }
-    /// Get Timeout Clock Frequency.
+    /// Get timeout clock frequency.
     #[inline]
     pub const fn timeout_clk_freq(self) -> u8 {
         ((self.0 & Self::TIMEOUT_CLK_FREQ) >> 32) as u8
     }
-    /// Set Clock Multiplier.
-    #[inline]
-    pub const fn set_clk_multiplier(self, val: u8) -> Self {
-        Self((self.0 & !Self::CLK_MULTIPLIER) | (Self::CLK_MULTIPLIER & ((val as u64) << 16)))
-    }
-    /// Get Clock Multiplier.
+    /// Get clock multiplier.
     #[inline]
     pub const fn clk_multiplier(self) -> u8 {
         ((self.0 & Self::CLK_MULTIPLIER) >> 16) as u8
     }
-    /// Set Re-Tuning Modes.
-    #[inline]
-    pub const fn set_re_tuning_modes(self, val: u8) -> Self {
-        Self((self.0 & !Self::RE_TUNING_MODES) | (Self::RE_TUNING_MODES & ((val as u64) << 14)))
-    }
-    /// Get Re-Tuning Modes.
+    /// Get re-tuning Modes.
     #[inline]
     pub const fn re_tuning_modes(self) -> u8 {
         ((self.0 & Self::RE_TUNING_MODES) >> 14) as u8
     }
-    /// Enable Use Tuning for SDR50.
+    /// Check if use tuning for SDR50 is required.
     #[inline]
-    pub const fn enable_tuning_for_sdr50(self) -> Self {
-        Self((self.0 & !Self::USE_TUNING) | (Self::USE_TUNING & (1 << 13)))
-    }
-    /// Disable Use Tuning for SDR50.
-    #[inline]
-    pub const fn disable_tuning_for_sdr50(self) -> Self {
-        Self((self.0 & !Self::USE_TUNING) | (Self::USE_TUNING & (0 << 13)))
-    }
-    /// Check if Use Tuning for SDR50 is enabled.
-    #[inline]
-    pub const fn is_tuning_for_sdr50_enabled(self) -> bool {
+    pub const fn is_tuning_for_sdr50_required(self) -> bool {
         (self.0 & Self::USE_TUNING) >> 13 == 1
     }
-    /// Set Timer Count for Re-Tuning.
-    #[inline]
-    pub const fn set_tim_cnt_for_re_tuning(self, val: u8) -> Self {
-        Self(
-            (self.0 & !Self::TIM_CNT_FOR_RETUNING)
-                | (Self::TIM_CNT_FOR_RETUNING & ((val as u64) << 8)),
-        )
-    }
-    /// Get Timer Count for Re-Tuning.
+    /// Get timer count for re-tuning.
     #[inline]
     pub const fn tim_cnt_for_re_tuning(self) -> u8 {
         ((self.0 & Self::TIM_CNT_FOR_RETUNING) >> 8) as u8
     }
-    /// Enable Driver Type D Support.
+    /// Check if driver type d is supported.
     #[inline]
-    pub const fn enable_driver_type_d(self) -> Self {
-        Self((self.0 & !Self::DRIVER_TYPE_D_SUPPORT) | (Self::DRIVER_TYPE_D_SUPPORT & (1 << 6)))
-    }
-    /// Disable Driver Type D Support.
-    #[inline]
-    pub const fn disable_driver_type_d(self) -> Self {
-        Self((self.0 & !Self::DRIVER_TYPE_D_SUPPORT) | (Self::DRIVER_TYPE_D_SUPPORT & (0 << 6)))
-    }
-    /// Check if Driver Type D Support is enabled.
-    #[inline]
-    pub const fn is_driver_type_d_enabled(self) -> bool {
+    pub const fn is_driver_type_d_supported(self) -> bool {
         (self.0 & Self::DRIVER_TYPE_D_SUPPORT) >> 6 == 1
     }
-    /// Enable Driver Type C Support.
+    /// Check if driver type c is supported.
     #[inline]
-    pub const fn enable_driver_type_c(self) -> Self {
-        Self((self.0 & !Self::DRIVER_TYPE_C_SUPPORT) | (Self::DRIVER_TYPE_C_SUPPORT & (1 << 5)))
-    }
-    /// Disable Driver Type C Support.
-    #[inline]
-    pub const fn disable_driver_type_c(self) -> Self {
-        Self((self.0 & !Self::DRIVER_TYPE_C_SUPPORT) | (Self::DRIVER_TYPE_C_SUPPORT & (0 << 5)))
-    }
-    /// Check if Driver Type C Support is enabled.
-    #[inline]
-    pub const fn is_driver_type_c_enabled(self) -> bool {
+    pub const fn is_driver_type_c_supported(self) -> bool {
         (self.0 & Self::DRIVER_TYPE_C_SUPPORT) >> 5 == 1
     }
-    /// Enable Driver Type A Support.
+    /// Check if driver type a is supported.
     #[inline]
-    pub const fn enable_driver_type_a(self) -> Self {
-        Self((self.0 & !Self::DRIVER_TYPE_A_SUPPORT) | (Self::DRIVER_TYPE_A_SUPPORT & (1 << 4)))
-    }
-    /// Disable Driver Type A Support.
-    #[inline]
-    pub const fn disable_driver_type_a(self) -> Self {
-        Self((self.0 & !Self::DRIVER_TYPE_A_SUPPORT) | (Self::DRIVER_TYPE_A_SUPPORT & (0 << 4)))
-    }
-    /// Check if Driver Type A Support is enabled.
-    #[inline]
-    pub const fn is_driver_type_a_enabled(self) -> bool {
+    pub const fn is_driver_type_a_supported(self) -> bool {
         (self.0 & Self::DRIVER_TYPE_A_SUPPORT) >> 4 == 1
     }
-    /// Enable DDR50 Support.
+    /// Check if DDR50 is supported.
     #[inline]
-    pub const fn enable_ddr50(self) -> Self {
-        Self((self.0 & !Self::DDR50_SUPPORT) | (Self::DDR50_SUPPORT & (1 << 2)))
-    }
-    /// Disable DDR50 Support.
-    #[inline]
-    pub const fn disable_ddr50(self) -> Self {
-        Self((self.0 & !Self::DDR50_SUPPORT) | (Self::DDR50_SUPPORT & (0 << 2)))
-    }
-    /// Check if DDR50 Support is enabled.
-    #[inline]
-    pub const fn is_ddr50_enabled(self) -> bool {
+    pub const fn is_ddr50_supported(self) -> bool {
         (self.0 & Self::DDR50_SUPPORT) >> 2 == 1
     }
-    /// Enable SDR104 Support.
-    /// SDR104 requires tuning.
+    /// Check if SDR104 is supported.
     #[inline]
-    pub const fn enable_sdr104(self) -> Self {
-        Self((self.0 & !Self::SDR104_SUPPORT) | (Self::SDR104_SUPPORT & (1 << 1)))
-    }
-    /// Disable Driver Type A Support.
-    #[inline]
-    pub const fn disable_sdr104(self) -> Self {
-        Self((self.0 & !Self::SDR104_SUPPORT) | (Self::SDR104_SUPPORT & (0 << 1)))
-    }
-    /// Check if Driver Type A Support is enabled.
-    #[inline]
-    pub const fn is_sdr104_enabled(self) -> bool {
+    pub const fn is_sdr104_supprted(self) -> bool {
         (self.0 & Self::SDR104_SUPPORT) >> 1 == 1
     }
-    /// Enable SDR50 Support.
+    /// Check if SDR50 is supported.
     #[inline]
-    pub const fn enable_sdr50(self) -> Self {
-        Self((self.0 & !Self::SDR50_SUPPORT) | (Self::SDR50_SUPPORT & 1))
-    }
-    /// Disable SDR50 Support.
-    #[inline]
-    pub const fn disable_sdr50(self) -> Self {
-        Self((self.0 & !Self::SDR50_SUPPORT) | (Self::SDR50_SUPPORT & 0))
-    }
-    /// Check if SDR50 Support is enabled.
-    #[inline]
-    pub const fn is_sdr50_enabled(self) -> bool {
+    pub const fn is_sdr50_supported(self) -> bool {
         self.0 & Self::SDR50_SUPPORT == 1
     }
 }
@@ -2761,44 +2547,29 @@ impl MaxCurrentCapabilities {
     const MAX_CURRENT_3_0_V: u64 = 0xFF << 8;
     const MAX_CURRENT_3_3_V: u64 = 0xFF;
 
-    /// Set Maximum Current for 1.8V.
-    #[inline]
-    pub const fn set_max_current_1_8v(self, val: u8) -> Self {
-        Self((self.0 & !Self::MAX_CURRENT_1_8_V) | (Self::MAX_CURRENT_1_8_V & ((val as u64) << 16)))
-    }
-    /// Get Maximum Current for 1.8V.
+    /// Get maximum current for 1.8v.
     #[inline]
     pub const fn max_current_1_8v(self) -> u8 {
         ((self.0 & Self::MAX_CURRENT_1_8_V) >> 16) as u8
     }
-    /// Set Maximum Current for 3.0V.
-    #[inline]
-    pub const fn set_max_current_3_0v(self, val: u8) -> Self {
-        Self((self.0 & !Self::MAX_CURRENT_3_0_V) | (Self::MAX_CURRENT_3_0_V & ((val as u64) << 8)))
-    }
-    /// Get Maximum Current for 3.0V.
+    /// Get maximum current for 3.0v.
     #[inline]
     pub const fn max_current_3_0v(self) -> u8 {
         ((self.0 & Self::MAX_CURRENT_3_0_V) >> 8) as u8
     }
-    /// Set Maximum Current for 3.3V.
-    #[inline]
-    pub const fn set_max_current_3_3v(self, val: u8) -> Self {
-        Self((self.0 & !Self::MAX_CURRENT_3_3_V) | (Self::MAX_CURRENT_3_3_V & (val as u64)))
-    }
-    /// Get Maximum Current for 3.3V.
+    /// Get maximum current for 3.3v.
     #[inline]
     pub const fn max_current_3_3v(self) -> u8 {
         (self.0 & Self::MAX_CURRENT_3_3_V) as u8
     }
 }
 
-/// Register that simplifies test of the Auto CMD Error Status register.
+/// Register that simplifies test of the auto command error status register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct ForceEventAutoCMDErrorStatus(u16);
+pub struct ForceEventAutoCmdErrorStatus(u16);
 
-impl ForceEventAutoCMDErrorStatus {
+impl ForceEventAutoCmdErrorStatus {
     const CMD_NOT_ISSUED: u16 = 0x1 << 7;
     const AUTO_CMD_INDEX_ERROR: u16 = 0x1 << 4;
     const AUTO_CMD_END_BIT_ERROR: u16 = 0x1 << 3;
@@ -2806,39 +2577,39 @@ impl ForceEventAutoCMDErrorStatus {
     const AUTO_CMD_TIMEOUT_ERROR: u16 = 0x1 << 1;
     const AUTO_CMD_NOT_EXECUTED: u16 = 0x1;
 
-    /// Set Force Event for Command Not Issued By Auto CMD12 Error bit.
+    /// Set force event for command not issued by auto CMD12 error bit.
     #[inline]
     pub const fn set_cmd_not_issued(self, val: u16) -> Self {
         Self((self.0 & !Self::CMD_NOT_ISSUED) | (Self::CMD_NOT_ISSUED & (val << 7)))
     }
-    /// Set Force Event for Auto CMD Index Error bit.
+    /// Set force event for auto command index error bit.
     #[inline]
     pub const fn set_auto_cmd_index(self, val: u16) -> Self {
         Self((self.0 & !Self::AUTO_CMD_INDEX_ERROR) | (Self::AUTO_CMD_INDEX_ERROR & (val << 4)))
     }
-    /// Set Force Event for Auto CMD End Bit Error bit.
+    /// Set force event for auto command end bit error bit.
     #[inline]
     pub const fn set_auto_cmd_end_bit(self, val: u16) -> Self {
         Self((self.0 & !Self::AUTO_CMD_END_BIT_ERROR) | (Self::AUTO_CMD_END_BIT_ERROR & (val << 3)))
     }
-    /// Set Force Event for Auto CMD CRC Error bit.
+    /// Set force event for auto command crc error bit.
     #[inline]
     pub const fn set_auto_cmd_crc(self, val: u16) -> Self {
         Self((self.0 & !Self::AUTO_CMD_CRC_ERROR) | (Self::AUTO_CMD_CRC_ERROR & (val << 2)))
     }
-    /// Set Force Event for Auto CMD Timeout Error bit.
+    /// Set force event for auto command timeout error bit.
     #[inline]
     pub const fn set_auto_cmd_timeout(self, val: u16) -> Self {
         Self((self.0 & !Self::AUTO_CMD_TIMEOUT_ERROR) | (Self::AUTO_CMD_TIMEOUT_ERROR & (val << 1)))
     }
-    /// Set Force Event for Auto CMD12 Not Executed bit.
+    /// Set force event for auto CMD12 not executed bit.
     #[inline]
     pub const fn set_auto_cmd12_not_executed(self, val: u16) -> Self {
         Self((self.0 & !Self::AUTO_CMD_NOT_EXECUTED) | (Self::AUTO_CMD_NOT_EXECUTED & val))
     }
 }
 
-/// Register that simplifies test of the Error Interrupt Status register.
+/// Register that simplifies test of the error interrupt status register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ForceEventErrorInterruptStatus(u16);
@@ -2856,7 +2627,7 @@ impl ForceEventErrorInterruptStatus {
     const CMD_CRC_ERROR: u16 = 0x1 << 1;
     const CMD_TIMEOUT_ERROR: u16 = 0x1;
 
-    /// Set Force Event for Vendor Specific Error Status bit.
+    /// Set force event for vendor specific error status bit.
     #[inline]
     pub const fn set_vendor_specific_err(self, val: u8) -> Self {
         Self(
@@ -2864,17 +2635,17 @@ impl ForceEventErrorInterruptStatus {
                 | (Self::VENDOR_SPECIFIC_ERROR & ((val as u16) << 12)),
         )
     }
-    /// Set Force Event for ADMA Error bit.
+    /// Set force event for ADMA error bit.
     #[inline]
     pub const fn set_adma_err(self, val: u8) -> Self {
         Self((self.0 & !Self::ADMA_EROR) | (Self::ADMA_EROR & ((val as u16) << 9)))
     }
-    /// Set Force Event for Auto CMD Error bit.
+    /// Set force event for auto command error bit.
     #[inline]
     pub const fn set_auto_cmd_err(self, val: u8) -> Self {
         Self((self.0 & !Self::AUTO_CMD_ERROR) | (Self::AUTO_CMD_ERROR & ((val as u16) << 8)))
     }
-    /// Set Force Event for Current Limit Error bit.
+    /// Set force event for current limit error bit.
     #[inline]
     pub const fn set_current_limit_err(self, val: u8) -> Self {
         Self(
@@ -2882,267 +2653,267 @@ impl ForceEventErrorInterruptStatus {
                 | (Self::CURRENT_LIMIT_ERROR & ((val as u16) << 7)),
         )
     }
-    /// Set Force Event for Data End Bit Error bit.
+    /// Set force event for data end bit error bit.
     #[inline]
     pub const fn set_data_end_bit_err(self, val: u8) -> Self {
         Self(
             (self.0 & !Self::DATA_END_BIT_ERROR) | (Self::DATA_END_BIT_ERROR & ((val as u16) << 6)),
         )
     }
-    /// Set Force Event for Data CRC Error bit.
+    /// Set force event for data crc error bit.
     #[inline]
     pub const fn set_data_crc_err(self, val: u8) -> Self {
         Self((self.0 & !Self::DATA_CRC_ERROR) | (Self::DATA_CRC_ERROR & ((val as u16) << 5)))
     }
-    /// Set Force Event for Data Timeout Error bit.
+    /// Set force event for data timeout error bit.
     #[inline]
     pub const fn set_data_timeout_err(self, val: u8) -> Self {
         Self(
             (self.0 & !Self::DATA_TIMEOUT_ERROR) | (Self::DATA_TIMEOUT_ERROR & ((val as u16) << 4)),
         )
     }
-    /// Set Force Event for Command Index Error bit.
+    /// Set force event for command index error bit.
     #[inline]
     pub const fn set_cmd_index_err(self, val: u8) -> Self {
         Self((self.0 & !Self::CMD_INDEX_ERROR) | (Self::CMD_INDEX_ERROR & ((val as u16) << 3)))
     }
-    /// Set Force Event for Command End Bit Error bit.
+    /// Set force event for command end bit error bit.
     #[inline]
     pub const fn set_cmd_end_bit_err(self, val: u8) -> Self {
         Self((self.0 & !Self::CMD_END_BIT_ERROR) | (Self::CMD_END_BIT_ERROR & ((val as u16) << 2)))
     }
-    /// Set Force Event for Command CRC Error bit.
+    /// Set force event for command crc error bit.
     #[inline]
     pub const fn set_cmd_crc_err(self, val: u8) -> Self {
         Self((self.0 & !Self::CMD_CRC_ERROR) | (Self::CMD_CRC_ERROR & ((val as u16) << 1)))
     }
-    /// Set Force Event for Command Timeout Error bit.
+    /// Set force event for command timeout error bit.
     #[inline]
     pub const fn set_cmd_timeout_err(self, val: u8) -> Self {
         Self((self.0 & !Self::CMD_TIMEOUT_ERROR) | (Self::CMD_TIMEOUT_ERROR & (val as u16)))
     }
 }
 
-/// Register that holds the ADMA state when ADMA Error Interrupt is occurred.
+/// Register that holds the ADMA state when ADMA error interrupt is occurred.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct ADMAErrorStatus(u32);
+pub struct AdmaErrorStatus(u32);
 
-impl ADMAErrorStatus {
+impl AdmaErrorStatus {
     const ADMA_LEN_MISMATCH: u32 = 0x1 << 2;
     const ADMA_ERROR_STATE: u32 = 0x3;
 
-    /// Check if ADMA Length Mismatch Error occurs.
+    /// Check if ADMA length mismatch error occurs.
     #[inline]
     pub const fn if_adma_len_mismatch_err_occurs(self) -> bool {
         (self.0 & Self::ADMA_LEN_MISMATCH) >> 2 == 1
     }
-    /// Get ADMA Error State.
+    /// Get ADMA error state.
     #[inline]
     pub const fn adma_err_state(self) -> u8 {
         (self.0 & Self::ADMA_ERROR_STATE) as u8
     }
 }
 
-/// Register that contains the physical Descriptor address used for ADMA data transfer.
+/// Register that contains the physical descriptor address used for ADMA data transfer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct ADMASystemAddress(u64);
+pub struct AdmaSystemAddress(u64);
 
-impl ADMASystemAddress {
+impl AdmaSystemAddress {
     const ADMA_SYSTEM_ADDRESS: u64 = 0xFFFF_FFFF_FFFF_FFFF;
 
-    /// Set ADMA System Address.
+    /// Set ADMA system address.
     #[inline]
     pub const fn set_adma_sys_addr(self, val: u64) -> Self {
         Self((self.0 & !Self::ADMA_SYSTEM_ADDRESS) | (Self::ADMA_SYSTEM_ADDRESS & val))
     }
-    /// Get ADMA System Address.
+    /// Get ADMA system address.
     #[inline]
     pub const fn adma_sys_addr(self) -> u64 {
         self.0 & Self::ADMA_SYSTEM_ADDRESS
     }
 }
 
-/// Preset Value Registers.
+/// Preset value register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct PresetValue(u128);
 
 impl PresetValue {
-    // Preset Value Register for DDR50.
+    // Preset value register for DDR50.
     const DDR50_DRV_STRENGTH_VAL: u128 = 0x3 << 126;
     const DDR50_CLKGEN_SEL_VAL: u128 = 0x1 << 122;
     const DDR50_SDCLK_FREQ_SEL_VAL: u128 = 0x3FF << 112;
-    // Preset Value Register for SDR104.
+    // Preset value register for SDR104.
     const SDR104_DRV_STRENGTH_VAL: u128 = 0x3 << 110;
     const SDR104_CLKGEN_SEL_VAL: u128 = 0x1 << 106;
     const SDR104_SDCLK_FREQ_SEL_VAL: u128 = 0x3FF << 96;
-    // Preset Value Register for SDR50.
+    // Preset value register for SDR50.
     const SDR50_DRV_STRENGTH_VAL: u128 = 0x3 << 94;
     const SDR50_CLKGEN_SEL_VAL: u128 = 0x1 << 90;
     const SDR50_SDCLK_FREQ_SEL_VAL: u128 = 0x3FF << 80;
-    // Preset Value Register for SDR25.
+    // Preset value register for SDR25.
     const SDR25_DRV_STRENGTH_VAL: u128 = 0x3 << 78;
     const SDR25_CLKGEN_SEL_VAL: u128 = 0x1 << 74;
     const SDR25_SDCLK_FREQ_SEL_VAL: u128 = 0x3FF << 64;
-    // Preset Value Register for SDR12.
+    // Preset value register for SDR12.
     const SDR12_DRV_STRENGTH_VAL: u128 = 0x3 << 62;
     const SDR12_CLKGEN_SEL_VAL: u128 = 0x1 << 58;
     const SDR12_SDCLK_FREQ_SEL_VAL: u128 = 0x3FF << 48;
-    // Preset Value Register for High Speed.
+    // Preset value register for high speed.
     const HS_DRV_STRENGTH_VAL: u128 = 0x3 << 46;
     const HS_CLKGEN_SEL_VAL: u128 = 0x1 << 42;
     const HS_SDCLK_FREQ_SEL_VAL: u128 = 0x3FF << 32;
-    // Preset Value Register for Default Speed.
+    // Preset value register for default speed.
     const DEFAULT_DRV_STRENGTH_VAL: u128 = 0x3 << 30;
     const DEFAULT_CLKGEN_SEL_VAL: u128 = 0x1 << 26;
     const DEFAULT_SDCLK_FREQ_SEL_VAL: u128 = 0x3FF << 16;
-    // Preset Value Register for Initialization.
+    // Preset value register for initialization.
     const INIT_DRV_STRENGTH_VAL: u128 = 0x3 << 14;
     const INIT_CLKGEN_SEL_VAL: u128 = 0x1 << 10;
     const INIT_SDCLK_FREQ_SEL_VAL: u128 = 0x3FF;
 
-    /// Get Driver Strength Value For DDR50.
+    /// Get driver strength value for DDR50.
     #[inline]
     pub const fn ddr50_drv_strength_val(self) -> u16 {
         ((self.0 & Self::DDR50_DRV_STRENGTH_VAL) >> 126) as u16
     }
-    /// Get Clock Generator Frequency Select Value For DDR50.
+    /// Get clock generator frequency select value for DDR50.
     #[inline]
     pub const fn ddr50_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::DDR50_CLKGEN_SEL_VAL) >> 122) as u16
     }
-    /// Get SD Clock Generator Frequency Select Value For DDR50.
+    /// Get SD clock generator frequency select value for DDR50.
     #[inline]
     pub const fn ddr50_sdclk_freq_clk_val(self) -> u16 {
         ((self.0 & Self::DDR50_SDCLK_FREQ_SEL_VAL) >> 112) as u16
     }
 
-    /// Get Driver Strength Value For SDR104.
+    /// Get driver strength value For SDR104.
     #[inline]
     pub const fn sdr104_drv_strength_val(self) -> u16 {
         ((self.0 & Self::SDR104_DRV_STRENGTH_VAL) >> 110) as u16
     }
-    /// Get Clock Generator Frequency Select Value For SDR104.
+    /// Get clock generator frequency select value for SDR104.
     #[inline]
     pub const fn sdr104_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::SDR104_CLKGEN_SEL_VAL) >> 106) as u16
     }
-    /// Get SD Clock Generator Frequency Select Value For SDR104.
+    /// Get SD clock generator frequency select value for SDR104.
     #[inline]
     pub const fn sdr104_sdclk_freq_clk_val(self) -> u16 {
         ((self.0 & Self::SDR104_SDCLK_FREQ_SEL_VAL) >> 96) as u16
     }
 
-    /// Get Driver Strength Value For SDR50.
+    /// Get driver strength value for SDR50.
     #[inline]
     pub const fn sdr50_drv_strength_val(self) -> u16 {
         ((self.0 & Self::SDR50_DRV_STRENGTH_VAL) >> 94) as u16
     }
-    /// Get Clock Generator Frequency Select Value For SDR50.
+    /// Get clock generator frequency select value for SDR50.
     #[inline]
     pub const fn sdr50_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::SDR50_CLKGEN_SEL_VAL) >> 90) as u16
     }
-    /// Get SD Clock Generator Frequency Select Value For SDR50.
+    /// Get SD clock generator frequency select value for SDR50.
     #[inline]
     pub const fn sdr50_sdclk_freq_clk_val(self) -> u16 {
         ((self.0 & Self::SDR50_SDCLK_FREQ_SEL_VAL) >> 80) as u16
     }
 
-    /// Get Driver Strength Value For SDR25.
+    /// Get driver strength value for SDR25.
     #[inline]
     pub const fn sdr25_drv_strength_val(self) -> u16 {
         ((self.0 & Self::SDR25_DRV_STRENGTH_VAL) >> 78) as u16
     }
 
-    /// Get Clock Generator Frequency Select Value For SDR25.
+    /// Get clock generator frequency select value for SDR25.
     #[inline]
     pub const fn sdr25_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::SDR25_CLKGEN_SEL_VAL) >> 74) as u16
     }
-    /// Get SD Clock Generator Frequency Select Value For SDR25.
+    /// Get SD clock generator frequency select value for SDR25.
     #[inline]
     pub const fn sdr25_sdclk_freq_clk_val(self) -> u16 {
         ((self.0 & Self::SDR25_SDCLK_FREQ_SEL_VAL) >> 64) as u16
     }
 
-    /// Get Driver Strength Value For SDR12.
+    /// Get driver Strength value for SDR12.
     #[inline]
     pub const fn sdr12_drv_strength_val(self) -> u16 {
         ((self.0 & Self::SDR12_DRV_STRENGTH_VAL) >> 62) as u16
     }
-    /// Get Clock Generator Frequency Select Value For SDR12.
+    /// Get clock generator frequency select value for SDR12.
     #[inline]
     pub const fn sdr12_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::SDR12_CLKGEN_SEL_VAL) >> 58) as u16
     }
-    /// Get SD Clock Generator Frequency Select Value For SDR12.
+    /// Get SD clock generator frequency select value for SDR12.
     #[inline]
     pub const fn sdr12_sdclk_freq_clk_val(self) -> u16 {
         ((self.0 & Self::SDR12_SDCLK_FREQ_SEL_VAL) >> 48) as u16
     }
 
-    /// Get Driver Strength Value For High Speed.
+    /// Get driver strength value for high speed.
     #[inline]
     pub const fn hs_drv_strength_val(self) -> u16 {
         ((self.0 & Self::HS_DRV_STRENGTH_VAL) >> 46) as u16
     }
-    /// Get Clock Generator Frequency Select Value For High Speed.
+    /// Get clock generator frequency select value for high speed.
     #[inline]
     pub const fn hs_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::HS_CLKGEN_SEL_VAL) >> 42) as u16
     }
-    /// Get SD Clock Generator Frequency Select Value For High Speed.
+    /// Get SD clock generator frequency select value for high speed.
     #[inline]
     pub const fn hs_sdclk_freq_clk_val(self) -> u16 {
         ((self.0 & Self::HS_SDCLK_FREQ_SEL_VAL) >> 32) as u16
     }
 
-    /// Get Driver Strength Value For Default Speed.
+    /// Get driver strength value for default speed.
     #[inline]
     pub const fn default_drv_strength_val(self) -> u16 {
         ((self.0 & Self::DEFAULT_DRV_STRENGTH_VAL) >> 30) as u16
     }
-    /// Get Clock Generator Frequency Select Value For Default Speed.
+    /// Get clock generator frequency select value for default speed.
     #[inline]
     pub const fn default_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::DEFAULT_CLKGEN_SEL_VAL) >> 26) as u16
     }
-    /// Get SD Clock Generator Frequency Select Value For Default Speed.
+    /// Get SD clock generator frequency select value for default speed.
     #[inline]
     pub const fn default_sdclk_freq_clk_val(self) -> u16 {
         ((self.0 & Self::DEFAULT_SDCLK_FREQ_SEL_VAL) >> 16) as u16
     }
 
-    /// Get Driver Strength Value For Initialization.
+    /// Get driver strength value for initialization.
     #[inline]
     pub const fn init_drv_strength_val(self) -> u16 {
         ((self.0 & Self::INIT_DRV_STRENGTH_VAL) >> 14) as u16
     }
-    /// Get Clock Generator Frequency Select Value For Initialization.
+    /// Get clock generator frequency select value for initialization.
     #[inline]
     pub const fn init_clkgen_sel_val(self) -> u16 {
         ((self.0 & Self::INIT_CLKGEN_SEL_VAL) >> 10) as u16
     }
-    /// Get SD Clock Generator Frequency Select Value For Initialization.
+    /// Get SD clock generator frequency select value for initialization.
     #[inline]
     pub const fn init_sdclk_freq_clk_val(self) -> u16 {
         (self.0 & Self::INIT_SDCLK_FREQ_SEL_VAL) as u16
     }
 }
 
-/// ADMA3 Intergrated Descriptor Address Register.
+/// ADMA2 intergrated descriptor address register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct ADMA3IntegratedDescriptorAddress(u64);
+pub struct ADMA2IntegratedDescriptorAddress(u64);
 
-impl ADMA3IntegratedDescriptorAddress {
+impl ADMA2IntegratedDescriptorAddress {
     // TODO
 }
 
-/// Shared Bus Control Register.
+/// Shared bus control register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SharedBusControl(u32);
@@ -3155,47 +2926,47 @@ impl SharedBusControl {
     const NUM_OF_INT_INPUT_PINS: u32 = 0x3 << 4;
     const NUM_OF_CLK_PINS: u32 = 0x7;
 
-    /// Set Back-End Power Control.
+    /// Set back-end power control.
     #[inline]
     pub const fn set_back_end_pwr_ctrl(self, val: u8) -> Self {
         Self((self.0 & !Self::BACK_END_CTRL) | (Self::BACK_END_CTRL & ((val as u32) << 24)))
     }
-    /// Get Back-End Power Control.
+    /// Get back-end power control.
     #[inline]
     pub const fn back_end_pwr_ctrl(self) -> u8 {
         ((self.0 & Self::BACK_END_CTRL) >> 24) as u8
     }
-    /// Set Interrupt Pin Select.
+    /// Set interrupt pin select.
     #[inline]
     pub const fn set_int_pin_sel(self, val: u8) -> Self {
         Self((self.0 & !Self::INT_PIN_SEL) | (Self::INT_PIN_SEL & ((val as u32) << 20)))
     }
-    /// Get Interrupt Pin Select.
+    /// Get interrupt pin select.
     #[inline]
     pub const fn int_pin_sel(self) -> u8 {
         ((self.0 & Self::INT_PIN_SEL) >> 20) as u8
     }
-    /// Set Clock Pin Select.
+    /// Set clock pin select.
     #[inline]
     pub const fn set_clk_pin_sel(self, val: u8) -> Self {
         Self((self.0 & !Self::CLK_PIN_SEL) | (Self::CLK_PIN_SEL & ((val as u32) << 16)))
     }
-    /// Get Clock Pin Select.
+    /// Get clock pin select.
     #[inline]
     pub const fn clk_pin_sel(self) -> u8 {
         ((self.0 & Self::CLK_PIN_SEL) >> 16) as u8
     }
-    /// Set Bus Width Preset.
+    /// Set bus width preset.
     #[inline]
     pub const fn set_bus_width_preset(self, val: u8) -> Self {
         Self((self.0 & !Self::BUS_WIDTH_PRESET) | (Self::BUS_WIDTH_PRESET & ((val as u32) << 8)))
     }
-    /// Get Bus Width Preset.
+    /// Get bus width preset.
     #[inline]
     pub const fn bus_width_preset(self) -> u8 {
         ((self.0 & Self::BUS_WIDTH_PRESET) >> 8) as u8
     }
-    /// Set Number of Interrupt Input Pins.
+    /// Set number of interrupt input pins.
     #[inline]
     pub const fn set_int_input_pin_num(self, val: u8) -> Self {
         Self(
@@ -3203,24 +2974,19 @@ impl SharedBusControl {
                 | (Self::NUM_OF_INT_INPUT_PINS & ((val as u32) << 4)),
         )
     }
-    /// Get Number of Interrupt Input Pins.
+    /// Get number of interrupt input pins.
     #[inline]
     pub const fn int_input_pin_num(self) -> u8 {
         ((self.0 & Self::NUM_OF_INT_INPUT_PINS) >> 4) as u8
     }
-    /// Set Number of Clock Pins.
-    #[inline]
-    pub const fn set_clk_pin_num(self, val: u8) -> Self {
-        Self((self.0 & !Self::NUM_OF_CLK_PINS) | (Self::NUM_OF_CLK_PINS & (val as u32)))
-    }
-    /// Get Number of Clock Pins.
+    /// Get number of clock pins.
     #[inline]
     pub const fn clk_pin_num(self) -> u8 {
         (self.0 & Self::NUM_OF_CLK_PINS) as u8
     }
 }
 
-/// Slot Interrupt Status Register.
+/// Slot interrupt status register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SlotInterruptStatus(u16);
@@ -3228,27 +2994,27 @@ pub struct SlotInterruptStatus(u16);
 impl SlotInterruptStatus {
     const INT_SIGNAL: u16 = 0xFF;
 
-    /// Get Interrupt Signal For Each Slot.
+    /// Get interrupt signal for each slot.
     #[inline]
     pub const fn int_signal(self) -> u16 {
         self.0 & Self::INT_SIGNAL
     }
 }
 
-/// Host Controller Version Register.
+/// Host controller version register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct HostControllerVersion(u16);
 
-/// SD Host Specification Version.
+/// SD host specification version.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SpecificVersion {
-    /// SD Host Specification Version 1.00.
+    /// SD host specification version 1.00.
     SDHostSpecificVersion1,
-    /// SD Host Specification Version 2.00.
-    /// Including the feature of the ADMA and Test Register.
+    /// SD host specification version 2.00.
+    /// Including the feature of the ADMA and test register.
     SDHostSpecificVersion2,
-    /// SD Host Specification Version 3.00.
+    /// SD host specification version 3.00.
     SDHostSpecificVersion3,
 }
 
@@ -3256,24 +3022,14 @@ impl HostControllerVersion {
     const VENDOR_VERSION: u16 = 0xFF << 8;
     const SPECIFIC_VERION: u16 = 0xFF;
 
-    /// Set Vendor Version Number.
+    /// Get vendor version number.
     /// This status is reserved for the vendor version number.
-    /// The Host Driver should not use this status.
-    #[inline]
-    pub const fn set_vendor_version(self, val: u8) -> Self {
-        Self((self.0 & !Self::VENDOR_VERSION) | (Self::VENDOR_VERSION & ((val as u16) << 8)))
-    }
-    /// Get Vendor Version Number.
+    /// The host driver should not use this status.
     #[inline]
     pub const fn vendor_version(self) -> u8 {
         ((self.0 & Self::VENDOR_VERSION) >> 8) as u8
     }
-    /// Set Specification Version.
-    #[inline]
-    pub const fn set_specific_version(self, val: SpecificVersion) -> Self {
-        Self((self.0 & !Self::SPECIFIC_VERION) | (Self::SPECIFIC_VERION & (val as u16)))
-    }
-    /// Get Specification Version.
+    /// Get specification version.
     #[inline]
     pub const fn specific_version(self) -> SpecificVersion {
         match self.0 & Self::SPECIFIC_VERION {
@@ -3285,7 +3041,7 @@ impl HostControllerVersion {
     }
 }
 
-/// SD Extra Parameters Register.
+/// SD extra parameters register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct SDExtraParameters(u32);
@@ -3297,37 +3053,37 @@ impl SDExtraParameters {
     const SQU_EMPTY_CHK: u32 = 0x1 << 4;
     const BOOT_ACK: u32 = 0x1 << 3;
 
-    /// Set Generator Pad Clock Counter.
+    /// Set generator pad clock counter.
     #[inline]
     pub const fn set_gen_clk_cnt(self, val: u8) -> Self {
         Self((self.0 & !Self::GEN_PAD_CLK_CNT) | (Self::GEN_PAD_CLK_CNT & ((val as u32) << 24)))
     }
-    /// Get Generator Pad Clock Counter.
+    /// Get generator pad clock counter.
     #[inline]
     pub const fn gen_clk_cnt(self) -> u8 {
         ((self.0 & Self::GEN_PAD_CLK_CNT) >> 24) as u8
     }
-    /// Set Generator Pad Clock On bit.
+    /// Set generator pad clock on bit.
     #[inline]
     pub const fn set_gen_clk(self) -> Self {
         Self((self.0 & !Self::GEN_PAD_CLK_ON) | (Self::GEN_PAD_CLK_ON & (1 << 6)))
     }
-    /// Unset Generator Pad Clock On bit.
+    /// Unset generator pad clock on bit.
     #[inline]
     pub const fn unset_gen_clk(self) -> Self {
         Self((self.0 & !Self::GEN_PAD_CLK_ON) | (Self::GEN_PAD_CLK_ON & (0 << 6)))
     }
-    /// Check if Generator Pad Clock is on.
+    /// Check if generator pad clock is on.
     #[inline]
     pub const fn is_gen_clk_on(self) -> bool {
         (self.0 & Self::GEN_PAD_CLK_ON) >> 6 == 1
     }
-    /// Set SQU Full Check bit.
+    /// Set SQU full check bit.
     #[inline]
     pub const fn set_squ_full(self) -> Self {
         Self((self.0 & !Self::SQU_FULL_CHK) | (Self::SQU_FULL_CHK & (1 << 5)))
     }
-    /// Unset SQU Full Check bit.
+    /// Unset SQU full check bit.
     #[inline]
     pub const fn unset_squ_full(self) -> Self {
         Self((self.0 & !Self::SQU_FULL_CHK) | (Self::SQU_FULL_CHK & (0 << 5)))
@@ -3337,12 +3093,12 @@ impl SDExtraParameters {
     pub const fn is_squ_full(self) -> bool {
         (self.0 & Self::SQU_FULL_CHK) >> 5 == 1
     }
-    /// Set SQU Empty Check bit.
+    /// Set SQU empty check bit.
     #[inline]
     pub const fn set_squ_empty(self) -> Self {
         Self((self.0 & !Self::SQU_EMPTY_CHK) | (Self::SQU_EMPTY_CHK & (1 << 4)))
     }
-    /// Unset SQU Empty Check bit.
+    /// Unset SQU empty check bit.
     #[inline]
     pub const fn unset_squ_empty(self) -> Self {
         Self((self.0 & !Self::SQU_EMPTY_CHK) | (Self::SQU_EMPTY_CHK & (0 << 4)))
@@ -3352,12 +3108,12 @@ impl SDExtraParameters {
     pub const fn is_squ_empty(self) -> bool {
         (self.0 & Self::SQU_EMPTY_CHK) >> 4 == 1
     }
-    /// Set Boot Ack bit.
+    /// Set boot ack bit.
     #[inline]
     pub const fn set_boot_ack(self) -> Self {
         Self((self.0 & !Self::BOOT_ACK) | (Self::BOOT_ACK & (1 << 3)))
     }
-    /// Unset Boot Ack bit.
+    /// Unset boot ack bit.
     #[inline]
     pub const fn unset_boot_ack(self) -> Self {
         Self((self.0 & !Self::BOOT_ACK) | (Self::BOOT_ACK & (0 << 3)))
@@ -3369,12 +3125,12 @@ impl SDExtraParameters {
     }
 }
 
-/// FIFO Parameters Register.
+/// FIFO parameters register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct FIFOParameters(u32);
+pub struct FifoParameters(u32);
 
-impl FIFOParameters {
+impl FifoParameters {
     const _PRE_GATE_CLK_CNT: u32 = 0xF << 16;
     const _PDLVMC: u32 = 0x1 << 14;
     const _PDFVSSM: u32 = 0x1 << 13;
@@ -3392,12 +3148,12 @@ impl FIFOParameters {
     // TODO
 }
 
-/// SPI Mode Register.
+/// SPI mode register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct SPIMode(u16);
+pub struct SpiMode(u16);
 
-impl SPIMode {
+impl SpiMode {
     const SPI_ERR_TOKEN: u16 = 0x1F << 8;
     const SPI_EN: u16 = 0x1;
 
@@ -3428,7 +3184,7 @@ impl SPIMode {
     }
 }
 
-/// Clock and Burst Size Setup Register.
+/// Clock and burst size setup register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ClockAndBurstSizeSetup(u16);
@@ -3446,12 +3202,12 @@ impl ClockAndBurstSizeSetup {
     // TODO
 }
 
-/// CE-ATA Register.
+/// CE-ATA register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct CEATA(u32);
+pub struct CeAta(u32);
 
-impl CEATA {
+impl CeAta {
     const _CHK_CPL: u32 = 0x1 << 31;
     const _SND_CPL: u32 = 0x1 << 30;
     const _CEATA_CARD: u32 = 0x1 << 29;
@@ -3468,12 +3224,12 @@ impl CEATA {
     // TODO
 }
 
-/// PAD I/O Setup Register.
+/// PAD I/O setup register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct PADIOSetup(u32);
+pub struct PadIoSetup(u32);
 
-impl PADIOSetup {
+impl PadIoSetup {
     const _ECO_REG: u32 = 0xF << 16;
     const _INAND_SEL: u32 = 0x1 << 1;
     const _ASYNC_IO_EN: u32 = 0x1;
@@ -3481,12 +3237,12 @@ impl PADIOSetup {
     // TODO
 }
 
-/// RX Configuration Register.
+/// RX configuration register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct RXConfiguration(u32);
+pub struct RxConfiguration(u32);
 
-impl RXConfiguration {
+impl RxConfiguration {
     const _TUNING_DLY_INC: u32 = 0x3FF << 18;
     const _SDCLK_DELAY: u32 = 0x3FF << 8;
     const _SDCLK_SEL1: u32 = 0x3 << 2;
@@ -3495,12 +3251,12 @@ impl RXConfiguration {
     // TODO
 }
 
-/// TX Configuration Register.
+/// TX configuration register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct TXConfiguration(u32);
+pub struct TxConfiguration(u32);
 
-impl TXConfiguration {
+impl TxConfiguration {
     const _TX_MUX_SEL: u32 = 0x1 << 31;
     const TX_INT_CLK_SEL: u32 = 0x1 << 30;
     const _TX_HOLD_DELAY1: u32 = 0x3FF << 16;
@@ -3519,12 +3275,12 @@ impl TXConfiguration {
     // TODO
 }
 
-/// TUNING CONFIG Register.
+/// Tuning config register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct TUNINGConfiguration(u32);
+pub struct TuningConfiguration(u32);
 
-impl TUNINGConfiguration {
+impl TuningConfiguration {
     const _TUNING_SUCCESS_CNT: u32 = 0x3F << 24;
     const _TUNING_CLK_DLY: u32 = 0x3FF << 14;
     const _TUNING_WD_CNT: u32 = 0x3F << 8;
@@ -3537,7 +3293,7 @@ impl TUNINGConfiguration {
 // TODO remove allow(dead_code)
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum SDHTransFlag {
+enum SdhTransFlag {
     None = 0x00000000,
     EnDma = 0x00000001,              // Enable DMA.
     EnBlkCount = 0x00000002,         // Enable block count.
@@ -3548,7 +3304,7 @@ enum SDHTransFlag {
     Resp136Bits = 0x00010000,        // Response is 136 bits length.
     Resp48Bits = 0x00020000,         // Response is 48 bits length.
     Resp48BitsWithBusy = 0x00030000, // Response is 48 bits length with busy status.
-    EnCrcCheck = 0x00080000,         // Enable CRC check.
+    EnCrcCheck = 0x00080000,         // Enable crc check.
     EnIndexCheck = 0x00100000,       // Enable index check.
     DataPresent = 0x00200000,        // Data present.
     Suspend = 0x00400000,            // Suspend command.
@@ -3561,7 +3317,7 @@ enum SDHTransFlag {
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
-enum SDHResp {
+enum SdhResp {
     None,
     R1,
     R5,
@@ -3581,18 +3337,66 @@ fn sleep_ms(n: u32) {
     }
 }
 
+/// SDH config.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Config {
+    bus_width_mode: BusWidthMode,
+    transfer_width: TransferWidth,
+    speed_mode: SpeedMode,
+    dma_mode: DmaMode,
+    // TODO: implment more configurations if necessary.
+}
+
+impl Config {
+    /// Default SDH config.
+    #[inline]
+    pub const fn default() -> Self {
+        Self {
+            bus_width_mode: BusWidthMode::SelectByDataTransferWidth,
+            transfer_width: TransferWidth::OneBitMode,
+            speed_mode: SpeedMode::HighSpeed,
+            dma_mode: DmaMode::None,
+        }
+    }
+    /// Set bus width mode.
+    #[inline]
+    pub const fn bus_width_mode(mut self, bus_width_mode: BusWidthMode) -> Self {
+        self.bus_width_mode = bus_width_mode;
+        self
+    }
+    /// Set transfer width.
+    #[inline]
+    pub const fn transfer_width(mut self, transfer_width: TransferWidth) -> Self {
+        self.transfer_width = transfer_width;
+        self
+    }
+    /// Set speed mode.
+    #[inline]
+    pub const fn speed_mode(mut self, speed_mode: SpeedMode) -> Self {
+        self.speed_mode = speed_mode;
+        self
+    }
+    /// Set DMA mode.
+    #[inline]
+    pub const fn dma_mode(mut self, dma_mode: DmaMode) -> Self {
+        self.dma_mode = dma_mode;
+        self
+    }
+}
+
 /// Managed Secure Digital Host Controller peripheral.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Sdh<SDH, PADS, const I: usize> {
     sdh: SDH,
     pads: PADS,
+    config: Config,
     block_count: u32,
 }
 
 impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I> {
     /// Create a new instance of the SDH peripheral.
     #[inline]
-    pub fn new(sdh: SDH, pads: PADS, glb: &glb::v2::RegisterBlock) -> Self
+    pub fn new(sdh: SDH, pads: PADS, config: Config, glb: &glb::v2::RegisterBlock) -> Self
     where
         PADS: Pads<I>,
     {
@@ -3624,11 +3428,28 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         // Miscellaneous settings.
         unsafe {
             // SDH_DMA_EN.
-            sdh.transfer_mode.modify(|val| val.disable_dma());
+            match config.dma_mode {
+                DmaMode::None => sdh.transfer_mode.modify(|val| val.disable_dma()),
+                DmaMode::SDMA => {
+                    if sdh.capabilities.read().is_sdma_supported() {
+                        sdh.transfer_mode.modify(|val| val.enable_dma());
+                    } else {
+                        sdh.transfer_mode.modify(|val| val.disable_dma())
+                    }
+                }
+                DmaMode::ADMA2 => {
+                    if sdh.capabilities.read().is_adma2_supported() {
+                        sdh.transfer_mode.modify(|val| val.enable_dma());
+                    } else {
+                        sdh.transfer_mode.modify(|val| val.disable_dma())
+                    }
+                }
+            }
             sdh.host_control_1.modify(|val| {
-                val.set_bus_width(BusWidthMode::SelectByDataTransferWidth) // SDH_EX_DATA_WIDTH.
-                    .set_transfer_width(TransferWidth::OneBitMode) // SDH_DATA_WIDTH.
-                    .set_speed_mode(SpeedMode::HighSpeed) // SDH_HI_SPEED_EN.
+                val.set_bus_width(config.bus_width_mode) // SDH_EX_DATA_WIDTH.
+                    .set_transfer_width(config.transfer_width) // SDH_DATA_WIDTH.
+                    .set_speed_mode(config.speed_mode) // SDH_HI_SPEED_EN.
+                    .set_dma_mode(config.dma_mode)
             });
             // SDH_SD_BUS_VLT.
             sdh.power_control
@@ -3646,6 +3467,7 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         Self {
             sdh,
             pads,
+            config,
             block_count: 0,
         }
     }
@@ -3656,11 +3478,11 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
     pub fn init<W: Write>(&mut self, w: &mut W, debug: bool) {
         // Sdcard idle.
         loop {
-            self.send_command(SDHResp::None, CmdType::Normal, 0, 0, false);
+            self.send_command(SdhResp::None, CmdType::Normal, 0, 0, false);
             sleep_ms(100);
 
             // Send CMD8.
-            self.send_command(SDHResp::R7, CmdType::Normal, 8, 0x1AA, false);
+            self.send_command(SdhResp::R7, CmdType::Normal, 8, 0x1AA, false);
             sleep_ms(100);
             let data = self.get_resp();
             if data != 0x1AA {
@@ -3680,10 +3502,10 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
             const OCR_NBUSY: u32 = 0x80000000;
             const OCR_VOLTAGE_MASK: u32 = 0x007FFF80;
             const OCR_HCS: u32 = 0x40000000;
-            self.send_command(SDHResp::R1, CmdType::Normal, 55, 0, false);
+            self.send_command(SdhResp::R1, CmdType::Normal, 55, 0, false);
             sleep_ms(100);
             self.send_command(
-                SDHResp::R3,
+                SdhResp::R3,
                 CmdType::Normal,
                 41,
                 OCR_VOLTAGE_MASK & 0x00ff8000 | OCR_HCS,
@@ -3698,7 +3520,7 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         }
 
         // Send CMD2 to get CID.
-        self.send_command(SDHResp::R2, CmdType::Normal, 2, 0, false);
+        self.send_command(SdhResp::R2, CmdType::Normal, 2, 0, false);
         sleep_ms(100);
         let cid = self.get_resp();
         if debug {
@@ -3706,7 +3528,7 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         }
 
         // Send CMD3 to get RCA.
-        self.send_command(SDHResp::R6, CmdType::Normal, 3, 0, false);
+        self.send_command(SdhResp::R6, CmdType::Normal, 3, 0, false);
         sleep_ms(100);
         let rca = self.get_resp() as u32 >> 16;
         if debug {
@@ -3714,7 +3536,7 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         }
 
         // Send CMD9 to get CSD.
-        self.send_command(SDHResp::R2, CmdType::Normal, 9, rca << 16, false);
+        self.send_command(SdhResp::R2, CmdType::Normal, 9, rca << 16, false);
         sleep_ms(100);
         let csd_raw = self.get_resp();
         let (csd_structure, c_size) = parse_csd_v2(csd_raw);
@@ -3730,13 +3552,13 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         self.block_count = (c_size + 1) * 1024;
 
         // Send CMD7 to select card.
-        self.send_command(SDHResp::R1B, CmdType::Normal, 7, rca << 16, false);
+        self.send_command(SdhResp::R1B, CmdType::Normal, 7, rca << 16, false);
         sleep_ms(100);
 
         // Set 1 data len, CMD55 -> ACMD6.
-        self.send_command(SDHResp::R1, CmdType::Normal, 55, rca << 16, false);
+        self.send_command(SdhResp::R1, CmdType::Normal, 55, rca << 16, false);
         sleep_ms(100);
-        self.send_command(SDHResp::R1, CmdType::Normal, 6, 0x0, false);
+        self.send_command(SdhResp::R1, CmdType::Normal, 6, 0x0, false);
         sleep_ms(100);
 
         let kb_size = (self.block_count as f64) * (block_size as f64) / 1024.0;
@@ -3758,33 +3580,33 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
     #[inline]
     fn send_command(
         &self,
-        resp_type: SDHResp,
+        resp_type: SdhResp,
         cmd_type: CmdType,
         cmd_idx: u32,
         argument: u32,
         has_data: bool,
     ) {
-        let mut flag = SDHTransFlag::None as u32;
+        let mut flag = SdhTransFlag::None as u32;
         if has_data {
-            flag |= SDHTransFlag::DataPresent as u32;
+            flag |= SdhTransFlag::DataPresent as u32;
         }
         match resp_type {
-            SDHResp::None => {}
-            SDHResp::R1 | SDHResp::R5 | SDHResp::R6 | SDHResp::R7 => {
-                flag |= SDHTransFlag::Resp48Bits as u32
-                    | SDHTransFlag::EnCrcCheck as u32
-                    | SDHTransFlag::EnIndexCheck as u32;
+            SdhResp::None => {}
+            SdhResp::R1 | SdhResp::R5 | SdhResp::R6 | SdhResp::R7 => {
+                flag |= SdhTransFlag::Resp48Bits as u32
+                    | SdhTransFlag::EnCrcCheck as u32
+                    | SdhTransFlag::EnIndexCheck as u32;
             }
-            SDHResp::R1B | SDHResp::R5B => {
-                flag |= SDHTransFlag::Resp48BitsWithBusy as u32
-                    | SDHTransFlag::EnCrcCheck as u32
-                    | SDHTransFlag::EnIndexCheck as u32;
+            SdhResp::R1B | SdhResp::R5B => {
+                flag |= SdhTransFlag::Resp48BitsWithBusy as u32
+                    | SdhTransFlag::EnCrcCheck as u32
+                    | SdhTransFlag::EnIndexCheck as u32;
             }
-            SDHResp::R2 => {
-                flag |= SDHTransFlag::Resp136Bits as u32 | SDHTransFlag::EnCrcCheck as u32;
+            SdhResp::R2 => {
+                flag |= SdhTransFlag::Resp136Bits as u32 | SdhTransFlag::EnCrcCheck as u32;
             }
-            SDHResp::R3 | SDHResp::R4 => {
-                flag |= SDHTransFlag::Resp48Bits as u32;
+            SdhResp::R3 | SdhResp::R4 => {
+                flag |= SdhTransFlag::Resp48Bits as u32;
             }
         }
 
@@ -3825,9 +3647,9 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
             // SDH_ClearIntStatus(SDH_INT_BUFFER_READ_READY).
             self.sdh
                 .normal_interrupt_status
-                .write(NormalInterruptStatus(0x00000020));
+                .modify(|val| val.clear_buffer_read_ready());
         }
-        self.send_command(SDHResp::R1, CmdType::Normal, 17, block_idx, true);
+        self.send_command(SdhResp::R1, CmdType::Normal, 17, block_idx, true);
         while !self
             .sdh
             .normal_interrupt_status
@@ -3847,10 +3669,10 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         }
     }
 
-    /// Release the SDH instance and return the pads.
+    /// Release the SDH instance and return the pads and configs.
     #[inline]
-    pub fn free(self) -> (SDH, PADS) {
-        (self.sdh, self.pads)
+    pub fn free(self) -> (SDH, PADS, Config) {
+        (self.sdh, self.pads, self.config)
     }
 }
 
@@ -3893,19 +3715,19 @@ fn parse_csd_v2(csd: u128) -> (u32, u32) {
 pub trait Pads<const I: usize> {}
 
 impl<
-        'a,
-        'b,
-        'c,
-        'd,
-        'e,
-        'f,
-        const N1: usize,
-        const N2: usize,
-        const N3: usize,
-        const N4: usize,
-        const N5: usize,
-        const N6: usize,
-    > Pads<1>
+    'a,
+    'b,
+    'c,
+    'd,
+    'e,
+    'f,
+    const N1: usize,
+    const N2: usize,
+    const N3: usize,
+    const N4: usize,
+    const N5: usize,
+    const N6: usize,
+> Pads<1>
     for (
         Alternate<'a, N1, gpio::Sdh>,
         Alternate<'b, N2, gpio::Sdh>,
@@ -3958,16 +3780,16 @@ impl<'a> HasDat3Signal for Alternate<'a, 5, gpio::Sdh> {}
 mod tests {
     use super::RegisterBlock;
     use super::{
-        ADMAErrorStatus, ADMASystemAddress, Argument, AutoCMDErrorStatus, AutoCMDMode, BlockCount,
+        AdmaErrorStatus, AdmaSystemAddress, Argument, AutoCMDMode, AutoCmdErrorStatus, BlockCount,
         BlockGap, BlockMode, BlockSize, BufferDataPort, BusVoltage, BusWidthMode, Capabilities,
-        CardSignal, ClkGenMode, ClockControl, CmdType, Command, DMAMode, DataTransferMode,
+        CardSignal, ClkGenMode, ClockControl, CmdType, Command, DataTransferMode, DmaMode,
         ErrorInterruptSignalEnable, ErrorInterruptStatus, ErrorInterruptStatusEnable,
-        ForceEventAutoCMDErrorStatus, ForceEventErrorInterruptStatus, HostControl1, HostControl2,
+        ForceEventAutoCmdErrorStatus, ForceEventErrorInterruptStatus, HostControl1, HostControl2,
         HostControllerVersion, LedState, MaxCurrentCapabilities, NormalInterruptSignalEnable,
         NormalInterruptStatus, NormalInterruptStatusEnable, PowerControl, PresentState,
-        PresetValue, Response, ResponseType, SDExtraParameters, SPIMode, SharedBusControl,
-        SlotInterruptStatus, SlotType, SoftwareReset, SpecificVersion, SpeedMode, SystemAddress,
-        TXConfiguration, TimeoutControl, TransferMode, TransferWidth, WakeupControl,
+        PresetValue, Response, ResponseType, SDExtraParameters, SharedBusControl,
+        SlotInterruptStatus, SlotType, SoftwareReset, SpecificVersion, SpeedMode, SpiMode,
+        SystemAddress, TimeoutControl, TransferMode, TransferWidth, TxConfiguration, WakeupControl,
     };
     use memoffset::offset_of;
 
@@ -4023,7 +3845,7 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, adma_system_address), 0x58);
         assert_eq!(offset_of!(RegisterBlock, preset_value), 0x60);
         assert_eq!(
-            offset_of!(RegisterBlock, adma3_integrated_descriptor_address),
+            offset_of!(RegisterBlock, adma2_integrated_descriptor_address),
             0x78
         );
         assert_eq!(offset_of!(RegisterBlock, shared_bus_control), 0xe0);
@@ -4265,11 +4087,11 @@ mod tests {
         val = val.set_bus_width(BusWidthMode::SelectByDataTransferWidth);
         assert_eq!(val.0, 0x00);
 
-        val = val.set_dma_mode(DMAMode::ADMA2);
-        assert_eq!(val.dma_mode(), DMAMode::ADMA2);
+        val = val.set_dma_mode(DmaMode::ADMA2);
+        assert_eq!(val.dma_mode(), DmaMode::ADMA2);
         assert_eq!(val.0, 0x10);
-        val = val.set_dma_mode(DMAMode::SDMA);
-        assert_eq!(val.dma_mode(), DMAMode::SDMA);
+        val = val.set_dma_mode(DmaMode::SDMA);
+        assert_eq!(val.dma_mode(), DmaMode::SDMA);
         assert_eq!(val.0, 0x00);
 
         val = val.set_speed_mode(SpeedMode::HighSpeed);
@@ -4954,22 +4776,22 @@ mod tests {
 
     #[test]
     fn struct_auto_cmd_error_status_functions() {
-        let mut val = AutoCMDErrorStatus(0x0080);
+        let mut val = AutoCmdErrorStatus(0x0080);
         assert!(val.is_cmd_not_issued());
 
-        val = AutoCMDErrorStatus(0x0010);
+        val = AutoCmdErrorStatus(0x0010);
         assert!(val.if_auto_cmd_index_err_occurs());
 
-        val = AutoCMDErrorStatus(0x0008);
+        val = AutoCmdErrorStatus(0x0008);
         assert!(val.if_auto_cmd_end_bit_err_occurs());
 
-        val = AutoCMDErrorStatus(0x0004);
+        val = AutoCmdErrorStatus(0x0004);
         assert!(val.if_auto_cmd_crc_err_occurs());
 
-        val = AutoCMDErrorStatus(0x0002);
+        val = AutoCmdErrorStatus(0x0002);
         assert!(val.if_auto_cmd_timeout_err_occurs());
 
-        val = AutoCMDErrorStatus(0x0001);
+        val = AutoCmdErrorStatus(0x0001);
         assert!(val.is_auto_cmd12_not_executed());
     }
 
@@ -5020,203 +4842,118 @@ mod tests {
 
     #[test]
     fn struct_capabilities_functions() {
-        let mut val = Capabilities(0x0);
-
-        val = val.set_slot_type(SlotType::EmbeddedSlotforOneDevice);
+        let mut val = Capabilities(0x4000_0000_0000_0000);
         assert_eq!(val.slot_type(), SlotType::EmbeddedSlotforOneDevice);
         assert_eq!(val.0, 0x4000_0000_0000_0000);
-        val = val.set_slot_type(SlotType::SharedBusSlot);
+        val = Capabilities(0x8000_0000_0000_0000);
         assert_eq!(val.slot_type(), SlotType::SharedBusSlot);
-        assert_eq!(val.0, 0x8000_0000_0000_0000);
-        val = val.set_slot_type(SlotType::RemovableCardSlot);
+        val = Capabilities(0x0000_0000_0000_0000);
         assert_eq!(val.slot_type(), SlotType::RemovableCardSlot);
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
 
-        val = val.enable_64_bit_bus();
-        assert!(val.is_64_bit_bus_enabled());
-        assert_eq!(val.0, 0x1000_0000_0000_0000);
-        val = val.disable_64_bit_bus();
-        assert!(!val.is_64_bit_bus_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x1000_0000_0000_0000);
+        assert!(val.is_64_bit_bus_supported());
+        val = Capabilities(0x0000_0000_0000_0000);
+        assert!(!val.is_64_bit_bus_supported());
 
-        val = val.enable_1_8v();
-        assert!(val.is_1_8v_enabled());
-        assert_eq!(val.0, 0x0400_0000_0000_0000);
-        val = val.disable_1_8v();
-        assert!(!val.is_1_8v_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0400_0000_0000_0000);
+        assert!(val.is_1_8v_supported());
 
-        val = val.enable_3_0v();
-        assert!(val.is_3_0v_enabled());
-        assert_eq!(val.0, 0x0200_0000_0000_0000);
-        val = val.disable_3_0v();
-        assert!(!val.is_3_0v_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0200_0000_0000_0000);
+        assert!(val.is_3_0v_supported());
 
-        val = val.enable_3_3v();
-        assert!(val.is_3_3v_enabled());
-        assert_eq!(val.0, 0x0100_0000_0000_0000);
-        val = val.disable_3_3v();
-        assert!(!val.is_3_3v_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0100_0000_0000_0000);
+        assert!(val.is_3_3v_supported());
 
-        val = val.enable_suspend_resume();
-        assert!(val.is_suspend_resume_enabled());
-        assert_eq!(val.0, 0x0080_0000_0000_0000);
-        val = val.disable_suspend_resume();
-        assert!(!val.is_suspend_resume_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0080_0000_0000_0000);
+        assert!(val.is_suspend_resume_supported());
 
-        val = val.enable_sdma();
-        assert!(val.is_sdma_enabled());
-        assert_eq!(val.0, 0x0040_0000_0000_0000);
-        val = val.disable_sdma();
-        assert!(!val.is_sdma_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0040_0000_0000_0000);
+        assert!(val.is_sdma_supported());
 
-        val = val.enable_high_speed();
-        assert!(val.is_high_speed_enabled());
-        assert_eq!(val.0, 0x0020_0000_0000_0000);
-        val = val.disable_high_speed();
-        assert!(!val.is_high_speed_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0020_0000_0000_0000);
+        assert!(val.is_high_speed_supported());
 
-        val = val.enable_adma2();
-        assert!(val.is_adma2_enabled());
-        assert_eq!(val.0, 0x0008_0000_0000_0000);
-        val = val.disable_adma2();
-        assert!(!val.is_adma2_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0008_0000_0000_0000);
+        assert!(val.is_adma2_supported());
 
-        val = val.enable_8_bit_bus();
-        assert!(val.is_8_bit_bus_enabled());
-        assert_eq!(val.0, 0x0004_0000_0000_0000);
-        val = val.disable_8_bit_bus();
-        assert!(!val.is_8_bit_bus_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0004_0000_0000_0000);
+        assert!(val.is_8_bit_bus_supported());
 
-        val = val.set_max_block_len(0x3);
+        val = Capabilities(0x0003_0000_0000_0000);
         assert_eq!(val.max_block_len(), 0x3);
-        assert_eq!(val.0, 0x0003_0000_0000_0000);
 
-        val = Capabilities(0x0);
-        val = val.set_base_clk(0xFF);
+        val = Capabilities(0x0000_FF00_0000_0000);
         assert_eq!(val.base_clk(), 0xFF);
-        assert_eq!(val.0, 0x0000_FF00_0000_0000);
 
-        val = Capabilities(0x0);
-        val = val.set_timeout_clk_unit(0x1);
+        val = Capabilities(0x0000_0080_0000_0000);
         assert_eq!(val.timeout_clk_unit(), 0x1);
-        assert_eq!(val.0, 0x0000_0080_0000_0000);
 
-        val = Capabilities(0x0);
-        val = val.set_clk_multiplier(0xFF);
+        val = Capabilities(0x0000_0000_00FF_0000);
         assert_eq!(val.clk_multiplier(), 0xFF);
-        assert_eq!(val.0, 0x0000_0000_00FF_0000);
 
-        val = Capabilities(0x0);
-        val = val.set_re_tuning_modes(0x3);
+        val = Capabilities(0x0000_0000_0000_C000);
         assert_eq!(val.re_tuning_modes(), 0x3);
-        assert_eq!(val.0, 0x0000_0000_0000_C000);
 
-        val = Capabilities(0x0);
-        val = val.enable_tuning_for_sdr50();
-        assert!(val.is_tuning_for_sdr50_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_2000);
-        val = val.disable_tuning_for_sdr50();
-        assert!(!val.is_tuning_for_sdr50_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0000_0000_0000_2000);
+        assert!(val.is_tuning_for_sdr50_required());
 
-        val = val.set_tim_cnt_for_re_tuning(0xF);
+        val = Capabilities(0x0000_0000_0000_0F00);
         assert_eq!(val.tim_cnt_for_re_tuning(), 0xF);
-        assert_eq!(val.0, 0x0000_0000_0000_0F00);
 
-        val = Capabilities(0x0);
-        val = val.enable_driver_type_d();
-        assert!(val.is_driver_type_d_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0040);
-        val = val.disable_driver_type_d();
-        assert!(!val.is_driver_type_d_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0000_0000_0000_0040);
+        assert!(val.is_driver_type_d_supported());
 
-        val = val.enable_driver_type_c();
-        assert!(val.is_driver_type_c_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0020);
-        val = val.disable_driver_type_c();
-        assert!(!val.is_driver_type_c_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0000_0000_0000_0020);
+        assert!(val.is_driver_type_c_supported());
 
-        val = val.enable_driver_type_a();
-        assert!(val.is_driver_type_a_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0010);
-        val = val.disable_driver_type_a();
-        assert!(!val.is_driver_type_a_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0000_0000_0000_0010);
+        assert!(val.is_driver_type_a_supported());
 
-        val = val.enable_ddr50();
-        assert!(val.is_ddr50_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0004);
-        val = val.disable_ddr50();
-        assert!(!val.is_ddr50_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0000_0000_0000_0004);
+        assert!(val.is_ddr50_supported());
 
-        val = val.enable_sdr104();
-        assert!(val.is_sdr104_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0002);
-        val = val.disable_sdr104();
-        assert!(!val.is_sdr104_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0000_0000_0000_0002);
+        assert!(val.is_sdr104_supprted());
 
-        val = val.enable_sdr50();
-        assert!(val.is_sdr50_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0001);
-        val = val.disable_sdr50();
-        assert!(!val.is_sdr50_enabled());
-        assert_eq!(val.0, 0x0000_0000_0000_0000);
+        val = Capabilities(0x0000_0000_0000_0001);
+        assert!(val.is_sdr50_supported());
     }
 
     #[test]
     fn struct_max_current_capabilities_functions() {
-        let mut val = MaxCurrentCapabilities(0x0);
-
-        val = val.set_max_current_1_8v(0xFF);
+        let mut val = MaxCurrentCapabilities(0x0000_0000_00FF_0000);
         assert_eq!(val.max_current_1_8v(), 0xFF);
-        assert_eq!(val.0, 0x0000_0000_00FF_0000);
 
-        val = MaxCurrentCapabilities(0x0);
-        val = val.set_max_current_3_0v(0xFF);
+        val = MaxCurrentCapabilities(0x0000_0000_0000_FF00);
         assert_eq!(val.max_current_3_0v(), 0xFF);
-        assert_eq!(val.0, 0x0000_0000_0000_FF00);
 
-        val = MaxCurrentCapabilities(0x0);
-        val = val.set_max_current_3_3v(0xFF);
+        val = MaxCurrentCapabilities(0x0000_0000_0000_00FF);
         assert_eq!(val.max_current_3_3v(), 0xFF);
-        assert_eq!(val.0, 0x0000_0000_0000_00FF);
     }
 
     #[test]
     fn struct_force_event_auto_cmd_error_status_functions() {
-        let mut val = ForceEventAutoCMDErrorStatus(0x0);
+        let mut val = ForceEventAutoCmdErrorStatus(0x0);
         val = val.set_cmd_not_issued(0x1);
         assert_eq!(val.0, 0x0080);
 
-        val = ForceEventAutoCMDErrorStatus(0x0);
+        val = ForceEventAutoCmdErrorStatus(0x0);
         val = val.set_auto_cmd_index(0x1);
         assert_eq!(val.0, 0x0010);
 
-        val = ForceEventAutoCMDErrorStatus(0x0);
+        val = ForceEventAutoCmdErrorStatus(0x0);
         val = val.set_auto_cmd_end_bit(0x1);
         assert_eq!(val.0, 0x0008);
 
-        val = ForceEventAutoCMDErrorStatus(0x0);
+        val = ForceEventAutoCmdErrorStatus(0x0);
         val = val.set_auto_cmd_crc(0x1);
         assert_eq!(val.0, 0x0004);
 
-        val = ForceEventAutoCMDErrorStatus(0x0);
+        val = ForceEventAutoCmdErrorStatus(0x0);
         val = val.set_auto_cmd_timeout(0x1);
         assert_eq!(val.0, 0x0002);
 
-        val = ForceEventAutoCMDErrorStatus(0x0);
+        val = ForceEventAutoCmdErrorStatus(0x0);
         val = val.set_auto_cmd12_not_executed(0x1);
         assert_eq!(val.0, 0x0001);
     }
@@ -5270,16 +5007,16 @@ mod tests {
 
     #[test]
     fn struct_adma_error_status_functions() {
-        let mut val = ADMAErrorStatus(0x0000_0000_0000_0004);
+        let mut val = AdmaErrorStatus(0x0000_0000_0000_0004);
         assert!(val.if_adma_len_mismatch_err_occurs());
 
-        val = ADMAErrorStatus(0x0000_0000_0000_0001);
+        val = AdmaErrorStatus(0x0000_0000_0000_0001);
         assert_eq!(val.adma_err_state(), 0x1);
     }
 
     #[test]
     fn struct_adma_system_address_functions() {
-        let mut val = ADMASystemAddress(0x0);
+        let mut val = AdmaSystemAddress(0x0);
         val = val.set_adma_sys_addr(0xFFFF_FFFF_FFFF_FFFF);
         assert_eq!(val.adma_sys_addr(), 0xFFFF_FFFF_FFFF_FFFF);
         assert_eq!(val.0, 0xFFFF_FFFF_FFFF_FFFF);
@@ -5345,7 +5082,7 @@ mod tests {
     }
 
     #[test]
-    fn struct_adma3_integrated_descriptor_address_functions() {
+    fn struct_adma2_integrated_descriptor_address_functions() {
         // TODO
     }
 
@@ -5377,10 +5114,8 @@ mod tests {
         assert_eq!(val.int_input_pin_num(), 0x3);
         assert_eq!(val.0, 0x0000_0030);
 
-        val = SharedBusControl(0x0);
-        val = val.set_clk_pin_num(0x7);
+        val = SharedBusControl(0x0000_0007);
         assert_eq!(val.clk_pin_num(), 0x7);
-        assert_eq!(val.0, 0x0000_0007);
     }
 
     #[test]
@@ -5391,34 +5126,26 @@ mod tests {
 
     #[test]
     fn struct_host_controller_version_functions() {
-        let mut val = HostControllerVersion(0x0);
-        val = val.set_vendor_version(0xFF);
+        let mut val = HostControllerVersion(0xFF00);
         assert_eq!(val.vendor_version(), 0xFF);
-        assert_eq!(val.0, 0xFF00);
 
-        val = HostControllerVersion(0x0);
-        val = val.set_specific_version(SpecificVersion::SDHostSpecificVersion3);
+        val = HostControllerVersion(0x0002);
         assert_eq!(
             val.specific_version(),
             SpecificVersion::SDHostSpecificVersion3
         );
-        assert_eq!(val.0, 0x0002);
 
-        val = HostControllerVersion(0x0);
-        val = val.set_specific_version(SpecificVersion::SDHostSpecificVersion2);
+        val = HostControllerVersion(0x0001);
         assert_eq!(
             val.specific_version(),
             SpecificVersion::SDHostSpecificVersion2
         );
-        assert_eq!(val.0, 0x0001);
 
-        val = HostControllerVersion(0x0);
-        val = val.set_specific_version(SpecificVersion::SDHostSpecificVersion1);
+        val = HostControllerVersion(0x0000);
         assert_eq!(
             val.specific_version(),
             SpecificVersion::SDHostSpecificVersion1
         );
-        assert_eq!(val.0, 0x0000);
     }
 
     #[test]
@@ -5468,13 +5195,13 @@ mod tests {
 
     #[test]
     fn struct_spi_mode_functions() {
-        let mut val = SPIMode(0x0);
+        let mut val = SpiMode(0x0);
 
         val = val.set_spi_err_token(0x1F);
         assert_eq!(val.spi_err_token(), 0x1F);
         assert_eq!(val.0, 0x0000_1F00);
 
-        val = SPIMode(0x0);
+        val = SpiMode(0x0);
         val = val.enable_spi();
         assert!(val.is_spi_enabled());
         assert_eq!(val.0, 0x0000_0001);
@@ -5505,7 +5232,7 @@ mod tests {
 
     #[test]
     fn struct_tx_configuration_functions() {
-        let mut val = TXConfiguration(0x0);
+        let mut val = TxConfiguration(0x0);
         val = val.set_tx_int_clk_sel(0x1);
         assert_eq!(val.tx_int_clk_sel(), 0x1);
         assert_eq!(val.0, 0x4000_0000);

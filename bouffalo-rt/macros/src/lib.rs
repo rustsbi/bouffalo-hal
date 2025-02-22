@@ -4,7 +4,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
 use syn::spanned::Spanned;
-use syn::{parse, parse_macro_input, ItemFn, ReturnType, Type, Visibility};
+use syn::{ItemFn, ReturnType, Type, Visibility, parse, parse_macro_input};
 
 /// ROM runtime function entry.
 #[proc_macro_attribute]
@@ -50,7 +50,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     let inputs = f.sig.inputs;
 
     quote!(
-        #[export_name = "main"]
+        #[unsafe(no_mangle)]
         pub extern "C" fn main() -> ! {
             let (p, c) = bouffalo_rt::__rom_init_params(40_000_000);
             unsafe { __bouffalo_rt_macros__main(p, c) }
@@ -125,7 +125,7 @@ pub fn interrupt(args: TokenStream, input: TokenStream) -> TokenStream {
 
     quote!(
         #(#attrs)*
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub #unsafety extern "C" fn #ident() #output {
             #(#stmts)*
         }
@@ -191,8 +191,7 @@ pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
 
     quote!(
         #(#attrs)*
-        #[no_mangle]
-        #[export_name = "exceptions"]
+        #[unsafe(export_name = "exceptions")]
         pub #unsafety extern "C" fn #ident(#inputs) #output {
             #(#stmts)*
         }

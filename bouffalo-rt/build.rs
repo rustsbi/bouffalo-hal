@@ -1,11 +1,4 @@
 fn main() {
-    #[cfg(any(
-        feature = "bl616",
-        feature = "bl808-mcu",
-        feature = "bl808-dsp",
-        feature = "bl808-lp",
-        feature = "bl702"
-    ))]
     let (out, ld) = {
         use std::{env, path::PathBuf};
         let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
@@ -24,17 +17,8 @@ fn main() {
     #[cfg(feature = "bl702")]
     std::fs::write(&ld, LINKER_SCRIPT_BL702).unwrap();
 
-    #[cfg(any(
-        feature = "bl616",
-        feature = "bl808-mcu",
-        feature = "bl808-dsp",
-        feature = "bl808-lp",
-        feature = "bl702"
-    ))]
-    {
-        println!("cargo:rustc-link-arg=-T{}", ld.display());
-        println!("cargo:rustc-link-search={}", out.display());
-    }
+    println!("cargo:rustc-link-search={}", out.display());
+    let _ = (ld, out);
 }
 
 #[cfg(feature = "bl616")]

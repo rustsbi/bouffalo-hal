@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use bouffalo_rt::{entry, prelude::*, Clocks, Peripherals};
+use bouffalo_rt::{Clocks, Peripherals, entry, prelude::*};
 use embedded_hal::digital::OutputPin;
 use panic_halt as _;
 

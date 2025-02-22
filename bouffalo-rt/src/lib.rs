@@ -39,7 +39,7 @@ cfg_if::cfg_if! {
 }
 
 #[doc(hidden)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn default_handler() {}
 
 /// Flash configuration in ROM header.
@@ -329,7 +329,7 @@ pub struct HalPatchCfg {
 }
 
 /// Flash configuration at boot-time.
-#[link_section = ".head.flash"]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".head.flash"))]
 #[used]
 pub static FLASH_CONFIG: HalFlashConfig = HalFlashConfig::new(SpiFlashCfgType {
     io_mode: 0x11,
@@ -400,7 +400,7 @@ pub static FLASH_CONFIG: HalFlashConfig = HalFlashConfig::new(SpiFlashCfgType {
     time_e_sector: 300,
     time_e_32k: 1200,
     time_e_64k: 1200,
-    time_ce: 30000,
+    time_ce: 33000,
     time_page_pgm: 50,
     pd_delay: 20,
     qe_data: 0,
@@ -409,7 +409,7 @@ pub static FLASH_CONFIG: HalFlashConfig = HalFlashConfig::new(SpiFlashCfgType {
 /// Decrypt-on-fly region length.
 ///
 /// Fixed at 0 by now.
-#[link_section = ".head.base.aes-region"]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".head.base.aes-region"))]
 pub static BASIC_AES_REGION: u32 = 0;
 
 /// Image payload hash value.
@@ -417,13 +417,13 @@ pub static BASIC_AES_REGION: u32 = 0;
 /// It filles in 8 values of `0xdeadbeef` for we don't have method to emit
 /// hash value in compilation stages. The real value should be filled by
 /// following ROM image processing programs.
-#[link_section = ".head.base.hash"]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".head.base.hash"))]
 pub static BASIC_HASH: [u32; 8] = [0xdeadbeef; 8];
 
 /// Checksum of image header.
 ///
 /// Real value should be fixed by ROM image processing programs.
-#[link_section = ".head.crc32"]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".head.crc32"))]
 pub static CRC32: u32 = 0xdeadbeef;
 
 #[cfg(test)]
@@ -511,14 +511,14 @@ mod tests {
             time_e_sector: 300,
             time_e_32k: 1200,
             time_e_64k: 1200,
-            time_ce: 30000,
+            time_ce: 33000,
             time_page_pgm: 50,
             pd_delay: 20,
             qe_data: 0,
         };
         let test_config = HalFlashConfig::new(test_spi_flash_config);
         assert_eq!(test_config.magic, 0x47464346);
-        assert_eq!(test_config.crc32, 0x18c5feb5);
+        assert_eq!(test_config.crc32, 0x482adef8);
     }
 
     #[test]

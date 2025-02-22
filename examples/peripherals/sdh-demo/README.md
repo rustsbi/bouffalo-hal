@@ -1,4 +1,4 @@
-psram demo
+# SDH demo
 
 Build this example with:
 

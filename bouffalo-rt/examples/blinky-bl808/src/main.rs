@@ -3,7 +3,7 @@
 #![no_std]
 #![no_main]
 
-use bouffalo_rt::{entry, exception, interrupt, prelude::*, Clocks, Peripherals, TrapFrame};
+use bouffalo_rt::{Clocks, Peripherals, TrapFrame, entry, exception, interrupt, prelude::*};
 use embedded_hal::digital::OutputPin;
 use panic_halt as _;
 

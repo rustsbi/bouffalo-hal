@@ -110,16 +110,16 @@ where
 }
 
 impl<
-        'a,
-        'b,
-        'c,
-        'd,
-        const I1: usize,
-        const I2: usize,
-        const U: usize,
-        const N1: usize,
-        const N2: usize,
-    > Pads<U>
+    'a,
+    'b,
+    'c,
+    'd,
+    const I1: usize,
+    const I2: usize,
+    const U: usize,
+    const N1: usize,
+    const N2: usize,
+> Pads<U>
     for (
         (Alternate<'a, N1, Uart>, UartMux<'b, I1, MuxTxd<U>>),
         (Alternate<'c, N2, Uart>, UartMux<'d, I2, MuxRxd<U>>),
@@ -143,16 +143,16 @@ where
 }
 
 impl<
-        'a,
-        'b,
-        'c,
-        'd,
-        const I1: usize,
-        const I2: usize,
-        const U: usize,
-        const N1: usize,
-        const N2: usize,
-    > Pads<U>
+    'a,
+    'b,
+    'c,
+    'd,
+    const I1: usize,
+    const I2: usize,
+    const U: usize,
+    const N1: usize,
+    const N2: usize,
+> Pads<U>
     for (
         (Alternate<'a, N1, Uart>, UartMux<'b, I1, MuxTxd<U>>),
         (Alternate<'c, N2, Uart>, UartMux<'d, I2, MuxCts<U>>),
@@ -179,24 +179,24 @@ where
 }
 
 impl<
-        'a,
-        'b,
-        'c,
-        'd,
-        'e,
-        'f,
-        'g,
-        'h,
-        const I1: usize,
-        const I2: usize,
-        const I3: usize,
-        const I4: usize,
-        const U: usize,
-        const N1: usize,
-        const N2: usize,
-        const N3: usize,
-        const N4: usize,
-    > Pads<U>
+    'a,
+    'b,
+    'c,
+    'd,
+    'e,
+    'f,
+    'g,
+    'h,
+    const I1: usize,
+    const I2: usize,
+    const I3: usize,
+    const I4: usize,
+    const U: usize,
+    const N1: usize,
+    const N2: usize,
+    const N3: usize,
+    const N4: usize,
+> Pads<U>
     for (
         (Alternate<'a, N1, Uart>, UartMux<'b, I1, MuxTxd<U>>),
         (Alternate<'c, N2, Uart>, UartMux<'d, I2, MuxRxd<U>>),
