@@ -17,6 +17,7 @@ members = [
     "examples/peripherals/uart-demo",
     "examples/peripherals/uart-async-demo",
     "examples/peripherals/uart-cli-demo",
+    "examples/peripherals/uart-dma-demo",
     "examples/peripherals/sdcard-demo",
     "examples/peripherals/sdcard-gpt-demo",
     "examples/peripherals/psram-demo",
