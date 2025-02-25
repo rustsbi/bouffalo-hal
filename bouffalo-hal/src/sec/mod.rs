@@ -3,7 +3,14 @@
 //! This module provides access to the SEC hardware accelerator peripheral,
 //! which includes SHA, AES, TRNG, PKA, CDET and GMAC functionality.
 
-use volatile_register::RW;
+use volatile_register::{RO, RW};
+
+/// Endianness configuration
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Endian {
+    Little = 0,
+    Big = 1,
+}
 
 pub mod aes;
 pub mod cdet;
@@ -19,26 +26,30 @@ pub type Pka = pka::RegisterBlock;
 pub type Sha = sha::RegisterBlock;
 pub type Trng = trng::RegisterBlock;
 
-/// SEC ENG hardware registers block
+/// SEC ENG hardware registers block.
 #[repr(C)]
 pub struct RegisterBlock {
-    /// Secure Hash Algorithm (SHA) registers
+    /// Secure Hash Algorithm (SHA) registers.
     pub sha: Sha,
-    /// Advanced Encryption Standard (AES) registers
+    /// Advanced Encryption Standard (AES) registers.
     pub aes: Aes,
-    /// True Random Number Generator (TRNG) registers
+    /// True Random Number Generator (TRNG) registers.
     pub trng: Trng,
-    /// Public Key Accelerator (PKA) registers
+    /// Public Key Accelerator (PKA) registers.
     pub pka: Pka,
-    /// Clock Detection (CDET) registers
+    /// Clock Detection (CDET) registers.
     pub cdet: Cdet,
-    /// Galois Message Authentication Code (GMAC) registers
+    /// Galois Message Authentication Code (GMAC) registers.
     pub gmac: Gmac,
-    /// Control protection register for read access
-    pub control_protection_rd: RW<ControlProtectionRd>,
+    _reserved0: [u8; 2304],
+    /// Control protection register for read access.
+    pub control_protection_rd: RO<ControlProtectionRd>,
+    pub control_reserved_0: RW<u32>,
+    pub control_reserved_1: RW<u32>,
+    pub control_reserved_2: RW<u32>,
 }
 
-/// Control protection register
+/// Control protection register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ControlProtectionRd(u32);
@@ -58,79 +69,79 @@ impl ControlProtectionRd {
     const ENABLE_GMAC_ID1_ACCESS_RIGHT: u32 = 1 << 11;
     const AES_DEBUG_DISABLE: u32 = 1 << 31;
 
-    /// Check if SHA ID0 access right is enabled
+    /// Check if SHA ID0 access right is enabled.
     #[inline]
     pub fn is_sha_id0_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_SHA_ID0_ACCESS_RIGHT) != 0
     }
 
-    /// Check if SHA ID1 access right is enabled
+    /// Check if SHA ID1 access right is enabled.
     #[inline]
     pub fn is_sha_id1_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_SHA_ID1_ACCESS_RIGHT) != 0
     }
 
-    /// Check if AES ID0 access right is enabled
+    /// Check if AES ID0 access right is enabled.
     #[inline]
     pub fn is_aes_id0_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_AES_ID0_ACCESS_RIGHT) != 0
     }
 
-    /// Check if AES ID1 access right is enabled
+    /// Check if AES ID1 access right is enabled.
     #[inline]
     pub fn is_aes_id1_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_AES_ID1_ACCESS_RIGHT) != 0
     }
 
-    /// Check if TRNG ID0 access right is enabled
+    /// Check if TRNG ID0 access right is enabled.
     #[inline]
     pub fn is_trng_id0_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_TRNG_ID0_ACCESS_RIGHT) != 0
     }
 
-    /// Check if TRNG ID1 access right is enabled
+    /// Check if TRNG ID1 access right is enabled.
     #[inline]
     pub fn is_trng_id1_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_TRNG_ID1_ACCESS_RIGHT) != 0
     }
 
-    /// Check if PKA ID0 access right is enabled
+    /// Check if PKA ID0 access right is enabled.
     #[inline]
     pub fn is_pka_id0_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_PKA_ID0_ACCESS_RIGHT) != 0
     }
 
-    /// Check if PKA ID1 access right is enabled
+    /// Check if PKA ID1 access right is enabled.
     #[inline]
     pub fn is_pka_id1_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_PKA_ID1_ACCESS_RIGHT) != 0
     }
 
-    /// Check if CDET ID0 access right is enabled
+    /// Check if CDET ID0 access right is enabled.
     #[inline]
     pub fn is_cdet_id0_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_CDET_ID0_ACCESS_RIGHT) != 0
     }
 
-    /// Check if CDET ID1 access right is enabled
+    /// Check if CDET ID1 access right is enabled.
     #[inline]
     pub fn is_cdet_id1_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_CDET_ID1_ACCESS_RIGHT) != 0
     }
 
-    /// Check if GMAC ID0 access right is enabled
+    /// Check if GMAC ID0 access right is enabled.
     #[inline]
     pub fn is_gmac_id0_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_GMAC_ID0_ACCESS_RIGHT) != 0
     }
 
-    /// Check if GMAC ID1 access right is enabled
+    /// Check if GMAC ID1 access right is enabled.
     #[inline]
     pub fn is_gmac_id1_access_right_enabled(&self) -> bool {
         (self.0 & Self::ENABLE_GMAC_ID1_ACCESS_RIGHT) != 0
     }
 
-    /// Check if AES debug is disabled
+    /// Check if AES debug is disabled.
     #[inline]
     pub fn is_aes_debug_enabled(&self) -> bool {
         (self.0 & Self::AES_DEBUG_DISABLE) == 0
@@ -144,13 +155,13 @@ mod tests {
 
     #[test]
     fn struct_register_block_offset() {
-        assert_eq!(offset_of!(RegisterBlock, sha), 0x00);
-        assert_eq!(offset_of!(RegisterBlock, aes), 0x58);
-        assert_eq!(offset_of!(RegisterBlock, trng), 0xb0);
-        assert_eq!(offset_of!(RegisterBlock, pka), 0xfc);
-        assert_eq!(offset_of!(RegisterBlock, cdet), 0x114);
-        assert_eq!(offset_of!(RegisterBlock, gmac), 0x120);
-        assert_eq!(offset_of!(RegisterBlock, control_protection_rd), 0x130);
+        assert_eq!(offset_of!(RegisterBlock, sha), 0x000);
+        assert_eq!(offset_of!(RegisterBlock, aes), 0x100);
+        assert_eq!(offset_of!(RegisterBlock, trng), 0x200);
+        assert_eq!(offset_of!(RegisterBlock, pka), 0x300);
+        assert_eq!(offset_of!(RegisterBlock, cdet), 0x400);
+        assert_eq!(offset_of!(RegisterBlock, gmac), 0x500);
+        assert_eq!(offset_of!(RegisterBlock, control_protection_rd), 0xF00);
     }
 
     #[test]
