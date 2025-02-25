@@ -29,9 +29,9 @@ pub struct RegisterBlock {
     pub clock_config_0: RW<ClockConfig0>,
     /// Clock generation configuration 1.
     pub clock_config_1: RW<ClockConfig1>,
-    /// Clock generation configuration 1.
+    /// Clock generation configuration 2.
     pub clock_config_2: RW<ClockConfig2>,
-    /// Clock generation configuration 1.
+    /// Clock generation configuration 3.
     pub clock_config_3: RW<ClockConfig3>,
     _reserved7: [u8; 0x140],
     /// LDO12UHS config.
@@ -443,7 +443,7 @@ pub enum SpiMode {
     Slave = 1,
 }
 
-/// Clock generation configuration register 1.
+/// Clock generation configuration register 0.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct ClockConfig0(u32);

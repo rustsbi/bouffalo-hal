@@ -849,9 +849,8 @@ pub struct DmaChannelConfig {
 impl<DMA: Deref<Target = RegisterBlock>> Dma<DMA> {
     /// Create a new DMA Peripheral Interface instance.
     #[inline]
-    pub fn new(
+    pub fn new<const I: usize>(
         dma: DMA,
-        dma_idx: u8,
         channel: u8,
         channel_config: DmaChannelConfig,
         glb: &glb::v2::RegisterBlock,
@@ -859,34 +858,23 @@ impl<DMA: Deref<Target = RegisterBlock>> Dma<DMA> {
         unsafe {
             glb.clock_config_0.modify(|val| val.enable_dma());
             // TODO: more proper usage.
-            match dma_idx {
-                0 => glb.clock_config_1.modify(|val| val.enable_dma::<0>()),
-                1 => glb.clock_config_1.modify(|val| val.enable_dma::<1>()),
-                2 => glb.clock_config_1.modify(|val| val.enable_dma::<2>()),
-                _ => unreachable!(),
-            }
+            glb.clock_config_1.modify(|val| val.enable_dma::<I>());
             dma.global_config.modify(|val| val.enable_dma());
             dma.channels[channel as usize]
                 .config
                 .modify(|val| val.disable_ch());
-            if channel_config.src_addr_inc {
-                dma.channels[channel as usize]
-                    .control
-                    .modify(|val| val.enable_src_addr_inc());
-            } else {
-                dma.channels[channel as usize]
-                    .control
-                    .modify(|val| val.disable_src_addr_inc());
-            }
-            if channel_config.dst_addr_inc {
-                dma.channels[channel as usize]
-                    .control
-                    .modify(|val| val.enable_dst_addr_inc());
-            } else {
-                dma.channels[channel as usize]
-                    .control
-                    .modify(|val| val.disable_dst_addr_inc());
-            }
+            dma.channels[channel as usize].control.modify(|val| {
+                let val = if channel_config.src_addr_inc {
+                    val.enable_src_addr_inc()
+                } else {
+                    val.disable_src_addr_inc()
+                };
+                if channel_config.dst_addr_inc {
+                    val.enable_dst_addr_inc()
+                } else {
+                    val.disable_dst_addr_inc()
+                }
+            });
             dma.channels[channel as usize].control.modify(|val| {
                 val.set_src_transfer_width(channel_config.src_transfer_width)
                     .set_dst_transfer_width(channel_config.dst_transfer_width)
@@ -896,32 +884,18 @@ impl<DMA: Deref<Target = RegisterBlock>> Dma<DMA> {
             dma.channels[channel as usize]
                 .config
                 .modify(|val| val.set_dma_mode(channel_config.direction));
-            match channel_config.src_req {
-                DmaPeriphReq::Dma01(periph) => {
-                    dma.channels[channel as usize]
-                        .config
-                        .modify(|val| val.set_src_periph4dma01(periph));
+            dma.channels[channel as usize].config.modify(|val| {
+                let val = match channel_config.src_req {
+                    DmaPeriphReq::Dma01(periph) => val.set_src_periph4dma01(periph),
+                    DmaPeriphReq::Dma2(periph) => val.set_src_periph4dma2(periph),
+                    DmaPeriphReq::None => val,
+                };
+                match channel_config.dst_req {
+                    DmaPeriphReq::Dma01(periph) => val.set_dst_periph4dma01(periph),
+                    DmaPeriphReq::Dma2(periph) => val.set_dst_periph4dma2(periph),
+                    DmaPeriphReq::None => val,
                 }
-                DmaPeriphReq::Dma2(periph) => {
-                    dma.channels[channel as usize]
-                        .config
-                        .modify(|val| val.set_src_periph4dma2(periph));
-                }
-                DmaPeriphReq::None => {}
-            }
-            match channel_config.dst_req {
-                DmaPeriphReq::Dma01(periph) => {
-                    dma.channels[channel as usize]
-                        .config
-                        .modify(|val| val.set_dst_periph4dma01(periph));
-                }
-                DmaPeriphReq::Dma2(periph) => {
-                    dma.channels[channel as usize]
-                        .config
-                        .modify(|val| val.set_dst_periph4dma2(periph));
-                }
-                DmaPeriphReq::None => {}
-            }
+            });
             dma.channels[channel as usize]
                 .config
                 .modify(|val| val.enable_cplt_int().enable_err_int());
