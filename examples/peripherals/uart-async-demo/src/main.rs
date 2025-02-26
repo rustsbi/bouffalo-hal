@@ -27,8 +27,8 @@ async fn async_main(p: Peripherals<'_>, c: Clocks) {
         .uart3
         .with_interrupt(config, (tx, rx), &c, &UART3_STATE)
         .unwrap();
-    p.plic.set_priority(DspInterrupt::UART3, 1);
-    p.plic.enable(DspInterrupt::UART3, D0Machine);
+    p.plic.set_priority(DspInterrupt::Uart3, 1);
+    p.plic.enable(DspInterrupt::Uart3, D0Machine);
 
     serial.write_all(b"Hello async/await world!\n").await.ok();
 
