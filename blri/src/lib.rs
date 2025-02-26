@@ -136,6 +136,9 @@ pub fn check(f: &mut File) -> Result<Operations> {
     f.seek(SeekFrom::Start(0x00))?;
     let mut buf = vec![0u8; 0x15C];
     f.read_exact(&mut buf)?;
+    if let Some(ref new_hash) = refill_hash_operation {
+        buf[0x90..0xB0].copy_from_slice(new_hash);
+    }
     let calculated_header_crc = crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(&buf);
 
     f.seek(SeekFrom::Start(0x15C))?;
