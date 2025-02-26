@@ -10,7 +10,7 @@ publish = false
 bouffalo-hal = { path = "../../../bouffalo-hal", features = ["bl808"] }
 bouffalo-rt = { path = "../../../bouffalo-rt", features = ["bl808-dsp"] }
 panic-halt = "1.0.0"
-riscv = "0.12.1"
+riscv = "0.13.0"
 
 [[bin]]
 name = "jtag-demo"

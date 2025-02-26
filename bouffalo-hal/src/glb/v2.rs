@@ -845,11 +845,12 @@ impl Ldo12uhsConfig {
 #[cfg(test)]
 mod tests {
     use crate::glb::v2::SpiClockSource;
+    use crate::glb::v2::SpiMode;
 
     use super::{
-        Drive, Function, GpioConfig, I2cClockSource, I2cConfig, InterruptMode, Mode, Pull,
-        PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, SdhConfig, SpiConfig, UartConfig,
-        UartMuxGroup, UartSignal,
+        ClockConfig1, Drive, Function, GpioConfig, I2cClockSource, I2cConfig, InterruptMode, Mode,
+        ParamConfig, Pull, PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, SdhConfig, SpiConfig,
+        UartConfig, UartMuxGroup, UartSignal,
     };
     use memoffset::offset_of;
 
@@ -1123,6 +1124,27 @@ mod tests {
     }
 
     #[test]
+    fn struct_param_config_functions() {
+        let mut config = ParamConfig(0x0);
+
+        config = config.set_spi_mode::<0>(SpiMode::Master);
+        assert_eq!(config.0, 0x1000);
+        assert_eq!(config.spi_mode::<0>(), SpiMode::Master);
+
+        config = config.set_spi_mode::<0>(SpiMode::Slave);
+        assert_eq!(config.0, 0x0000);
+        assert_eq!(config.spi_mode::<0>(), SpiMode::Slave);
+
+        config = config.set_spi_mode::<1>(SpiMode::Master);
+        assert_eq!(config.0, 0x8000000);
+        assert_eq!(config.spi_mode::<1>(), SpiMode::Master);
+
+        config = config.set_spi_mode::<1>(SpiMode::Slave);
+        assert_eq!(config.0, 0x0000000);
+        assert_eq!(config.spi_mode::<1>(), SpiMode::Slave);
+    }
+
+    #[test]
     fn struct_sdh_config_functions() {
         let mut val = SdhConfig(0x0);
         val = val.enable_sdh_clk();
@@ -1141,4 +1163,74 @@ mod tests {
         assert_eq!(val.sdh_clk_div_len(), 0x7);
         assert_eq!(val.0, 0x0E00);
     }
+
+    #[test]
+    fn struct_clock_config1_functions() {
+        let mut config = ClockConfig1(0x0);
+
+        config = config.enable_uart::<0>();
+        assert_eq!(config.0, 0x10000);
+        assert!(config.is_uart_enabled::<0>());
+
+        config = config.disable_uart::<0>();
+        assert_eq!(config.0, 0x00000);
+        assert!(!config.is_uart_enabled::<0>());
+
+        config = config.enable_uart::<1>();
+        assert_eq!(config.0, 0x20000);
+        assert!(config.is_uart_enabled::<1>());
+
+        config = config.disable_uart::<1>();
+        assert_eq!(config.0, 0x00000);
+        assert!(!config.is_uart_enabled::<1>());
+
+        config = config.enable_uart::<2>();
+        assert_eq!(config.0, 0x4000000);
+        assert!(config.is_uart_enabled::<2>());
+
+        config = config.disable_uart::<2>();
+        assert_eq!(config.0, 0x0000000);
+        assert!(!config.is_uart_enabled::<2>());
+
+        config = config.enable_i2c();
+        assert_eq!(config.0, 0x80000);
+        assert!(config.is_i2c_enabled());
+
+        config = config.disable_i2c();
+        assert_eq!(config.0, 0x00000);
+        assert!(!config.is_i2c_enabled());
+
+        config = config.enable_pwm();
+        assert_eq!(config.0, 0x100000);
+        assert!(config.is_pwm_enabled());
+
+        config = config.disable_pwm();
+        assert_eq!(config.0, 0x000000);
+        assert!(!config.is_pwm_enabled());
+
+        config = config.enable_lz4d();
+        assert_eq!(config.0, 0x20000000);
+        assert!(config.is_lz4d_enabled());
+
+        config = config.disable_lz4d();
+        assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_lz4d_enabled());
+    }
+}
+
+#[test]
+fn struct_ldo12uhs_config_functions() {
+    let mut config = Ldo12uhsConfig(0x0);
+
+    config = config.power_up();
+    assert_eq!(config.0, 0x1);
+    assert!(config.is_powered_up());
+
+    config = config.power_down();
+    assert_eq!(config.0, 0x0);
+    assert!(!config.is_powered_up());
+
+    config = config.set_output_voltage(0x5);
+    assert_eq!(config.0, 0x500000);
+    assert_eq!(config.get_output_voltage(), 0x5);
 }
