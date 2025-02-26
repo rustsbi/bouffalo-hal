@@ -9,7 +9,7 @@ edition = "2024"
 bouffalo-hal = { path = "../../../../bouffalo-hal", features = ["bl808"] }
 panic-halt = "1.0.0"
 embedded-time = "0.12.1"
-riscv = "0.12.1"
+riscv = "0.13.0"
 
 [dependencies.bouffalo-rt]
 path = "../../../../bouffalo-rt"
