@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-mod device;
+mod lib;
 mod sdcard;
 mod utils;
 
@@ -13,10 +13,20 @@ use embedded_cli::{cli::CliBuilder, Command};
 use embedded_hal::{digital::OutputPin, spi::MODE_3};
 use embedded_io::{Read, Write};
 use embedded_time::rate::*;
+use heapless::String;
 use panic_halt as _;
 use utils::{format_hex, parse_hex, read_memory, write_memory};
 
-use crate::device::{Config, Device};
+use crate::lib::{Configs, Device, DynamicInfo};
+
+static DYNAMIC_INFO: DynamicInfo = DynamicInfo {
+    magic: 0x4942534f,
+    version: 2,
+    next_addr: 0x0,
+    next_mode: 1,
+    options: 0x0,
+    boot_hart: 0, // Hartid of the current core.
+};
 
 #[entry]
 fn main(p: Peripherals, c: Clocks) -> ! {
@@ -46,8 +56,8 @@ fn main(p: Peripherals, c: Clocks) -> ! {
         )
     };
     let mut d = Device { tx, rx, led, spi };
-    let mut config = Config::new();
-
+    let mut bootargs = String::new();
+    let mut opaque_addr: usize = 0;
     // Display welcome message.
     writeln!(d.tx, "Welcome to bouffaloader🦀!").ok();
 
@@ -56,33 +66,34 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     writeln!(d.tx, "PSRAM initialization success").ok();
 
     // Initialize sdcard and load files.
-    if sdcard::load_from_sdcard(&mut d, &mut config).is_err() {
+    if let Ok(opaque) = sdcard::load_from_sdcard(&mut d) {
+        opaque_addr = opaque;
+        writeln!(d.tx, "load files from sdcard success.").ok();
+    } else {
         writeln!(d.tx, "Load from sdcard fail").ok();
-        run_cli(&mut d, &mut config);
+        run_cli(&mut d, &mut bootargs);
     }
 
     // Check button states for CLI mode.
     let mut button_1 = p.gpio.io22.into_pull_up_input();
     let mut button_2 = p.gpio.io23.into_pull_up_input();
     if button_1.is_low().unwrap() && button_2.is_low().unwrap() {
-        run_cli(&mut d, &mut config);
+        run_cli(&mut d, &mut bootargs);
     }
 
     // Run payload.
-    run_payload();
+    run_payload(opaque_addr);
 }
 
 /// Executes the loaded payload
-fn run_payload() -> ! {
-    const ZIMAGE_ADDRESS: usize = 0x5000_0000; // Load address of Linux zImage
-    const DTB_ADDRESS: usize = 0x51FF_8000; // Address of the device tree blob
-    const HART_ID: usize = 0; // Hartid of the current core
+fn run_payload(opaque_addr: usize) -> ! {
+    const FIRMWARE_ADDRESS: usize = 0x5000_0000; // Load address of firmware.
 
-    type KernelEntry = unsafe extern "C" fn(hart_id: usize, dtb_addr: usize);
+    type Entry = unsafe extern "C" fn(hart_id: usize, dtb_addr: usize, dynamic_info: &DynamicInfo);
 
-    let kernel_entry: KernelEntry = unsafe { core::mem::transmute(ZIMAGE_ADDRESS) };
+    let entry: Entry = unsafe { core::mem::transmute(FIRMWARE_ADDRESS) };
     unsafe {
-        kernel_entry(HART_ID, DTB_ADDRESS);
+        entry(FIRMWARE_ADDRESS, opaque_addr, &DYNAMIC_INFO);
     }
 
     loop {}
@@ -98,7 +109,7 @@ fn run_cli<
     const I: usize,
 >(
     d: &mut Device<W, R, L, SPI, PADS, I>,
-    c: &mut Config,
+    b: &mut String<128>,
 ) -> ! {
     #[derive(Command)]
     enum Base<'a> {
@@ -163,6 +174,7 @@ fn run_cli<
         .unwrap();
 
     let mut led_state = PinState::Low;
+    let mut opaque_addr: usize = 0;
     loop {
         d.led.set_state(led_state).ok();
         let mut slice = [0];
@@ -183,13 +195,16 @@ fn run_cli<
                             PinState::Low => cli.writer().write_str("LED state: On").unwrap(),
                         },
                     },
-                    Base::Reload => {
-                        let _ = sdcard::load_from_sdcard(d, c);
-                    }
+                    Base::Reload => match sdcard::load_from_sdcard(d) {
+                        Ok(addr) => opaque_addr = addr,
+                        Err(_) => {
+                            writeln!(d.tx, "Load from sdcard fail").ok();
+                        }
+                    },
                     Base::Read { addr } => match parse_hex(addr) {
                         Some(a) => {
                             let val = read_memory(a);
-                            let mut buf = heapless::String::<48>::new();
+                            let mut buf = String::<48>::new();
                             let addr_fmt = format_hex(a, false);
                             let val_fmt = format_hex(val, false);
                             write!(&mut buf, "Read value from {}: {}", addr_fmt, val_fmt).unwrap();
@@ -208,12 +223,13 @@ fn run_cli<
                     },
                     Base::Bootargs { command } => match command {
                         Some(BootargsCommand::Get) => {
-                            writeln!(d.tx, "Bootargs: {:?}", c.bootargs).ok();
+                            writeln!(d.tx, "Bootargs: {:?}", b).ok();
                         }
                         Some(BootargsCommand::Set { bootarg }) => match bootarg {
                             Some(bootarg) => {
-                                c.bootargs = heapless::String::from_str(bootarg).unwrap();
-                                writeln!(d.tx, "Bootargs set to: {:?}", c.bootargs).ok();
+                                b.clear();
+                                b.push_str(bootarg);
+                                writeln!(d.tx, "Bootargs set to: {:?}", b).ok();
                             }
                             None => {
                                 writeln!(d.tx, "Please enter the parameters of bootargs set").ok();
@@ -224,11 +240,11 @@ fn run_cli<
                         }
                     },
                     Base::Boot => {
-                        run_payload();
+                        run_payload(opaque_addr);
                     }
                     Base::Print => {
                         // Print the information about the configs.bootargs variable
-                        writeln!(d.tx, "configs.bootargs = {:?}", c.bootargs).ok();
+                        writeln!(d.tx, "configs.bootargs = {:?}", b).ok();
                     }
                 }
                 Ok(())
