@@ -58,6 +58,10 @@ For bugs or suggestions, please [submit an issue](https://github.com/rustsbi/bou
 
 To contribute code, please follow our [contribution guidelines](https://github.com/rustsbi/slides/blob/main/2025/reports/Contributing%20to%20RustSBI.md). 
 
+## Minimum supported Rust version
+
+To compile the `bouffalo-hal` crates, you need at least stable Rust version of `rustc 1.85.0`.
+
 ## License
 
 This project is licensed under either of
