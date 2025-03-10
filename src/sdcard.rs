@@ -127,6 +127,8 @@ pub fn load_from_sdcard<
         }
     }
 
+    let root_dir = volume_mgr.open_root_dir(volume0).map_err(|_| ())?;
+
     // Load device tree blob.
     let Some(opaque) = config.configs.opaque else {
         writeln!(d.tx, "warning: /config.toml: cannot find opaque file path on key `configs.opaque`, using default configuration (zeroing `a1` for non-existing opaque file).").ok();
@@ -181,8 +183,6 @@ pub fn load_from_sdcard<
             return Err(());
         }
     }
-
-    volume_mgr.close_dir(root_dir).unwrap();
     Ok(OPAQUE_ADDRESS)
 }
 
@@ -225,6 +225,7 @@ pub fn open_file_by_path<T: BlockDevice>(
     let file = volume_mgr
         .open_file_in_dir(directory, file_name, Mode::ReadOnly)
         .map_err(|_| ())?;
+    volume_mgr.close_dir(directory).unwrap();
 
     Ok(file)
 }
@@ -260,7 +261,6 @@ pub fn is_dtb_format<T: BlockDevice>(
     if volume_mgr.read(file, &mut buffer).is_err() {
         return false;
     }
-    volume_mgr.close_file(file).ok();
 
     // Check if the first 4 bytes match the DTB magic number.
     let magic_number = u32::from_be_bytes(buffer);
