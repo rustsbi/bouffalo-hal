@@ -1,4 +1,5 @@
 use blri::Error;
+use blri::elf_to_bin;
 use clap::{Args, Parser, Subcommand};
 use inquire::Select;
 use serialport::SerialPort;
@@ -23,6 +24,8 @@ enum Commands {
     Patch(Patch),
     /// Flash the image to a device.
     Flash(Flash),
+    /// Convert ELF file to binary file.
+    Elf2bin(Elf2Bin),
 }
 
 #[derive(Args)]
@@ -40,6 +43,18 @@ struct Flash {
     /// The serial port to use for flashing. If not provided, a list of available ports will be shown.
     #[clap(short, long)]
     port: Option<String>,
+}
+
+#[derive(Args)]
+struct Elf2Bin {
+    /// The path to the input ELF file.
+    input_file: String,
+    /// The path to save the output binary file. If not provided, uses the input filename with .bin extension.
+    #[clap(short, long)]
+    output_file: Option<String>,
+    /// Whether to patch the output binary automatically.
+    #[clap(short, long)]
+    patch: bool,
 }
 
 fn main() {
@@ -64,6 +79,21 @@ fn main() {
                 }
             };
             flash_image(flash.image.clone(), port);
+        }
+        Commands::Elf2bin(elf2bin) => {
+            let input_file = elf2bin.input_file.clone();
+            // if output_file is not provided, use input filename with .bin extension
+            let output_file = elf2bin.output_file.clone().unwrap_or_else(|| {
+                let mut output = input_file.clone();
+                output.push_str(".bin");
+                output
+            });
+            elf_to_bin(&input_file, &output_file).expect("Unable to convert ELF to BIN");
+            if elf2bin.patch {
+                // TODO: add a inner `patch_image` for bytes to patch the output
+                // TODO: binary before saving into file system.
+                patch_image(output_file.clone(), output_file);
+            }
         }
     }
 }
