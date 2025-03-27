@@ -1,13 +1,10 @@
-use blri::Error;
-use blri::elf_to_bin;
+use blri::{EraseFlash, Error, GetBootInfo, IspCommand, IspError, WriteFlash, elf_to_bin};
 use clap::{Args, Parser, Subcommand};
 use inquire::Select;
-use serialport::SerialPort;
-use std::path::PathBuf;
 use std::{
-    cmp::min,
     fs::{self, File},
-    path::Path,
+    io::{Read, Write},
+    path::{Path, PathBuf},
     thread::sleep,
     time::Duration,
 };
@@ -212,38 +209,24 @@ fn flash_image(image: impl AsRef<Path>, port: &str) {
         .clear(serialport::ClearBuffer::Input)
         .expect("clear input buffer");
 
-    let boot_info_raw = send_command(&mut serial, 0x10, &[]).expect("get boot info");
-    if boot_info_raw.len() != 24 {
-        println!(
-            "error: read boot info failed. check if the port is correct and the device is supported."
-        );
-        return;
-    }
-    let chip_id: String = boot_info_raw[12..18]
-        .iter()
-        .rev()
-        .map(|b| format!("{:02X}", b))
-        .collect();
-    let flash_info_from_boot = u32::from_le_bytes([
-        boot_info_raw[8],
-        boot_info_raw[9],
-        boot_info_raw[10],
-        boot_info_raw[11],
-    ]);
-    let flash_pin = (flash_info_from_boot >> 14) & 0x1f;
+    let boot_info = send_command(&mut serial, GetBootInfo).expect("get boot info");
+    let chip_id = &boot_info.chip_id;
+    let flash_info_from_boot = boot_info.flash_info_from_boot;
+    let flash_pin = boot_info.flash_pin();
     println!(
-        "chip id: {}, flash info: {:08X}, flash pin: {:02X}",
+        "chip id: {:x?}, flash info: {:08X}, flash pin: {:02X}",
         chip_id, flash_info_from_boot, flash_pin
     );
 
-    send_command(
+    send_command_raw(
         &mut serial,
         0x3b,
         (0x00014100 | flash_pin).to_le_bytes().as_ref(),
+        false,
     )
     .expect("set flash pin");
 
-    let flash_id_raw = send_command(&mut serial, 0x36, &[]).expect("read flash id");
+    let flash_id_raw = send_command_raw(&mut serial, 0x36, &[], true).expect("read flash id");
     if flash_id_raw.len() != 4 {
         println!("error: read flash id failed.");
         return;
@@ -261,69 +244,101 @@ fn flash_image(image: impl AsRef<Path>, port: &str) {
             return;
         }
     };
-    send_command(&mut serial, 0x3b, flash_conf).expect("set flash config");
+    send_command_raw(&mut serial, 0x3b, flash_conf, false).expect("set flash config");
 
-    let begin_addr = 0x0_u32.to_le_bytes();
-    let end_addr = (0x0_u32 + image_data.len() as u32).to_le_bytes();
-    send_command(
-        &mut serial,
-        0x30,
-        &[&begin_addr[..], &end_addr[..]].concat(),
-    )
-    .expect("erase flash");
+    send_command(&mut serial, EraseFlash::new(0, image_data.len() as u32)).expect("erase flash");
 
-    let mut offset = 0;
-    while offset < image_data.len() {
-        let len = min(CHUNK_SIZE, image_data.len() - offset);
-        let chunk = &image_data[offset..offset + len];
-        send_command(
-            &mut serial,
-            0x31,
-            &[&(0x0_u32 + offset as u32).to_le_bytes(), chunk].concat(),
-        )
-        .expect("write image");
-        offset += len;
+    for (chunk_idx, chunk) in image_data.chunks(CHUNK_SIZE).enumerate() {
+        let offset = (chunk_idx * CHUNK_SIZE) as u32;
+        send_command(&mut serial, WriteFlash::new(offset, chunk)).expect("write image");
         println!("flashing: {}/{}", offset, image_data.len());
     }
 
     println!("flashing done.");
 }
 
-fn send_command(
-    serial: &mut Box<dyn SerialPort>,
+#[derive(thiserror::Error, Debug)]
+enum UartIspError {
+    #[error("UART response error")]
+    UartResponse(#[from] UartResponseError),
+    #[error("UART I/O error")]
+    UartIo(#[from] std::io::Error),
+    #[error("Isp protocol error")]
+    IspError(#[from] IspError),
+}
+
+fn send_command<T: IspCommand>(
+    serial: impl Read + Write,
+    command: T,
+) -> Result<T::Response, UartIspError> {
+    let mut data = vec![0u8; command.data_size()];
+    command.write_packet_data(&mut data);
+    let bytes = send_command_raw(serial, T::COMMAND, &data, T::RESPONSE_PAYLOAD)?;
+    let ans = T::parse_response(&bytes)?;
+    Ok(ans)
+}
+
+fn send_command_raw(
+    mut serial: impl Read + Write,
     command: u8,
     data: &[u8],
-) -> Result<Vec<u8>, Error> {
-    let len = u16::try_from(data.len())
-        .expect("data too long")
-        .to_le_bytes();
-    let mut checksum: u8 = len[0].wrapping_add(len[1]);
-    for byte in data {
-        checksum = checksum.wrapping_add(*byte);
+    response_payload: bool,
+) -> Result<Vec<u8>, UartIspError> {
+    if data.len() > u16::MAX as usize {
+        panic!("data too long");
     }
 
-    let mut packet = Vec::new();
-    packet.push(command);
-    packet.push(checksum);
-    packet.extend_from_slice(&len);
-    packet.extend_from_slice(data);
+    let packet_header = packet_header(command, data);
+    serial.write(&packet_header).expect("send packet header");
+    serial.write(&data).expect("send packet content");
 
-    serial.write(&packet).expect("send packet");
-    sleep(Duration::from_millis(200));
-    let mut buf = [0u8; 4];
-    serial.read(&mut buf).expect("read response");
-    if !buf.starts_with(b"OK") {
-        return Err(Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "response not OK",
-        )));
-    }
-    let response_len = u16::from_le_bytes([buf[2], buf[3]]) as usize;
-    let mut response = vec![0u8; response_len];
+    // sleep(Duration::from_millis(200));
+    let response_len = query_response(&mut serial, response_payload)?;
+    let mut response = vec![0u8; response_len as usize];
     serial
         .read_exact(&mut response)
         .expect("read response data");
     Ok(response)
+}
+
+// TODO: unit test for packet_header function
+fn packet_header(command: u8, data: &[u8]) -> [u8; 4] {
+    assert!(data.len() <= u16::MAX as usize);
+    let len_bytes = (data.len() as u16).to_le_bytes();
+    let checksum = len_bytes
+        .iter()
+        .chain(data)
+        .fold(0u8, |a, b| b.wrapping_add(a));
+
+    [command, checksum, len_bytes[0], len_bytes[1]]
+}
+
+// Ref: https://github.com/pine64/blisp/blob/e45941c45e2418b2bb7e3dab49468a8f4d132439/lib/blisp.c#L144
+#[derive(thiserror::Error, Debug)]
+enum UartResponseError {
+    #[error("Operation pending")]
+    Pending,
+    #[error("Operation failed")]
+    Failed,
+    #[error("Unknown operation")]
+    Unknown([u8; 2]),
+}
+
+fn query_response(mut serial: impl Read, response_payload: bool) -> Result<u16, UartIspError> {
+    let mut state = [0u8; 2];
+    serial.read_exact(&mut state[..2])?;
+    match &state {
+        b"OK" => {}
+        b"PD" => return Err(UartResponseError::Pending)?,
+        b"FL" => return Err(UartResponseError::Failed)?,
+        others => return Err(UartResponseError::Unknown(*others))?,
+    }
+    if response_payload {
+        let mut len_buf = [0u8; 2];
+        serial.read_exact(&mut len_buf)?;
+        return Ok(u16::from_le_bytes(len_buf));
+    }
+    Ok(0)
 }
 
 const FLASH_CONFIG_EF4018: &[u8] = &[
