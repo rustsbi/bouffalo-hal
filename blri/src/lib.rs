@@ -1,3 +1,6 @@
+mod isp;
+pub use isp::{BootInfo, DeviceReset, EraseFlash, GetBootInfo, IspCommand, IspError, WriteFlash};
+
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
 use object::{Object, ObjectSection, SectionFlags};
 use sha2::{Digest, Sha256};
