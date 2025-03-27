@@ -3,6 +3,8 @@ use object::{Object, ObjectSection, SectionFlags};
 use sha2::{Digest, Sha256};
 use std::fs::{self, File};
 use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::path::Path;
+
 const HEAD_LENGTH: u64 = 0x160;
 const HEAD_MAGIC: u32 = 0x42464e50;
 const FLASH_MAGIC: u32 = 0x46434647;
@@ -197,7 +199,7 @@ pub fn elf_to_bin_bytes(elf_data: &[u8]) -> Result<Vec<u8>> {
 }
 
 /// Wrapper function for converting ELF to binary, takes input and output file paths
-pub fn elf_to_bin(input_path: &str, output_path: &str) -> Result<()> {
+pub fn elf_to_bin(input_path: impl AsRef<Path>, output_path: impl AsRef<Path>) -> Result<()> {
     // Read the ELF file
     let elf_data = fs::read(input_path)?;
 

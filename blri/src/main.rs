@@ -3,9 +3,11 @@ use blri::elf_to_bin;
 use clap::{Args, Parser, Subcommand};
 use inquire::Select;
 use serialport::SerialPort;
+use std::path::PathBuf;
 use std::{
     cmp::min,
     fs::{self, File},
+    path::Path,
     thread::sleep,
     time::Duration,
 };
@@ -31,15 +33,15 @@ enum Commands {
 #[derive(Args)]
 struct Patch {
     /// The path to the image file that needs to be patched.
-    input_file: String,
+    input_file: PathBuf,
     /// The path to save the patched image file. If not provided, the input file will be overwritten.
-    output_file: Option<String>,
+    output_file: Option<PathBuf>,
 }
 
 #[derive(Args)]
 struct Flash {
     /// The path to the image file that needs to be flashed.
-    image: String,
+    image: PathBuf,
     /// The serial port to use for flashing. If not provided, a list of available ports will be shown.
     #[clap(short, long)]
     port: Option<String>,
@@ -48,10 +50,10 @@ struct Flash {
 #[derive(Args)]
 struct Elf2Bin {
     /// The path to the input ELF file.
-    input_file: String,
+    input_file: PathBuf,
     /// The path to save the output binary file. If not provided, uses the input filename with .bin extension.
     #[clap(short, long)]
-    output_file: Option<String>,
+    output_file: Option<PathBuf>,
     /// Whether to patch the output binary automatically.
     #[clap(short, long)]
     patch: bool,
@@ -59,10 +61,10 @@ struct Elf2Bin {
 
 fn main() {
     let args = Cli::parse();
-    match &args.command {
+    match args.command {
         Commands::Patch(patch) => {
-            let input_file = patch.input_file.clone();
-            let output_file = patch.output_file.clone().unwrap_or(input_file.clone());
+            let input_file = &patch.input_file;
+            let output_file = patch.output_file.as_ref().unwrap_or(&input_file);
             patch_image(input_file, output_file);
         }
         Commands::Flash(flash) => {
@@ -78,27 +80,25 @@ fn main() {
                         .expect("select serial port")
                 }
             };
-            flash_image(flash.image.clone(), port);
+            flash_image(&flash.image, &port);
         }
         Commands::Elf2bin(elf2bin) => {
-            let input_file = elf2bin.input_file.clone();
+            let input_file = elf2bin.input_file;
             // if output_file is not provided, use input filename with .bin extension
-            let output_file = elf2bin.output_file.clone().unwrap_or_else(|| {
-                let mut output = input_file.clone();
-                output.push_str(".bin");
-                output
-            });
-            elf_to_bin(&input_file, &output_file).expect("Unable to convert ELF to BIN");
+            let output_file = elf2bin
+                .output_file
+                .unwrap_or_else(|| input_file.with_extension("bin"));
+            elf_to_bin(&input_file, &output_file).expect("convert ELF to BIN");
             if elf2bin.patch {
                 // TODO: add a inner `patch_image` for bytes to patch the output
                 // TODO: binary before saving into file system.
-                patch_image(output_file.clone(), output_file);
+                patch_image(&output_file, &output_file);
             }
         }
     }
 }
 
-fn patch_image(input_file: String, output_file: String) {
+fn patch_image(input_file: impl AsRef<Path>, output_file: impl AsRef<Path>) {
     let mut f_in = File::open(&input_file).expect("open input file");
 
     let ops = match blri::check(&mut f_in) {
@@ -148,7 +148,7 @@ fn patch_image(input_file: String, output_file: String) {
         },
     };
 
-    if output_file != input_file {
+    if output_file.as_ref() != input_file.as_ref() {
         fs::copy(&input_file, &output_file).expect("copy input to output");
     }
 
@@ -163,10 +163,10 @@ fn patch_image(input_file: String, output_file: String) {
         .expect("open output file");
 
     blri::process(&mut f_out, &ops).expect("process file");
-    println!("patched image saved to {}", output_file);
+    println!("patched image saved to {}", output_file.as_ref().display());
 }
 
-fn flash_image(image: String, port: String) {
+fn flash_image(image: impl AsRef<Path>, port: &str) {
     const BAUDRATE: u32 = 2000000;
     const USB_INIT: &[u8] = b"BOUFFALOLAB5555RESET\0\x01";
     const HANDSHAKE: &[u8] = &[
@@ -174,7 +174,7 @@ fn flash_image(image: String, port: String) {
     ];
     const CHUNK_SIZE: usize = 4096;
 
-    let image_data = fs::read(&image).expect("read image file");
+    let image_data = fs::read(image).expect("read image file");
     if image_data.len() > 0xFFFF {
         println!("error: image too large.");
         return;
