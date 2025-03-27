@@ -27,6 +27,7 @@ enum Commands {
     Flash(Flash),
     /// Convert ELF file to binary file.
     Elf2bin(Elf2Bin),
+    /* TODO: Run(Run), */
 }
 
 #[derive(Args)]
@@ -85,15 +86,15 @@ fn main() {
                 patch_image(&output_path, &output_path);
             }
         }
+        // TODO: subcommand 'blri run'
+        /* Commands::Run(run) => {
+            let output_file = input_file.with_extension
+            let port = use_or_select_flash_port
+            elf_to_bin(input, output)
+            patch_image(output, output)
+            flash_image(output, port)
+        } */
     }
-    // TODO: ^ subcommand 'blri run'
-    /* Commands::Run(run) => {
-        let output_file = input_file.with_extension
-        let port = use_or_select_flash_port
-        elf_to_bin(input, output)
-        patch_image(output, output)
-        flash_image(output, port)
-    } */
 }
 
 fn patch_image(input_path: impl AsRef<Path>, output_path: impl AsRef<Path>) {
@@ -101,49 +102,10 @@ fn patch_image(input_path: impl AsRef<Path>, output_path: impl AsRef<Path>) {
 
     let ops = match blri::check(&mut f_in) {
         Ok(ops) => ops,
-        Err(e) => match e {
-            Error::MagicNumber { wrong_magic } => {
-                println!("error: incorrect magic number 0x{wrong_magic:08x}!");
-                return;
-            }
-            Error::HeadLength { wrong_length } => {
-                println!(
-                    "File is too short to include an image header, it only includes {wrong_length} bytes"
-                );
-                return;
-            }
-            Error::FlashConfigMagic { wrong_magic } => {
-                println!("error: incorrect flash config magic 0x{wrong_magic:08x}!");
-                return;
-            }
-            Error::ClockConfigMagic { wrong_magic } => {
-                println!("error: incorrect clock config magic 0x{wrong_magic:08x}!");
-                return;
-            }
-            Error::ImageOffsetOverflow {
-                file_length,
-                wrong_image_offset,
-                wrong_image_length,
-            } => {
-                println!(
-                    "error: file length is only {}, but offset is {} and image length is {}",
-                    file_length, wrong_image_offset, wrong_image_length
-                );
-                return;
-            }
-            Error::Sha256Checksum { wrong_checksum } => {
-                let mut wrong_checksum_hex = String::new();
-                for i in wrong_checksum {
-                    wrong_checksum_hex.push_str(&format!("{:02x}", i));
-                }
-                println!("error: wrong sha256 verification: {}.", wrong_checksum_hex);
-                return;
-            }
-            Error::Io(source) => {
-                println!("error: io error! {:?}", source);
-                return;
-            }
-        },
+        Err(e) => {
+            print_patch_error(e);
+            return;
+        }
     };
 
     // Copy the input file to output file, if those files are not the same.
@@ -168,6 +130,45 @@ fn patch_image(input_path: impl AsRef<Path>, output_path: impl AsRef<Path>) {
     println!("patched image saved to {}", output_path.as_ref().display());
 }
 
+fn print_patch_error(e: Error) {
+    match e {
+        Error::MagicNumber { wrong_magic } => {
+            println!("error: incorrect magic number 0x{wrong_magic:08x}!");
+        }
+        Error::HeadLength { wrong_length } => {
+            println!(
+                "File is too short to include an image header, it only includes {wrong_length} bytes"
+            );
+        }
+        Error::FlashConfigMagic { wrong_magic } => {
+            println!("error: incorrect flash config magic 0x{wrong_magic:08x}!");
+        }
+        Error::ClockConfigMagic { wrong_magic } => {
+            println!("error: incorrect clock config magic 0x{wrong_magic:08x}!");
+        }
+        Error::ImageOffsetOverflow {
+            file_length,
+            wrong_image_offset,
+            wrong_image_length,
+        } => {
+            println!(
+                "error: file length is only {}, but offset is {} and image length is {}",
+                file_length, wrong_image_offset, wrong_image_length
+            );
+        }
+        Error::Sha256Checksum { wrong_checksum } => {
+            let mut wrong_checksum_hex = String::new();
+            for i in wrong_checksum {
+                wrong_checksum_hex.push_str(&format!("{:02x}", i));
+            }
+            println!("error: wrong sha256 verification: {}.", wrong_checksum_hex);
+        }
+        Error::Io(source) => {
+            println!("error: io error! {:?}", source);
+        }
+    }
+}
+
 fn use_or_select_flash_port(port_parameter: &Option<String>) -> String {
     match port_parameter {
         Some(port) => port.clone(),
@@ -186,7 +187,7 @@ fn flash_image(image: impl AsRef<Path>, port: &str) {
     const BAUDRATE: u32 = 2000000;
 
     let image_data = fs::read(image).expect("read image file");
-    if image_data.len() > 0xFFFF {
+    if image_data.len() > u16::MAX as usize {
         println!("error: image too large.");
         return;
     }
