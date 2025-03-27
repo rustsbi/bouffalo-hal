@@ -1,4 +1,5 @@
 const GET_BOOT_INFO: u8 = 0x10;
+const DEVICE_RESET: u8 = 0x21;
 const ERASE_FLASH: u8 = 0x30;
 const WRITE_FLASH: u8 = 0x31;
 
@@ -63,6 +64,30 @@ impl IspCommand for GetBootInfo {
     }
 }
 
+pub struct DeviceReset;
+
+// Ref: https://github.com/pine64/blisp/blob/e45941c45e2418b2bb7e3dab49468a8f4d132439/lib/blisp.c#L403
+impl IspCommand for DeviceReset {
+    type Response = ();
+    const COMMAND: u8 = DEVICE_RESET;
+    const RESPONSE_PAYLOAD: bool = false;
+    fn data_size(&self) -> usize {
+        0
+    }
+    fn write_packet_data(&self, buf: &mut [u8]) {
+        assert!(buf.len() == 0);
+        // nothing to write
+    }
+    fn parse_response(bytes: &[u8]) -> Result<Self::Response, IspError> {
+        if bytes.len() != 0 {
+            return Err(IspError::ResponseLength {
+                wrong_length: bytes.len(),
+            });
+        }
+        Ok(())
+    }
+}
+
 #[repr(C)]
 pub struct EraseFlash {
     start: [u8; 4],
@@ -92,7 +117,11 @@ impl IspCommand for EraseFlash {
         buf[4..8].clone_from_slice(&self.end);
     }
     fn parse_response(bytes: &[u8]) -> Result<Self::Response, IspError> {
-        assert!(bytes.len() == 0);
+        if bytes.len() != 0 {
+            return Err(IspError::ResponseLength {
+                wrong_length: bytes.len(),
+            });
+        }
         Ok(())
     }
 }
@@ -125,7 +154,11 @@ impl<'a> IspCommand for WriteFlash<'a> {
         buf[4..].clone_from_slice(&self.payload);
     }
     fn parse_response(bytes: &[u8]) -> Result<Self::Response, IspError> {
-        assert!(bytes.len() == 0);
+        if bytes.len() != 0 {
+            return Err(IspError::ResponseLength {
+                wrong_length: bytes.len(),
+            });
+        }
         Ok(())
     }
 }

@@ -1,5 +1,6 @@
 use blri::{
-    BootInfo, EraseFlash, Error, GetBootInfo, IspCommand, IspError, WriteFlash, elf_to_bin,
+    BootInfo, DeviceReset, EraseFlash, Error, GetBootInfo, IspCommand, IspError, WriteFlash,
+    elf_to_bin,
 };
 use clap::{Args, Parser, Subcommand};
 use inquire::Select;
@@ -43,8 +44,10 @@ struct Flash {
     /// The path to the image file that needs to be flashed.
     image: PathBuf,
     /// The serial port to use for flashing. If not provided, a list of available ports will be shown.
-    #[clap(short, long)]
+    #[arg(short, long)]
     port: Option<String>,
+    #[arg(long, default_value_t = false)]
+    reset: bool,
 }
 
 #[derive(Args)]
@@ -52,10 +55,10 @@ struct Elf2Bin {
     /// The path to the input ELF file.
     input: PathBuf,
     /// The path to save the output binary file. If not provided, uses the input filename with .bin extension.
-    #[clap(short, long)]
+    #[arg(short, long)]
     output: Option<PathBuf>,
     /// Whether to patch the output binary automatically.
-    #[clap(short, long)]
+    #[arg(short, long)]
     patch: bool,
 }
 
@@ -71,7 +74,7 @@ fn main() {
         }
         Commands::Flash(flash) => {
             let port = use_or_select_flash_port(&flash.port);
-            flash_image(&flash.image, &port);
+            flash_image(&flash.image, &port, flash.reset);
         }
         Commands::Elf2bin(elf2bin) => {
             let input_path = elf2bin.input;
@@ -86,15 +89,15 @@ fn main() {
                 patch_image(&output_path, &output_path);
             }
         }
-        // TODO: subcommand 'blri run'
-        /* Commands::Run(run) => {
-            let output_file = input_file.with_extension
-            let port = use_or_select_flash_port
-            elf_to_bin(input, output)
-            patch_image(output, output)
-            flash_image(output, port)
-        } */
     }
+    // TODO: ^^ subcommand 'blri run'
+    /* Commands::Run(run) => {
+        let output_file = input_file.with_extension
+        let port = use_or_select_flash_port
+        elf_to_bin(input, output)
+        patch_image(output, output)
+        flash_image(output, port)
+    } */
 }
 
 fn patch_image(input_path: impl AsRef<Path>, output_path: impl AsRef<Path>) {
@@ -183,7 +186,7 @@ fn use_or_select_flash_port(port_parameter: &Option<String>) -> String {
     }
 }
 
-fn flash_image(image: impl AsRef<Path>, port: &str) {
+fn flash_image(image: impl AsRef<Path>, port: &str, device_reset: bool) {
     const BAUDRATE: u32 = 2000000;
 
     let image_data = fs::read(image).expect("read image file");
@@ -219,6 +222,11 @@ fn flash_image(image: impl AsRef<Path>, port: &str) {
     isp.write_flash(&image_data).expect("write image");
 
     println!("flashing done.");
+
+    if device_reset {
+        isp.device_reset().expect("reset device");
+        println!("resetting device...")
+    }
 }
 
 fn print_boot_info(boot_info: &BootInfo) {
@@ -309,6 +317,10 @@ impl UartIsp {
             println!("flashing: {}/{}", offset, image.len());
         }
         Ok(image.len())
+    }
+
+    pub fn device_reset(&mut self) -> Result<(), UartIspError> {
+        send_command(&mut self.serial, DeviceReset)
     }
 }
 

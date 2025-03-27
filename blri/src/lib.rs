@@ -1,5 +1,5 @@
 mod isp;
-pub use isp::{BootInfo, EraseFlash, GetBootInfo, IspCommand, IspError, WriteFlash};
+pub use isp::{BootInfo, DeviceReset, EraseFlash, GetBootInfo, IspCommand, IspError, WriteFlash};
 
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
 use object::{Object, ObjectSection, SectionFlags};
