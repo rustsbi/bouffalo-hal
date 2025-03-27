@@ -1,4 +1,6 @@
-use blri::{EraseFlash, Error, GetBootInfo, IspCommand, IspError, WriteFlash, elf_to_bin};
+use blri::{
+    BootInfo, EraseFlash, Error, GetBootInfo, IspCommand, IspError, WriteFlash, elf_to_bin,
+};
 use clap::{Args, Parser, Subcommand};
 use inquire::Select;
 use std::{
@@ -182,11 +184,6 @@ fn use_or_select_flash_port(port_parameter: &Option<String>) -> String {
 
 fn flash_image(image: impl AsRef<Path>, port: &str) {
     const BAUDRATE: u32 = 2000000;
-    const USB_INIT: &[u8] = b"BOUFFALOLAB5555RESET\0\x01";
-    const HANDSHAKE: &[u8] = &[
-        0x50, 0x00, 0x08, 0x00, 0x38, 0xF0, 0x00, 0x20, 0x00, 0x00, 0x00, 0x18,
-    ];
-    const CHUNK_SIZE: usize = 4096;
 
     let image_data = fs::read(image).expect("read image file");
     if image_data.len() > 0xFFFF {
@@ -194,22 +191,36 @@ fn flash_image(image: impl AsRef<Path>, port: &str) {
         return;
     }
 
-    let mut serial = serialport::new(port, BAUDRATE)
+    let serial = serialport::new(port, BAUDRATE)
         .timeout(std::time::Duration::from_secs(1))
         .open()
         .expect("open serial port");
 
-    serial.write(USB_INIT).expect("send usb_init");
-    sleep(Duration::from_millis(50));
-    serial.write(&[0x55; 300]).expect("send sync");
-    sleep(Duration::from_millis(300));
-    serial.write(HANDSHAKE).expect("send handshake");
-    sleep(Duration::from_millis(100));
-    serial
-        .clear(serialport::ClearBuffer::Input)
-        .expect("clear input buffer");
+    let mut isp = UartIsp::new(serial);
 
-    let boot_info = send_command(&mut serial, GetBootInfo).expect("get boot info");
+    let boot_info = isp.get_boot_info().expect("get boot info");
+    print_boot_info(&boot_info);
+
+    isp.set_flash_pin(boot_info.flash_pin())
+        .expect("set flash pin");
+
+    let flash_id = isp.read_flash_id().expect("read flash id");
+    println!("flash id: {:x?}", flash_id);
+
+    let flash_config = get_flash_config_for_flash_id(flash_id).expect("retrieve config for flash");
+
+    isp.set_flash_config(flash_config)
+        .expect("set flash config");
+
+    isp.erase_flash(0, image_data.len() as u32)
+        .expect("erase flash");
+
+    isp.write_flash(&image_data).expect("write image");
+
+    println!("flashing done.");
+}
+
+fn print_boot_info(boot_info: &BootInfo) {
     let chip_id = &boot_info.chip_id;
     let flash_info_from_boot = boot_info.flash_info_from_boot;
     let flash_pin = boot_info.flash_pin();
@@ -217,44 +228,87 @@ fn flash_image(image: impl AsRef<Path>, port: &str) {
         "chip id: {:x?}, flash info: {:08X}, flash pin: {:02X}",
         chip_id, flash_info_from_boot, flash_pin
     );
+}
 
-    send_command_raw(
-        &mut serial,
-        0x3b,
-        (0x00014100 | flash_pin).to_le_bytes().as_ref(),
-        false,
-    )
-    .expect("set flash pin");
-
-    let flash_id_raw = send_command_raw(&mut serial, 0x36, &[], true).expect("read flash id");
-    if flash_id_raw.len() != 4 {
-        println!("error: read flash id failed.");
-        return;
+fn get_flash_config_for_flash_id(flash_id: [u8; 3]) -> Option<&'static [u8]> {
+    const FLASH_CONFIG_W25Q128_EF4018: &[u8] = &[
+        0x04, 0x41, 0x01, 0x00, 0x04, 0x01, 0x00, 0x00, 0x66, 0x99, 0xFF, 0x03, 0x9F, 0x00, 0xB7,
+        0xE9, 0x04, 0xEF, 0x00, 0x01, 0xC7, 0x20, 0x52, 0xD8, 0x06, 0x02, 0x32, 0x00, 0x0B, 0x01,
+        0x0B, 0x01, 0x3B, 0x01, 0xBB, 0x00, 0x6B, 0x01, 0xEB, 0x02, 0xEB, 0x02, 0x02, 0x50, 0x00,
+        0x01, 0x00, 0x01, 0x01, 0x00, 0x02, 0x01, 0x01, 0x01, 0xAB, 0x01, 0x05, 0x35, 0x00, 0x00,
+        0x01, 0x31, 0x00, 0x00, 0x38, 0xFF, 0xA0, 0xFF, 0x77, 0x03, 0x02, 0x40, 0x77, 0x03, 0x02,
+        0xF0, 0x2C, 0x01, 0xB0, 0x04, 0xB0, 0x04, 0x05, 0x00, 0xE8, 0x80, 0x03, 0x00,
+    ];
+    match flash_id {
+        [0xef, 0x40, 0x18] => Some(FLASH_CONFIG_W25Q128_EF4018),
+        _ => None,
     }
-    let flash_id: String = flash_id_raw[0..3]
-        .iter()
-        .map(|b| format!("{:02X}", b))
-        .collect();
-    println!("flash id: {}", flash_id);
+}
 
-    let flash_conf = match flash_id.as_str() {
-        "EF4018" => FLASH_CONFIG_EF4018,
-        _ => {
-            println!("error: flash id not supported.");
-            return;
+struct UartIsp {
+    serial: Box<dyn serialport::SerialPort>,
+}
+
+impl UartIsp {
+    pub fn new(mut serial: Box<dyn serialport::SerialPort>) -> Self {
+        const USB_INIT: &[u8] = b"BOUFFALOLAB5555RESET\0\x01";
+        const HANDSHAKE: &[u8] = &[
+            0x50, 0x00, 0x08, 0x00, 0x38, 0xF0, 0x00, 0x20, 0x00, 0x00, 0x00, 0x18,
+        ];
+
+        serial.write(USB_INIT).expect("send usb_init");
+        sleep(Duration::from_millis(50));
+        serial.write(&[0x55; 300]).expect("send sync");
+        sleep(Duration::from_millis(300));
+        serial.write(HANDSHAKE).expect("send handshake");
+        sleep(Duration::from_millis(100));
+        serial
+            .clear(serialport::ClearBuffer::Input)
+            .expect("clear input buffer");
+        Self { serial }
+    }
+
+    pub fn get_boot_info(&mut self) -> Result<BootInfo, UartIspError> {
+        send_command(&mut self.serial, GetBootInfo)
+    }
+
+    pub fn set_flash_pin(&mut self, flash_pin: u32) -> Result<(), UartIspError> {
+        send_command_raw(
+            &mut self.serial,
+            0x3b,
+            (0x00014100 | flash_pin).to_le_bytes().as_ref(),
+            false,
+        )?;
+        Ok(())
+    }
+
+    pub fn read_flash_id(&mut self) -> Result<[u8; 3], UartIspError> {
+        let ans = send_command_raw(&mut self.serial, 0x36, &[], true)?;
+        if ans.len() != 4 {
+            panic!("incorrect length for read_flash_id")
         }
-    };
-    send_command_raw(&mut serial, 0x3b, flash_conf, false).expect("set flash config");
-
-    send_command(&mut serial, EraseFlash::new(0, image_data.len() as u32)).expect("erase flash");
-
-    for (chunk_idx, chunk) in image_data.chunks(CHUNK_SIZE).enumerate() {
-        let offset = (chunk_idx * CHUNK_SIZE) as u32;
-        send_command(&mut serial, WriteFlash::new(offset, chunk)).expect("write image");
-        println!("flashing: {}/{}", offset, image_data.len());
+        Ok([ans[0], ans[1], ans[2]])
     }
 
-    println!("flashing done.");
+    pub fn set_flash_config(&mut self, flash_config: &[u8]) -> Result<(), UartIspError> {
+        send_command_raw(&mut self.serial, 0x3b, flash_config, false)?;
+        Ok(())
+    }
+
+    pub fn erase_flash(&mut self, start: u32, end: u32) -> Result<(), UartIspError> {
+        send_command(&mut self.serial, EraseFlash::new(start, end))?;
+        Ok(())
+    }
+
+    pub fn write_flash(&mut self, image: &[u8]) -> Result<usize, UartIspError> {
+        const CHUNK_SIZE: usize = 4096;
+        for (chunk_idx, chunk) in image.chunks(CHUNK_SIZE).enumerate() {
+            let offset = (chunk_idx * CHUNK_SIZE) as u32;
+            send_command(&mut self.serial, WriteFlash::new(offset, chunk))?;
+            println!("flashing: {}/{}", offset, image.len());
+        }
+        Ok(image.len())
+    }
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -340,12 +394,3 @@ fn query_response(mut serial: impl Read, response_payload: bool) -> Result<u16, 
     }
     Ok(0)
 }
-
-const FLASH_CONFIG_EF4018: &[u8] = &[
-    0x04, 0x41, 0x01, 0x00, 0x04, 0x01, 0x00, 0x00, 0x66, 0x99, 0xFF, 0x03, 0x9F, 0x00, 0xB7, 0xE9,
-    0x04, 0xEF, 0x00, 0x01, 0xC7, 0x20, 0x52, 0xD8, 0x06, 0x02, 0x32, 0x00, 0x0B, 0x01, 0x0B, 0x01,
-    0x3B, 0x01, 0xBB, 0x00, 0x6B, 0x01, 0xEB, 0x02, 0xEB, 0x02, 0x02, 0x50, 0x00, 0x01, 0x00, 0x01,
-    0x01, 0x00, 0x02, 0x01, 0x01, 0x01, 0xAB, 0x01, 0x05, 0x35, 0x00, 0x00, 0x01, 0x31, 0x00, 0x00,
-    0x38, 0xFF, 0xA0, 0xFF, 0x77, 0x03, 0x02, 0x40, 0x77, 0x03, 0x02, 0xF0, 0x2C, 0x01, 0xB0, 0x04,
-    0xB0, 0x04, 0x05, 0x00, 0xE8, 0x80, 0x03, 0x00,
-];
