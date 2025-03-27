@@ -148,7 +148,11 @@ fn patch_image(input_file: impl AsRef<Path>, output_file: impl AsRef<Path>) {
         },
     };
 
-    if output_file.as_ref() != input_file.as_ref() {
+    // Copy the input file to output file, if those files are not the same.
+    // If files are the same, the following operations will reuse the input file
+    // as output file, avoiding creating new files.
+    let same_file = same_file::is_same_file(&output_file, &input_file).unwrap_or_else(|_| false);
+    if !same_file {
         fs::copy(&input_file, &output_file).expect("copy input to output");
     }
 
