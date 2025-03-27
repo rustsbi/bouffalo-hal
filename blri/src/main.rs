@@ -33,9 +33,9 @@ enum Commands {
 #[derive(Args)]
 struct Patch {
     /// The path to the image file that needs to be patched.
-    input_file: PathBuf,
+    input: PathBuf,
     /// The path to save the patched image file. If not provided, the input file will be overwritten.
-    output_file: Option<PathBuf>,
+    output: Option<PathBuf>,
 }
 
 #[derive(Args)]
@@ -50,56 +50,55 @@ struct Flash {
 #[derive(Args)]
 struct Elf2Bin {
     /// The path to the input ELF file.
-    input_file: PathBuf,
+    input: PathBuf,
     /// The path to save the output binary file. If not provided, uses the input filename with .bin extension.
     #[clap(short, long)]
-    output_file: Option<PathBuf>,
+    output: Option<PathBuf>,
     /// Whether to patch the output binary automatically.
     #[clap(short, long)]
     patch: bool,
 }
 
+/* TODO: struct Run { input_file: PathBuf, port: Option<String> } */
+
 fn main() {
     let args = Cli::parse();
     match args.command {
         Commands::Patch(patch) => {
-            let input_file = &patch.input_file;
-            let output_file = patch.output_file.as_ref().unwrap_or(&input_file);
-            patch_image(input_file, output_file);
+            let input_path = &patch.input;
+            let output_path = patch.output.as_ref().unwrap_or(&input_path);
+            patch_image(input_path, output_path);
         }
         Commands::Flash(flash) => {
-            let port = match &flash.port {
-                Some(port) => port.clone(),
-                None => {
-                    let ports = serialport::available_ports().expect("list serial ports");
-                    let mut port_names: Vec<String> =
-                        ports.iter().map(|p| p.port_name.clone()).collect();
-                    port_names.sort();
-                    Select::new("Select a serial port", port_names)
-                        .prompt()
-                        .expect("select serial port")
-                }
-            };
+            let port = use_or_select_flash_port(&flash.port);
             flash_image(&flash.image, &port);
         }
         Commands::Elf2bin(elf2bin) => {
-            let input_file = elf2bin.input_file;
+            let input_path = elf2bin.input;
             // if output_file is not provided, use input filename with .bin extension
-            let output_file = elf2bin
-                .output_file
-                .unwrap_or_else(|| input_file.with_extension("bin"));
-            elf_to_bin(&input_file, &output_file).expect("convert ELF to BIN");
+            let output_path = elf2bin
+                .output
+                .unwrap_or_else(|| input_path.with_extension("bin"));
+            elf_to_bin(&input_path, &output_path).expect("convert ELF to BIN");
             if elf2bin.patch {
                 // TODO: add a inner `patch_image` for bytes to patch the output
                 // TODO: binary before saving into file system.
-                patch_image(&output_file, &output_file);
+                patch_image(&output_path, &output_path);
             }
         }
     }
+    // TODO: ^ subcommand 'blri run'
+    /* Commands::Run(run) => {
+        let output_file = input_file.with_extension
+        let port = use_or_select_flash_port
+        elf_to_bin(input, output)
+        patch_image(output, output)
+        flash_image(output, port)
+    } */
 }
 
-fn patch_image(input_file: impl AsRef<Path>, output_file: impl AsRef<Path>) {
-    let mut f_in = File::open(&input_file).expect("open input file");
+fn patch_image(input_path: impl AsRef<Path>, output_path: impl AsRef<Path>) {
+    let mut f_in = File::open(&input_path).expect("open input file");
 
     let ops = match blri::check(&mut f_in) {
         Ok(ops) => ops,
@@ -151,9 +150,9 @@ fn patch_image(input_file: impl AsRef<Path>, output_file: impl AsRef<Path>) {
     // Copy the input file to output file, if those files are not the same.
     // If files are the same, the following operations will reuse the input file
     // as output file, avoiding creating new files.
-    let same_file = same_file::is_same_file(&output_file, &input_file).unwrap_or_else(|_| false);
+    let same_file = same_file::is_same_file(&output_path, &input_path).unwrap_or_else(|_| false);
     if !same_file {
-        fs::copy(&input_file, &output_file).expect("copy input to output");
+        fs::copy(&input_path, &output_path).expect("copy input to output");
     }
 
     // release input file
@@ -163,11 +162,25 @@ fn patch_image(input_file: impl AsRef<Path>, output_file: impl AsRef<Path>) {
     let mut f_out = File::options()
         .write(true)
         .create(true)
-        .open(&output_file)
+        .open(&output_path)
         .expect("open output file");
 
     blri::process(&mut f_out, &ops).expect("process file");
-    println!("patched image saved to {}", output_file.as_ref().display());
+    println!("patched image saved to {}", output_path.as_ref().display());
+}
+
+fn use_or_select_flash_port(port_parameter: &Option<String>) -> String {
+    match port_parameter {
+        Some(port) => port.clone(),
+        None => {
+            let ports = serialport::available_ports().expect("list serial ports");
+            let mut port_names: Vec<String> = ports.iter().map(|p| p.port_name.clone()).collect();
+            port_names.sort();
+            Select::new("Select a serial port", port_names)
+                .prompt()
+                .expect("select serial port")
+        }
+    }
 }
 
 fn flash_image(image: impl AsRef<Path>, port: &str) {
