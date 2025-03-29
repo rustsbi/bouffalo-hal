@@ -68,14 +68,14 @@ pub struct RegisterBlock {
     /// Register that simplifies test of the error interrupt status register.
     pub force_event_error_interrupt_status: WO<ForceEventErrorInterruptStatus>,
     /// Register that holds the ADMA state when ADMA error interrupt is occurred.
-    pub adma_error_status: RO<AdmaErrorStatus>,
+    pub adma2_error_status: RO<Adma2ErrorStatus>,
     /// Register that contains the physical descriptor address used for ADMA data transfer.
-    pub adma_system_address: RW<AdmaSystemAddress>,
+    pub adma2_system_address: RW<Adma2SystemAddress>,
     /// Preset value register.
     pub preset_value: RW<PresetValue>,
     _reserved0: [u8; 8],
-    /// ADMA2 intergrated descriptor address register.
-    pub adma2_integrated_descriptor_address: RW<ADMA2IntegratedDescriptorAddress>,
+    /// ADMA3 intergrated descriptor address register.
+    pub adma3_integrated_descriptor_address: RW<ADMA3IntegratedDescriptorAddress>,
     _reserved1: [u8; 96],
     /// Shared bus control register.
     pub shared_bus_control: RW<SharedBusControl>,
@@ -2697,9 +2697,9 @@ impl ForceEventErrorInterruptStatus {
 /// Register that holds the ADMA state when ADMA error interrupt is occurred.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct AdmaErrorStatus(u32);
+pub struct Adma2ErrorStatus(u32);
 
-impl AdmaErrorStatus {
+impl Adma2ErrorStatus {
     const ADMA_LEN_MISMATCH: u32 = 0x1 << 2;
     const ADMA_ERROR_STATE: u32 = 0x3;
 
@@ -2718,9 +2718,9 @@ impl AdmaErrorStatus {
 /// Register that contains the physical descriptor address used for ADMA data transfer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct AdmaSystemAddress(u64);
+pub struct Adma2SystemAddress(u64);
 
-impl AdmaSystemAddress {
+impl Adma2SystemAddress {
     const ADMA_SYSTEM_ADDRESS: u64 = 0xFFFF_FFFF_FFFF_FFFF;
 
     /// Set ADMA system address.
@@ -2907,9 +2907,9 @@ impl PresetValue {
 /// ADMA2 intergrated descriptor address register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct ADMA2IntegratedDescriptorAddress(u64);
+pub struct ADMA3IntegratedDescriptorAddress(u64);
 
-impl ADMA2IntegratedDescriptorAddress {
+impl ADMA3IntegratedDescriptorAddress {
     // TODO
 }
 
@@ -3184,6 +3184,32 @@ impl SpiMode {
     }
 }
 
+/// Burst size.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum BurstSize {
+    /// Burst size is 32 bytes.
+    Bytes32,
+    /// Burst size is 64 bytes.
+    Bytes64,
+    /// Burst size is 128 bytes.
+    Bytes128,
+    /// Burst size is 256 bytes.
+    Bytes256,
+}
+
+/// FIFO threshold.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum FifoThreshold {
+    /// FIFO threshold is 64 bytes to generate DMA request.
+    Bytes64,
+    /// FIFO threshold is 128 bytes to generate DMA request.
+    Bytes128,
+    /// FIFO threshold is 192 bytes to generate DMA request.
+    Bytes192,
+    /// FIFO threshold is 256 bytes to generate DMA request.
+    Bytes256,
+}
+
 /// Clock and burst size setup register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
@@ -3196,10 +3222,40 @@ impl ClockAndBurstSizeSetup {
     const _RD_ENDIAN: u16 = 0x1 << 6;
     const _AXI_NON_POST_WR: u16 = 0x1 << 5;
     const _PRIORITY: u16 = 0x1 << 4;
-    const _DMA_SIZE: u16 = 0x3 << 2;
-    const _BURST_SIZE: u16 = 0x3;
+    const DMA_SIZE: u16 = 0x3 << 2;
+    const BURST_SIZE: u16 = 0x3;
 
     // TODO
+    /// Set DMA threshold.
+    #[inline]
+    pub fn set_fifo_threshold(self, val: FifoThreshold) -> Self {
+        Self((self.0 & !Self::DMA_SIZE) | (Self::DMA_SIZE & ((val as u16) << 2)))
+    }
+    /// Get DMA threshold.
+    #[inline]
+    pub fn fifo_threshold(self) -> FifoThreshold {
+        match ((self.0 & Self::DMA_SIZE) >> 2) as u8 {
+            0 => FifoThreshold::Bytes64,
+            1 => FifoThreshold::Bytes128,
+            2 => FifoThreshold::Bytes192,
+            _ => FifoThreshold::Bytes256,
+        }
+    }
+    /// Set burst size.
+    #[inline]
+    pub fn set_burst_size(self, val: BurstSize) -> Self {
+        Self((self.0 & !Self::BURST_SIZE) | (Self::BURST_SIZE & (val as u16)))
+    }
+    /// Get burst size.
+    #[inline]
+    pub fn burst_size(self) -> BurstSize {
+        match (self.0 & Self::BURST_SIZE) as u8 {
+            0 => BurstSize::Bytes32,
+            1 => BurstSize::Bytes64,
+            2 => BurstSize::Bytes128,
+            _ => BurstSize::Bytes256,
+        }
+    }
 }
 
 /// CE-ATA register.
@@ -3337,13 +3393,12 @@ fn sleep_ms(n: u32) {
     }
 }
 
-/// SDH config.
+/// SDH hardware initial config.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Config {
     bus_width_mode: BusWidthMode,
     transfer_width: TransferWidth,
     speed_mode: SpeedMode,
-    dma_mode: DmaMode,
     // TODO: implment more configurations if necessary.
 }
 
@@ -3355,7 +3410,6 @@ impl Config {
             bus_width_mode: BusWidthMode::SelectByDataTransferWidth,
             transfer_width: TransferWidth::OneBitMode,
             speed_mode: SpeedMode::HighSpeed,
-            dma_mode: DmaMode::None,
         }
     }
     /// Set bus width mode.
@@ -3374,12 +3428,6 @@ impl Config {
     #[inline]
     pub const fn speed_mode(mut self, speed_mode: SpeedMode) -> Self {
         self.speed_mode = speed_mode;
-        self
-    }
-    /// Set DMA mode.
-    #[inline]
-    pub const fn dma_mode(mut self, dma_mode: DmaMode) -> Self {
-        self.dma_mode = dma_mode;
         self
     }
 }
@@ -3428,28 +3476,12 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         // Miscellaneous settings.
         unsafe {
             // SDH_DMA_EN.
-            match config.dma_mode {
-                DmaMode::None => sdh.transfer_mode.modify(|val| val.disable_dma()),
-                DmaMode::SDMA => {
-                    if sdh.capabilities.read().is_sdma_supported() {
-                        sdh.transfer_mode.modify(|val| val.enable_dma());
-                    } else {
-                        sdh.transfer_mode.modify(|val| val.disable_dma())
-                    }
-                }
-                DmaMode::ADMA2 => {
-                    if sdh.capabilities.read().is_adma2_supported() {
-                        sdh.transfer_mode.modify(|val| val.enable_dma());
-                    } else {
-                        sdh.transfer_mode.modify(|val| val.disable_dma())
-                    }
-                }
-            }
+            sdh.transfer_mode.modify(|val| val.disable_dma());
             sdh.host_control_1.modify(|val| {
                 val.set_bus_width(config.bus_width_mode) // SDH_EX_DATA_WIDTH.
                     .set_transfer_width(config.transfer_width) // SDH_DATA_WIDTH.
                     .set_speed_mode(config.speed_mode) // SDH_HI_SPEED_EN.
-                    .set_dma_mode(config.dma_mode)
+                    .set_dma_mode(DmaMode::None)
             });
             // SDH_SD_BUS_VLT.
             sdh.power_control
@@ -3564,6 +3596,14 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         let kb_size = (self.block_count as f64) * (block_size as f64) / 1024.0;
         let mb_size = kb_size / 1024.0;
         let gb_size = mb_size / 1024.0;
+
+        let cap = self.sdh.capabilities.read();
+        let version = self.sdh.host_controller_version.read();
+
+        writeln!(*w, "SpecifiicVersion: {:?}", version.specific_version()).ok();
+        writeln!(*w, "SlotType: {:?}", cap.slot_type()).ok();
+        writeln!(*w, "SDMA support: {}", cap.is_sdma_supported()).ok();
+        writeln!(*w, "ADMA2 support: {}", cap.is_adma2_supported()).ok();
 
         if debug {
             if kb_size < 1024.0 {
@@ -3780,10 +3820,11 @@ impl<'a> HasDat3Signal for Alternate<'a, 5, gpio::Sdh> {}
 mod tests {
     use super::RegisterBlock;
     use super::{
-        AdmaErrorStatus, AdmaSystemAddress, Argument, AutoCMDMode, AutoCmdErrorStatus, BlockCount,
-        BlockGap, BlockMode, BlockSize, BufferDataPort, BusVoltage, BusWidthMode, Capabilities,
-        CardSignal, ClkGenMode, ClockControl, CmdType, Command, DataTransferMode, DmaMode,
-        ErrorInterruptSignalEnable, ErrorInterruptStatus, ErrorInterruptStatusEnable,
+        Adma2ErrorStatus, Adma2SystemAddress, Argument, AutoCMDMode, AutoCmdErrorStatus,
+        BlockCount, BlockGap, BlockMode, BlockSize, BufferDataPort, BurstSize, BusVoltage,
+        BusWidthMode, Capabilities, CardSignal, ClkGenMode, ClockAndBurstSizeSetup, ClockControl,
+        CmdType, Command, DataTransferMode, DmaMode, ErrorInterruptSignalEnable,
+        ErrorInterruptStatus, ErrorInterruptStatusEnable, FifoThreshold,
         ForceEventAutoCmdErrorStatus, ForceEventErrorInterruptStatus, HostControl1, HostControl2,
         HostControllerVersion, LedState, MaxCurrentCapabilities, NormalInterruptSignalEnable,
         NormalInterruptStatus, NormalInterruptStatusEnable, PowerControl, PresentState,
@@ -3841,11 +3882,11 @@ mod tests {
             offset_of!(RegisterBlock, force_event_error_interrupt_status),
             0x52
         );
-        assert_eq!(offset_of!(RegisterBlock, adma_error_status), 0x54);
-        assert_eq!(offset_of!(RegisterBlock, adma_system_address), 0x58);
+        assert_eq!(offset_of!(RegisterBlock, adma2_error_status), 0x54);
+        assert_eq!(offset_of!(RegisterBlock, adma2_system_address), 0x58);
         assert_eq!(offset_of!(RegisterBlock, preset_value), 0x60);
         assert_eq!(
-            offset_of!(RegisterBlock, adma2_integrated_descriptor_address),
+            offset_of!(RegisterBlock, adma3_integrated_descriptor_address),
             0x78
         );
         assert_eq!(offset_of!(RegisterBlock, shared_bus_control), 0xe0);
@@ -5006,17 +5047,17 @@ mod tests {
     }
 
     #[test]
-    fn struct_adma_error_status_functions() {
-        let mut val = AdmaErrorStatus(0x0000_0000_0000_0004);
+    fn struct_adma2_error_status_functions() {
+        let mut val = Adma2ErrorStatus(0x0000_0000_0000_0004);
         assert!(val.if_adma_len_mismatch_err_occurs());
 
-        val = AdmaErrorStatus(0x0000_0000_0000_0001);
+        val = Adma2ErrorStatus(0x0000_0000_0000_0001);
         assert_eq!(val.adma_err_state(), 0x1);
     }
 
     #[test]
-    fn struct_adma_system_address_functions() {
-        let mut val = AdmaSystemAddress(0x0);
+    fn struct_adma2_system_address_functions() {
+        let mut val = Adma2SystemAddress(0x0);
         val = val.set_adma_sys_addr(0xFFFF_FFFF_FFFF_FFFF);
         assert_eq!(val.adma_sys_addr(), 0xFFFF_FFFF_FFFF_FFFF);
         assert_eq!(val.0, 0xFFFF_FFFF_FFFF_FFFF);
@@ -5082,7 +5123,7 @@ mod tests {
     }
 
     #[test]
-    fn struct_adma2_integrated_descriptor_address_functions() {
+    fn struct_adma3_integrated_descriptor_address_functions() {
         // TODO
     }
 
@@ -5213,6 +5254,38 @@ mod tests {
     #[test]
     fn struct_clock_and_burst_size_setup_functions() {
         // TODO
+        let mut val = ClockAndBurstSizeSetup(0x0);
+        val = val.set_fifo_threshold(FifoThreshold::Bytes256);
+        assert_eq!(val.fifo_threshold(), FifoThreshold::Bytes256);
+        assert_eq!(val.0, 0x0000_000C);
+
+        val = val.set_fifo_threshold(FifoThreshold::Bytes192);
+        assert_eq!(val.fifo_threshold(), FifoThreshold::Bytes192);
+        assert_eq!(val.0, 0x0000_0008);
+
+        val = val.set_fifo_threshold(FifoThreshold::Bytes128);
+        assert_eq!(val.fifo_threshold(), FifoThreshold::Bytes128);
+        assert_eq!(val.0, 0x0000_0004);
+
+        val = val.set_fifo_threshold(FifoThreshold::Bytes64);
+        assert_eq!(val.fifo_threshold(), FifoThreshold::Bytes64);
+        assert_eq!(val.0, 0x0000_0000);
+
+        val = val.set_burst_size(BurstSize::Bytes256);
+        assert_eq!(val.burst_size(), BurstSize::Bytes256);
+        assert_eq!(val.0, 0x0000_0003);
+
+        val = val.set_burst_size(BurstSize::Bytes128);
+        assert_eq!(val.burst_size(), BurstSize::Bytes128);
+        assert_eq!(val.0, 0x0000_0002);
+
+        val = val.set_burst_size(BurstSize::Bytes64);
+        assert_eq!(val.burst_size(), BurstSize::Bytes64);
+        assert_eq!(val.0, 0x0000_0001);
+
+        val = val.set_burst_size(BurstSize::Bytes32);
+        assert_eq!(val.burst_size(), BurstSize::Bytes32);
+        assert_eq!(val.0, 0x0000_0000);
     }
 
     #[test]
