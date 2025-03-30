@@ -3,6 +3,7 @@
 mod config;
 pub mod error;
 pub mod sdcard;
+pub mod ser;
 pub mod utils;
 
 pub use error::Error;

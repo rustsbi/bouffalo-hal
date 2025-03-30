@@ -6,6 +6,7 @@ use bouffalo_rt::{Clocks, Peripherals, entry};
 use bouffaloader::{Device, DynamicInfo};
 use bouffaloader::{
     sdcard,
+    ser::{get_bootargs, set_bootargs},
     utils::{format_hex, parse_hex, read_memory, write_memory},
 };
 use core::fmt::Write as _;
@@ -222,14 +223,18 @@ fn run_cli<
                     },
                     Base::Bootargs { command } => match command {
                         Some(BootargsCommand::Get) => {
-                            writeln!(d.tx, "Bootargs: {:?}", b).ok();
+                            writeln!(d.tx, "Bootargs: {:?}", get_bootargs()).ok();
                         }
                         Some(BootargsCommand::Set { bootarg }) => match bootarg {
                             Some(bootarg) => {
                                 b.clear();
-                                match b.push_str(bootarg) {
+                                let _ = b.push_str(bootarg);
+                                match set_bootargs(&b) {
                                     Ok(_) => writeln!(d.tx, "Bootargs set to: {:?}", b).ok(),
-                                    Err(_) => writeln!(d.tx, "Cannot set bootargs for it's too long for current environment: {:?}", b).ok()
+                                    Err(_) => {
+                                        writeln!(d.tx, "Failed to set bootargs on value `{:?}`.", b)
+                                            .ok()
+                                    }
                                 };
                             }
                             None => {

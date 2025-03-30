@@ -1,4 +1,4 @@
-use super::{Config, Device, Error, config::*};
+use super::{Config, Device, Error, config::*, ser::set_bootargs};
 use embedded_hal::digital::OutputPin;
 use embedded_io::{Read, Write};
 use embedded_sdmmc::{
@@ -80,6 +80,83 @@ pub fn load_from_sdcard<
         return Err(());
     };
 
+    // Load device tree blob.
+    let Some(opaque) = config.configs.opaque else {
+        writeln!(d.tx, "warning: /config.toml: cannot find opaque file path on key `configs.opaque`, using default configuration (zeroing `a1` for non-existing opaque file).").ok();
+        volume_mgr.close_dir(root_dir).unwrap();
+        return Ok(0x0);
+    };
+    let dtb_path = opaque.as_str();
+    let (file_dir, file_name) = locate_file_by_path(&mut d.tx, "dtb", dtb_path);
+    let Ok(dtb) = open_file_by_path(&mut volume_mgr, root_dir, file_dir, file_name) else {
+        writeln!(
+            d.tx,
+            "error: /config.toml: file not found for dtb path {}.",
+            dtb_path
+        )
+        .ok();
+        return Err(());
+    };
+    writeln!(d.tx, "info: /config.toml: dtb located on {}.", dtb_path).ok();
+    // Load `bl808.dtb`.
+    let result = load_file_into_memory(&mut volume_mgr, dtb, OPAQUE_ADDRESS, OPAQUE_LENGTH);
+    match result {
+        Ok(bytes) => {
+            writeln!(
+                d.tx,
+                "info: load {} success, size = {} bytes",
+                file_name, bytes
+            )
+            .ok();
+        }
+        Err(Error::FileLength(size)) => {
+            writeln!(d.tx, "error: /config.toml: file size for dtb {} is {} bytes, but maximum supported dtb size on the current platform (BL808) is 64 KiB.", dtb_path, size).ok();
+            return Err(());
+        }
+        Err(Error::BlockDevice(e)) => {
+            writeln!(
+                d.tx,
+                "error: cannot load file `{}` for underlying block device error: {:?}",
+                file_name, e
+            )
+            .ok();
+            return Err(());
+        }
+        Err(_) => {}
+    }
+    // Patch bootargs to dtb.
+    if let Some(bootargs) = config.configs.bootargs {
+        writeln!(d.tx, "debug: /config.toml: bootargs load start.").ok();
+        let result = set_bootargs(&bootargs);
+        writeln!(
+            d.tx,
+            "debug: /config.toml: bootargs `{}` load from dtb.",
+            bootargs
+        )
+        .ok();
+        match result {
+            Ok(()) => {
+                writeln!(d.tx, "info: /config.toml: bootargs set to `{}`.", bootargs).ok();
+            }
+            Err(Error::InvalideMagic(_magic)) => {
+                writeln!(d.tx, "warning: /config.toml: bootargs is unused, as `config.opaque` does not include an opaque information file in DTB format.
+        note: /config.toml: `config.bootargs` is set to `console=ttyS0,115200n8 root=/dev/mmcblk0p2 rw rootwait quiet` in the configuration.").ok();
+            }
+            Err(_) => {
+                writeln!(
+                    d.tx,
+                    "error: /config.toml: failed to set bootargs on value `{}`.",
+                    bootargs
+                )
+                .ok();
+            }
+        }
+    } else {
+        writeln!(d.tx, "warning: /config.toml: cannot find bootargs on key `configs.bootargs`, using default bootargs in DTB.").ok();
+    }
+
+    let root_dir = volume_mgr.open_root_dir(volume0).map_err(|_| ())?;
+
     // Load firmware.
     let firmware_path = config.configs.firmware.as_ref().map(|s| s.as_str()).unwrap_or_else(|| {
         writeln!(d.tx, "warning: /config.toml: cannot find firmware path on key `configs.firmware`, using default configuration (/zImage).").ok();
@@ -125,64 +202,9 @@ pub fn load_from_sdcard<
             .ok();
             return Err(());
         }
+        Err(_) => {}
     }
 
-    let root_dir = volume_mgr.open_root_dir(volume0).map_err(|_| ())?;
-
-    // Load device tree blob.
-    let Some(opaque) = config.configs.opaque else {
-        writeln!(d.tx, "warning: /config.toml: cannot find opaque file path on key `configs.opaque`, using default configuration (zeroing `a1` for non-existing opaque file).").ok();
-        volume_mgr.close_dir(root_dir).unwrap();
-        return Ok(0x0);
-    };
-    let dtb_path = opaque.as_str();
-    let (file_dir, file_name) = locate_file_by_path(&mut d.tx, "dtb", dtb_path);
-    let Ok(dtb) = open_file_by_path(&mut volume_mgr, root_dir, file_dir, file_name) else {
-        writeln!(
-            d.tx,
-            "error: /config.toml: file not found for dtb path {}.",
-            dtb_path
-        )
-        .ok();
-        return Err(());
-    };
-    writeln!(d.tx, "info: /config.toml: dtb located on {}.", dtb_path).ok();
-    // TODO: apply bootargs to dtb.
-    if is_dtb_format(&mut volume_mgr, dtb) {
-        if let Some(bootargs) = config.configs.bootargs {
-            writeln!(d.tx, "info: /config.toml: bootargs set to `{}`.", bootargs).ok();
-        } else {
-            writeln!(d.tx, "warning: /config.toml: cannot find bootargs on key `configs.bootargs`, using default bootargs in DTB.").ok();
-        }
-    } else {
-        writeln!(d.tx, "warning: /config.toml: bootargs is unused, as `config.opaque` does not include an opaque information file in DTB format.
-        note: /config.toml: `config.bootargs` is set to `console=ttyS0,115200n8 root=/dev/mmcblk0p2 rw rootwait quiet` in the configuration.").ok();
-    }
-    // Load `bl808.dtb`.
-    let result = load_file_into_memory(&mut volume_mgr, dtb, OPAQUE_ADDRESS, OPAQUE_LENGTH);
-    match result {
-        Ok(bytes) => {
-            writeln!(
-                d.tx,
-                "info: load {} success, size = {} bytes",
-                file_name, bytes
-            )
-            .ok();
-        }
-        Err(Error::FileLength(size)) => {
-            writeln!(d.tx, "error: /config.toml: file size for dtb {} is {} bytes, but maximum supported dtb size on the current platform (BL808) is 64 KiB.", dtb_path, size).ok();
-            return Err(());
-        }
-        Err(Error::BlockDevice(e)) => {
-            writeln!(
-                d.tx,
-                "error: cannot load file `{}` for underlying block device error: {:?}",
-                file_name, e
-            )
-            .ok();
-            return Err(());
-        }
-    }
     Ok(OPAQUE_ADDRESS)
 }
 
