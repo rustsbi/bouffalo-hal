@@ -310,7 +310,7 @@ pub enum ResetEvent {
 #[cfg(test)]
 mod tests {
     use super::RegisterBlock;
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {

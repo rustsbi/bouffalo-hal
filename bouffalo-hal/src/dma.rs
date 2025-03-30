@@ -1059,7 +1059,7 @@ mod tests {
         Periph4Dma01, Periph4Dma2, RawError, RawTransferComplete, RegisterBlock,
         TransferCompleteClear, TransferCompleteState, TransferWidth,
     };
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {

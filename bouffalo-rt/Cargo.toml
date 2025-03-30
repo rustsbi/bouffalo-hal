@@ -15,7 +15,6 @@ plic = "0.0.2"
 xuantie-riscv = { git = "https://github.com/rustsbi/xuantie", rev = "fe7ec712" }
 
 [dev-dependencies]
-memoffset = "0.9.1"
 
 [features]
 default = []

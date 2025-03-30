@@ -132,7 +132,7 @@ impl<T, const S: usize, const N: usize> ops::Index<usize> for ArrayProxy<T, S, N
 #[cfg(test)]
 mod tests {
     use super::{EndpointFifo, RegisterBlock};
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {

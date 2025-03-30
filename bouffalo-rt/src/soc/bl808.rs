@@ -1046,7 +1046,7 @@ pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
 #[cfg(test)]
 mod tests {
     use super::{HalBootheader, HalCpuCfg, HalPllConfig, HalSysClkConfig};
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_lengths() {

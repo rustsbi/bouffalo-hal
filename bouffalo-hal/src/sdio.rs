@@ -3832,7 +3832,7 @@ mod tests {
         SlotInterruptStatus, SlotType, SoftwareReset, SpecificVersion, SpeedMode, SpiMode,
         SystemAddress, TimeoutControl, TransferMode, TransferWidth, TxConfiguration, WakeupControl,
     };
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {
