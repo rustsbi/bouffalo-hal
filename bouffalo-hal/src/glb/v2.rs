@@ -937,7 +937,7 @@ mod tests {
         ParamConfig, Pull, PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, SdhConfig, SpiConfig,
         UartConfig, UartMuxGroup, UartSignal,
     };
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {

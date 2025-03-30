@@ -771,7 +771,7 @@ mod tests {
     use crate::uart::{StopBits, WordLength};
 
     use super::{BitPeriod, Parity, ReceiveConfig, RegisterBlock, TransmitConfig};
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {

@@ -1190,7 +1190,7 @@ mod tests {
         Interrupt, InterruptClear, InterruptConfig, InterruptEnable, InterruptMask, InterruptState,
         PeriodConfig, Polarity, RegisterBlock, StopMode, Threshold,
     };
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {

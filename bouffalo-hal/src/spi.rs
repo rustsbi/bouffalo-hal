@@ -976,7 +976,7 @@ mod tests {
         BusBusy, Config, FifoConfig0, FifoConfig1, FrameSize, Interrupt, InterruptConfig,
         PeriodInterval, PeriodSignal, Phase, Polarity, ReceiveIgnore, RegisterBlock, SlaveTimeout,
     };
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {

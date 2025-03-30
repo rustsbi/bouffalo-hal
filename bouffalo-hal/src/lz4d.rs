@@ -300,7 +300,7 @@ impl<T: Deref<Target = RegisterBlock>> Lz4dExt for T {
 #[cfg(test)]
 mod tests {
     use super::RegisterBlock;
-    use memoffset::offset_of;
+    use core::mem::offset_of;
     #[test]
     fn struct_register_block_offset() {
         assert_eq!(offset_of!(RegisterBlock, config), 0x00);
