@@ -1,10 +1,19 @@
 use super::config::*;
 use super::error::Error;
 use heapless::String;
-use serde_device_tree::error::{Error as DtbError, ErrorType};
-use serde_device_tree::ser::patch::Patch;
-use serde_device_tree::ser::to_dtb;
-use serde_device_tree::{Dtb, DtbPtr, buildin::Node, buildin::StrSeq, from_raw_mut};
+use serde::Serialize;
+use serde_device_tree::{
+    Dtb, DtbPtr,
+    buildin::{Node, StrSeq},
+    error::{Error as DtbError, ErrorType},
+    from_raw_mut,
+    ser::{patch::Patch, serializer::ValueType, to_dtb},
+};
+
+#[derive(Serialize)]
+struct Chosen<'a> {
+    pub bootargs: &'a String<128>,
+}
 
 /// Set the bootargs of the dtb.
 pub fn set_bootargs(new_bootargs: &String<128>) -> Result<(), Error<()>> {
@@ -14,7 +23,15 @@ pub fn set_bootargs(new_bootargs: &String<128>) -> Result<(), Error<()>> {
             let size = ptr.align();
             let dtb = Dtb::from(ptr).share();
             let root: Node = from_raw_mut(&dtb).map_err(|_| Error::InvalidDTB)?;
-            let patch = Patch::new("/chosen/bootargs", new_bootargs);
+            let chosen = Chosen {
+                bootargs: new_bootargs,
+            };
+            // Ensure the chosen node exists.
+            let patch = if root.chosen().is_none() {
+                Patch::new("/chosen", &chosen, ValueType::Node)
+            } else {
+                Patch::new("/chosen/bootargs", new_bootargs, ValueType::Prop)
+            };
             let patches = [patch];
             let mut temp_buffer =
                 unsafe { core::slice::from_raw_parts_mut(FIRMWARE_ADDRESS as *mut u8, size * 2) };
