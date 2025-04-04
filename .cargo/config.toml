@@ -1,2 +1,2 @@
-[build]
-target = "riscv64imac-unknown-none-elf"
+[alias]
+blri = "run --package blri --release --"

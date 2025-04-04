@@ -126,7 +126,7 @@ fn run_cli<
         Read { addr: &'a str },
         /// Write a value to a specified address.
         Write { addr: &'a str, val: &'a str },
-        /// Boot Linux kernel.
+        /// Boot M-mode firmware.
         Boot,
         /// Bootargs command.
         Bootargs {
