@@ -175,7 +175,7 @@ fn flash_image(image: String, port: String) {
     const CHUNK_SIZE: usize = 4096;
 
     let image_data = fs::read(&image).expect("read image file");
-    if image_data.len() > 0xFFFF {
+    if image_data.len() > u32::MAX as usize {
         println!("error: image too large.");
         return;
     }
@@ -246,14 +246,22 @@ fn flash_image(image: String, port: String) {
     };
     send_command(&mut serial, 0x3b, flash_conf).expect("set flash config");
 
-    let begin_addr = 0x0_u32.to_le_bytes();
-    let end_addr = (0x0_u32 + image_data.len() as u32).to_le_bytes();
-    send_command(
-        &mut serial,
-        0x30,
-        &[&begin_addr[..], &end_addr[..]].concat(),
-    )
-    .expect("erase flash");
+    let mut begin_addr = 0x0_u32.to_le_bytes();
+    let mut end_addr = 0x0_u32.to_le_bytes();
+    let mut offset = 0;
+    while offset < image_data.len() {
+        let len = min(CHUNK_SIZE, image_data.len() - offset);
+        begin_addr = (0x0_u32 + offset as u32).to_le_bytes();
+        end_addr = (0x0_u32 + offset as u32 + len as u32).to_le_bytes();
+        send_command(
+            &mut serial,
+            0x30,
+            &[&begin_addr[..], &end_addr[..]].concat(),
+        )
+        .expect("erase flash");
+        offset += len;
+        println!("erasing: {}/{}", offset, image_data.len());
+    }
 
     let mut offset = 0;
     while offset < image_data.len() {
