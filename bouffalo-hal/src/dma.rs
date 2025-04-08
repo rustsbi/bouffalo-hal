@@ -463,6 +463,7 @@ pub struct ChannelConfig(u32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum DmaMode {
     /// Memory to memory (DMA).
+    /// Notice: When the DMA mode is set to memory to memory, the source and destination address must be incremented.
     Mem2Mem,
     /// Peripheral to memory (DMA).
     Mem2Periph,
