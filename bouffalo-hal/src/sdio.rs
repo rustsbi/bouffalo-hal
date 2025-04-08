@@ -1,5 +1,6 @@
 //! Secure Digital Input/Output peripheral.
 
+use crate::dma::{self, Dma, DmaChannel, FakeDmaChannel, FakeDmaRegisters, LliPool, LliTransfer};
 use crate::glb;
 use crate::gpio::{self, Alternate};
 use core::arch::asm;
@@ -227,8 +228,8 @@ pub enum BlockMode {
 /// Data transfer mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum DataTransferMode {
-    /// Other modes.
-    Other,
+    /// Master out, slave in.
+    MOSI,
     /// Master in, slave out.
     MISO,
 }
@@ -274,7 +275,7 @@ impl TransferMode {
     pub const fn data_transfer_mode(self) -> DataTransferMode {
         match (self.0 & Self::DATA_TRANSFER) >> 4 {
             1 => DataTransferMode::MISO,
-            _ => DataTransferMode::Other,
+            _ => DataTransferMode::MOSI,
         }
     }
     /// Set auto command mode.
@@ -3432,16 +3433,67 @@ impl Config {
     }
 }
 
-/// Managed Secure Digital Host Controller peripheral.
+/// Dma type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Sdh<SDH, PADS, const I: usize> {
+pub enum DmaType {
+    /// Blocking read / write.
+    Disabled,
+    /// Use system dma controller to transmit.
+    SystemDma,
+}
+
+/// SDH dma config.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct DmaConfig {
+    dma_type: DmaType,
+}
+
+impl DmaConfig {
+    /// Default dma config.
+    #[inline]
+    pub const fn default() -> Self {
+        Self {
+            dma_type: DmaType::Disabled,
+        }
+    }
+
+    /// Set dma type.
+    #[inline]
+    pub const fn dma_type(mut self, dma_type: DmaType) -> Self {
+        self.dma_type = dma_type;
+        self
+    }
+}
+
+/// SDH peripheral type withoue system dma.
+pub type NonSysDmaSdh<'a, SDH, PADS, const I: usize> =
+    Sdh<'a, SDH, PADS, I, FakeDmaRegisters, FakeDmaChannel<0, 0>, 0, 0>;
+
+/// Managed Secure Digital Host Controller peripheral.
+pub struct Sdh<'a, SDH, PADS, const I: usize, DMA, CH, const D: usize, const C: usize>
+where
+    DMA: Deref<Target = dma::RegisterBlock>,
+    CH: DmaChannel<D, C>,
+{
     sdh: SDH,
     pads: PADS,
     config: Config,
+    system_dma: Option<Dma<'a, DMA, CH, D, C>>,
+    dma_config: DmaConfig,
     block_count: u32,
 }
 
-impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I> {
+impl<
+    'a,
+    SDH: Deref<Target = RegisterBlock>,
+    PADS,
+    const I: usize,
+    DMA: Deref<Target = dma::RegisterBlock>,
+    CH: DmaChannel<D, C>,
+    const D: usize,
+    const C: usize,
+> Sdh<'a, SDH, PADS, I, DMA, CH, D, C>
+{
     /// Create a new instance of the SDH peripheral.
     #[inline]
     pub fn new(sdh: SDH, pads: PADS, config: Config, glb: &glb::v2::RegisterBlock) -> Self
@@ -3500,6 +3552,8 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
             sdh,
             pads,
             config,
+            system_dma: None,
+            dma_config: DmaConfig::default(),
             block_count: 0,
         }
     }
@@ -3666,6 +3720,14 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         self.sdh.response.read().response()
     }
 
+    /// Enable dma using system dma controller.
+    #[inline]
+    pub fn enable_sys_dma(mut self, dma: Dma<'a, DMA, CH, D, C>) -> Self {
+        self.system_dma = Some(dma);
+        self.dma_config = self.dma_config.dma_type(DmaType::SystemDma);
+        self
+    }
+
     /// Read block from sdcard.
     #[inline]
     fn read_block(&self, block: &mut Block, block_idx: u32) {
@@ -3709,14 +3771,86 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> Sdh<SDH, PADS, I>
         }
     }
 
+    /// Read block from sdcard using system dma controller.
+    #[inline]
+    fn read_block_sys_dma(&self, block: &mut Block, block_idx: u32) {
+        unsafe {
+            // SDH_SD_TRANSFER_MODE.
+            self.sdh.transfer_mode.modify(|val| {
+                val.set_data_transfer_mode(DataTransferMode::MISO) // SDH_TO_HOST_DIR.
+                    .set_auto_cmd_mode(AutoCMDMode::None) // SDH_AUTO_CMD_EN.
+            });
+
+            // Block_size.
+            self.sdh
+                .block_size
+                .modify(|val| val.set_transfer_block(512));
+
+            // Block_count.
+            self.sdh.block_count.modify(|val| val.set_blocks_count(1));
+
+            // SDH_ClearIntStatus (SDH_INT_BUFFER_READ_READY).
+            self.sdh
+                .normal_interrupt_status
+                .modify(|val| val.clear_buffer_read_ready());
+        }
+        self.send_command(SdhResp::R1, CmdType::Normal, 17, block_idx, true);
+        while !self
+            .sdh
+            .normal_interrupt_status
+            .read()
+            .is_buffer_read_ready()
+        {
+            // SDH_INT_BUFFER_READ_READY.
+            // Wait for buffer read ready.
+            core::hint::spin_loop()
+        }
+
+        for j in 0..Block::LEN / 4 {
+            let rx_lli_pool = &mut [LliPool::new(); 1];
+            let val = &mut [0u8; 4];
+            let rx_transfer = &mut [LliTransfer {
+                src_addr: 0x20060020,
+                dst_addr: val.as_mut_ptr() as u32,
+                nbytes: 4,
+            }];
+
+            let sys_dma = self.system_dma.as_ref().unwrap();
+
+            sys_dma.lli_reload(rx_lli_pool, 1, rx_transfer, 1);
+            sys_dma.start();
+
+            while sys_dma.is_busy() {
+                core::hint::spin_loop();
+            }
+
+            sys_dma.stop();
+
+            block[j * 4 + 0] = val[0];
+            block[j * 4 + 1] = val[1];
+            block[j * 4 + 2] = val[2];
+            block[j * 4 + 3] = val[3];
+        }
+    }
+
     /// Release the SDH instance and return the pads and configs.
     #[inline]
-    pub fn free(self) -> (SDH, PADS, Config) {
-        (self.sdh, self.pads, self.config)
+    pub fn free(self) -> (SDH, PADS, Config, Dma<'a, DMA, CH, D, C>) {
+        (self.sdh, self.pads, self.config, self.system_dma.unwrap())
     }
 }
 
-impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> BlockDevice for Sdh<SDH, PADS, I> {
+impl<
+    'a,
+    SDH: Deref<Target = RegisterBlock>,
+    PADS,
+    const I: usize,
+    DMA: Deref<Target = dma::RegisterBlock>,
+    CH: DmaChannel<D, C>,
+    const D: usize,
+    const C: usize,
+> BlockDevice for Sdh<'a, SDH, PADS, I, DMA, CH, D, C>
+{
     type Error = core::convert::Infallible;
 
     #[inline]
@@ -3726,8 +3860,14 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS, const I: usize> BlockDevice for S
         start_block_idx: BlockIdx,
         _reason: &str,
     ) -> Result<(), Self::Error> {
-        for (i, block) in blocks.iter_mut().enumerate() {
-            self.read_block(block, start_block_idx.0 + i as u32);
+        if self.dma_config.dma_type == DmaType::SystemDma {
+            for (i, block) in blocks.iter_mut().enumerate() {
+                self.read_block_sys_dma(block, start_block_idx.0 + i as u32);
+            }
+        } else {
+            for (i, block) in blocks.iter_mut().enumerate() {
+                self.read_block(block, start_block_idx.0 + i as u32);
+            }
         }
         Ok(())
     }
@@ -3958,8 +4098,8 @@ mod tests {
         val = val.set_data_transfer_mode(DataTransferMode::MISO);
         assert_eq!(val.data_transfer_mode(), DataTransferMode::MISO);
         assert_eq!(val.0, 0x0010);
-        val = val.set_data_transfer_mode(DataTransferMode::Other);
-        assert_eq!(val.data_transfer_mode(), DataTransferMode::Other);
+        val = val.set_data_transfer_mode(DataTransferMode::MOSI);
+        assert_eq!(val.data_transfer_mode(), DataTransferMode::MOSI);
         assert_eq!(val.0, 0x0000);
 
         val = val.set_auto_cmd_mode(AutoCMDMode::CMD12);

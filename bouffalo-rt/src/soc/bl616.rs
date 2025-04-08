@@ -1,7 +1,6 @@
 //! BL616/BL618 single-core Wi-Fi 6, Bluetooth 5.3, Zigbee AIoT system-on-chip.
 
 use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
-use core::ops::Deref;
 
 #[cfg(all(feature = "bl616", target_arch = "riscv32"))]
 #[naked]

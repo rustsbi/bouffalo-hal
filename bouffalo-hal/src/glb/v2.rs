@@ -488,7 +488,7 @@ impl ClockConfig1 {
     const UART2: u32 = 0x1 << 26;
     const LZ4D: u32 = 0x1 << 29;
 
-    /// Enable clock gate for Direct Memory Access controller 0.
+    /// Enable clock gate for Direct Memory Access controller.
     #[inline]
     pub const fn enable_dma<const I: usize>(self) -> Self {
         match I {
@@ -498,7 +498,7 @@ impl ClockConfig1 {
             _ => unreachable!(),
         }
     }
-    /// Disable clock gate for Direct Memory Access controller 0.
+    /// Disable clock gate for Direct Memory Access controller.
     #[inline]
     pub const fn disable_dma<const I: usize>(self) -> Self {
         match I {
@@ -508,7 +508,7 @@ impl ClockConfig1 {
             _ => unreachable!(),
         }
     }
-    /// Check if clock gate for Direct Memory Access controller 0 is enabled.
+    /// Check if clock gate for Direct Memory Access controller is enabled.
     #[inline]
     pub const fn is_dma_enabled<const I: usize>(self) -> bool {
         match I {

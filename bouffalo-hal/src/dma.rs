@@ -53,7 +53,7 @@ pub struct InterruptRegisters {
     pub raw_transfer_complete: RO<RawTransferComplete>,
     _reserved5: [u8; 3],
     /// Error interrupt state before masking.
-    pub raw_error: WO<RawError>,
+    pub raw_error: RO<RawError>,
     _reserved6: [u8; 3],
 }
 
@@ -62,9 +62,9 @@ pub struct InterruptRegisters {
 pub struct GlobalState(u8);
 
 impl GlobalState {
-    /// Check if channel interrupt is enabled.
+    /// Check if channel interrupt occurs.
     #[inline]
-    pub const fn is_int_enabled(self, ch: u8) -> bool {
+    pub const fn if_int_occurs(self, ch: u8) -> bool {
         ((self.0 >> ch) & 1) != 0
     }
 }
@@ -561,7 +561,7 @@ pub enum DmaPeriphReq {
     Dma01(Periph4Dma01),
     /// Dma request for peripheral for DMA 2.
     Dma2(Periph4Dma2),
-    /// No dma request.
+    /// No dma request for peripheral .
     None,
 }
 
@@ -581,6 +581,11 @@ impl ChannelConfig {
     #[inline]
     pub const fn lli_cnt(self) -> u16 {
         ((self.0 & Self::LLI_CNT) >> 20) as u16
+    }
+    /// Set link list item count.
+    #[inline]
+    pub const fn set_lli_cnt(self, cnt: u16) -> Self {
+        Self((self.0 & !Self::LLI_CNT) | ((cnt as u32) << 20))
     }
     /// Stop DMA.
     #[inline]
@@ -826,12 +831,6 @@ pub enum DmaAddr {
     WoTx = 0x20000000 + 0xB04,
 }
 
-/// Managed Direct Memory Access peripheral.
-pub struct Dma<DMA: Deref<Target = RegisterBlock>> {
-    dma: DMA,
-    channel: u8,
-}
-
 /// Direct Memory Access channel configuration.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct DmaChannelConfig {
@@ -846,24 +845,33 @@ pub struct DmaChannelConfig {
     pub dst_transfer_width: TransferWidth,
 }
 
-impl<DMA: Deref<Target = RegisterBlock>> Dma<DMA> {
+/// Managed Direct Memory Access peripheral.
+pub struct Dma<'a, DMA, CH, const D: usize, const C: usize>
+where
+    DMA: Deref<Target = RegisterBlock>,
+    CH: DmaChannel<D, C>,
+{
+    dma: &'a DMA,
+    _channel: CH,
+}
+
+impl<'a, DMA: Deref<Target = RegisterBlock>, CH: DmaChannel<D, C>, const D: usize, const C: usize>
+    Dma<'a, DMA, CH, D, C>
+{
     /// Create a new DMA Peripheral Interface instance.
     #[inline]
-    pub fn new<const I: usize>(
-        dma: DMA,
-        channel: u8,
+    pub fn new(
+        dma: &'a DMA,
+        _channel: CH,
         channel_config: DmaChannelConfig,
         glb: &glb::v2::RegisterBlock,
     ) -> Self {
         unsafe {
             glb.clock_config_0.modify(|val| val.enable_dma());
-            // TODO: more proper usage.
-            glb.clock_config_1.modify(|val| val.enable_dma::<I>());
+            glb.clock_config_1.modify(|val| val.enable_dma::<D>());
             dma.global_config.modify(|val| val.enable_dma());
-            dma.channels[channel as usize]
-                .config
-                .modify(|val| val.disable_ch());
-            dma.channels[channel as usize].control.modify(|val| {
+            dma.channels[C].config.modify(|val| val.disable_ch());
+            dma.channels[C].control.modify(|val| {
                 let val = if channel_config.src_addr_inc {
                     val.enable_src_addr_inc()
                 } else {
@@ -875,41 +883,39 @@ impl<DMA: Deref<Target = RegisterBlock>> Dma<DMA> {
                     val.disable_dst_addr_inc()
                 }
             });
-            dma.channels[channel as usize].control.modify(|val| {
+            dma.channels[C].control.modify(|val| {
                 val.set_src_transfer_width(channel_config.src_transfer_width)
                     .set_dst_transfer_width(channel_config.dst_transfer_width)
                     .set_src_bst_size(channel_config.src_burst_size)
                     .set_dst_bst_size(channel_config.dst_burst_size)
             });
-            dma.channels[channel as usize]
+            dma.channels[C]
                 .config
-                .modify(|val| val.set_dma_mode(channel_config.direction));
-            dma.channels[channel as usize].config.modify(|val| {
+                .modify(|val| val.set_dma_mode(channel_config.direction).set_lli_cnt(0));
+            dma.channels[C].config.modify(|val| {
                 let val = match channel_config.src_req {
                     DmaPeriphReq::Dma01(periph) => val.set_src_periph4dma01(periph),
                     DmaPeriphReq::Dma2(periph) => val.set_src_periph4dma2(periph),
-                    DmaPeriphReq::None => val,
+                    DmaPeriphReq::None => val.set_dst_periph4dma01(Periph4Dma01::Uart0Rx), // Just set to 0, not real periph.
                 };
                 match channel_config.dst_req {
                     DmaPeriphReq::Dma01(periph) => val.set_dst_periph4dma01(periph),
                     DmaPeriphReq::Dma2(periph) => val.set_dst_periph4dma2(periph),
-                    DmaPeriphReq::None => val,
+                    DmaPeriphReq::None => val.set_dst_periph4dma01(Periph4Dma01::Uart0Rx), // Just set to 0, not real periph.
                 }
             });
-            dma.channels[channel as usize]
+            dma.channels[C]
                 .config
                 .modify(|val| val.enable_cplt_int().enable_err_int());
-            dma.channels[channel as usize]
-                .control
-                .modify(|val| val.disable_cplt_int());
+            dma.channels[C].control.modify(|val| val.disable_cplt_int());
             dma.interrupts
                 .transfer_complete_clear
-                .write(TransferCompleteClear(0x0).clear_cplt_int(channel));
+                .write(TransferCompleteClear(0x0).clear_cplt_int(C as u8));
             dma.interrupts
                 .error_clear
-                .write(ErrorClear(0x0).clear_err_int(channel));
+                .write(ErrorClear(0x0).clear_err_int(C as u8));
         }
-        Self { dma, channel }
+        Self { dma, _channel }
     }
     /// Configure linked list items.
     #[inline]
@@ -922,7 +928,7 @@ impl<DMA: Deref<Target = RegisterBlock>> Dma<DMA> {
         transfer_offset: u32,
         last_transfer_len: u32,
     ) {
-        let mut ctrl_cfg = self.dma.channels[self.channel as usize].control.read();
+        let mut ctrl_cfg = self.dma.channels[C].control.read();
         ctrl_cfg = ctrl_cfg.set_transfer_size(4064).disable_cplt_int();
 
         for i in 0..lli_count {
@@ -949,6 +955,16 @@ impl<DMA: Deref<Target = RegisterBlock>> Dma<DMA> {
             lli_pool[i as usize].control = ctrl_cfg;
         }
     }
+    /// Enable linked list continous mode.
+    #[inline]
+    pub fn lli_link_head(&self, lli_pool: &mut [LliPool], used_count: usize) {
+        lli_pool[used_count - 1].next_lli = (&lli_pool[0] as *const LliPool) as u32;
+        unsafe {
+            self.dma.channels[C]
+                .linked_list_item
+                .write(lli_pool[0].next_lli);
+        }
+    }
     /// Reload linked list items.
     #[inline]
     pub fn lli_reload(
@@ -958,7 +974,7 @@ impl<DMA: Deref<Target = RegisterBlock>> Dma<DMA> {
         transfer: &mut [LliTransfer],
         count: u32,
     ) -> i32 {
-        let ctrl_cfg = self.dma.channels[self.channel as usize].control.read();
+        let ctrl_cfg = self.dma.channels[C].control.read();
 
         let mut lli_count_used_offset = 0;
         let actual_transfer_offset = match ctrl_cfg.src_transfer_width() {
@@ -1007,18 +1023,16 @@ impl<DMA: Deref<Target = RegisterBlock>> Dma<DMA> {
         }
 
         unsafe {
-            self.dma.channels[self.channel as usize]
+            self.dma.channels[C]
                 .source_address
                 .write(lli_pool[0].src_addr);
-            self.dma.channels[self.channel as usize]
+            self.dma.channels[C]
                 .destination_address
                 .write(lli_pool[0].dst_addr);
-            self.dma.channels[self.channel as usize]
+            self.dma.channels[C]
                 .linked_list_item
                 .write(lli_pool[0].next_lli);
-            self.dma.channels[self.channel as usize]
-                .control
-                .write(lli_pool[0].control);
+            self.dma.channels[C].control.write(lli_pool[0].control);
         }
         lli_count_used_offset as i32
     }
@@ -1026,30 +1040,87 @@ impl<DMA: Deref<Target = RegisterBlock>> Dma<DMA> {
     #[inline]
     pub fn start(&self) {
         unsafe {
-            self.dma.channels[self.channel as usize]
-                .config
-                .modify(|val| val.enable_ch());
+            self.dma.channels[C].config.modify(|val| val.enable_ch());
         }
     }
     /// Stop DMA transfer.
     #[inline]
     pub fn stop(&self) {
         unsafe {
-            self.dma.channels[self.channel as usize]
-                .config
-                .modify(|val| val.disable_ch());
+            self.dma.channels[C].config.modify(|val| val.disable_ch());
         }
     }
-    /// Check if DMA transfer is complete.
+    /// Check if DMA channel is busy.
     #[inline]
-    pub fn transfer_cplt(&self) -> bool {
-        self.dma
-            .interrupts
-            .transfer_complete_state
-            .read()
-            .if_cplt_int_occurs(self.channel)
+    pub fn is_busy(&self) -> bool {
+        self.dma.channels[C].config.read().is_ch_enabled()
+    }
+    /// Release DMA channel instance.
+    #[inline]
+    pub fn free(self) -> (&'a DMA, CH) {
+        (self.dma, self._channel)
     }
 }
+
+pub trait DmaChannel<const D: usize, const C: usize> {}
+
+// Avaliable DMA channels.
+pub struct Dma0Channel0;
+pub struct Dma0Channel1;
+pub struct Dma0Channel2;
+pub struct Dma0Channel3;
+pub struct Dma0Channel4;
+pub struct Dma0Channel5;
+pub struct Dma0Channel6;
+pub struct Dma0Channel7;
+pub struct Dma1Channel0;
+pub struct Dma1Channel1;
+pub struct Dma1Channel2;
+pub struct Dma1Channel3;
+pub struct Dma2Channel0;
+pub struct Dma2Channel1;
+pub struct Dma2Channel2;
+pub struct Dma2Channel3;
+pub struct Dma2Channel4;
+pub struct Dma2Channel5;
+pub struct Dma2Channel6;
+pub struct Dma2Channel7;
+
+impl DmaChannel<0, 0> for Dma0Channel0 {}
+impl DmaChannel<0, 1> for Dma0Channel1 {}
+impl DmaChannel<0, 2> for Dma0Channel2 {}
+impl DmaChannel<0, 3> for Dma0Channel3 {}
+impl DmaChannel<0, 4> for Dma0Channel4 {}
+impl DmaChannel<0, 5> for Dma0Channel5 {}
+impl DmaChannel<0, 6> for Dma0Channel6 {}
+impl DmaChannel<0, 7> for Dma0Channel7 {}
+impl DmaChannel<1, 0> for Dma1Channel0 {}
+impl DmaChannel<1, 1> for Dma1Channel1 {}
+impl DmaChannel<1, 2> for Dma1Channel2 {}
+impl DmaChannel<1, 3> for Dma1Channel3 {}
+impl DmaChannel<2, 0> for Dma2Channel0 {}
+impl DmaChannel<2, 1> for Dma2Channel1 {}
+impl DmaChannel<2, 2> for Dma2Channel2 {}
+impl DmaChannel<2, 3> for Dma2Channel3 {}
+impl DmaChannel<2, 4> for Dma2Channel4 {}
+impl DmaChannel<2, 5> for Dma2Channel5 {}
+impl DmaChannel<2, 6> for Dma2Channel6 {}
+impl DmaChannel<2, 7> for Dma2Channel7 {}
+
+// Fake dma instance.
+pub struct FakeDmaRegisters;
+
+impl Deref for FakeDmaRegisters {
+    type Target = RegisterBlock;
+    fn deref(&self) -> &Self::Target {
+        panic!("FakeDmaRegisters should not be used")
+    }
+}
+
+// Fake dma channel.
+pub struct FakeDmaChannel<const D: usize, const C: usize>;
+
+impl<const D: usize, const C: usize> DmaChannel<D, C> for FakeDmaChannel<D, C> {}
 
 #[cfg(test)]
 mod tests {
@@ -1098,7 +1169,7 @@ mod tests {
     #[test]
     fn struct_interrupt_registers_function() {
         let val = GlobalState(0x10);
-        assert!(val.is_int_enabled(4));
+        assert!(val.if_int_occurs(4));
 
         let val = TransferCompleteState(0x10);
         assert!(val.if_cplt_int_occurs(4));
@@ -1245,8 +1316,10 @@ mod tests {
 
     #[test]
     fn struct_channel_config_functions() {
-        let mut val = ChannelConfig(0x3FF00000);
+        let mut val = ChannelConfig(0x0);
+        val = val.set_lli_cnt(0x3FF);
         assert_eq!(val.lli_cnt(), 0x3FF);
+        assert_eq!(val.0, 0x3FF00000);
 
         val = ChannelConfig(0x0);
         val = val.stop_dma();

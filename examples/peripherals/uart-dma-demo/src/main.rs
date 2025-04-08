@@ -28,7 +28,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
         src_transfer_width: TransferWidth::Byte,
         dst_transfer_width: TransferWidth::Byte,
     };
-    let dma0_ch0 = Dma::new::<0>(p.dma0, 0, tx_config, &p.glb);
+    let dma0_ch0 = Dma::new(&p.dma0, Dma0Channel0, tx_config, &p.glb);
     let tx_lli_pool = &mut [LliPool::new(); 1];
     let hello = b"Welcome to Universal Asynchronous Receiver/Transmitter with Direct Memory Access demo!\r\nHello world!";
     let hello_ptr = hello.as_ptr();
@@ -48,9 +48,13 @@ fn main(p: Peripherals, c: Clocks) -> ! {
         }
     }
     dma0_ch0.start();
-    // TODO: use interrupt or check transfer status to know when DMA transfer is done.
+    // TODO: use interrupt to know when DMA transfer is done.
     // Wait for transfer to complete.
-    riscv::asm::delay(500_000);
+    while dma0_ch0.is_busy() {
+        core::hint::spin_loop();
+    }
+
+    dma0_ch0.stop();
 
     loop {
         led.set_low().ok();
