@@ -35,16 +35,34 @@ jobs:
       - name: Run tests
         run: cargo test -p ${{ MATRIX.PACKAGE }}
 
-  build-bouffalo-hal:
-    name: Build
+  build-bouffalo-hal-riscv64:
+    name: Build for risv64
     needs: fmt
     runs-on: ubuntu-latest
     strategy:
       matrix:
         TARGET: [riscv64imac-unknown-none-elf]
         TOOLCHAIN: [nightly]
-        EXAMPLES: [gpio-demo, i2c-demo, jtag-demo, lz4d-demo, pwm-demo, 
-          sdcard-demo, sdcard-gpt-demo, spi-demo, uart-demo, uart-async-demo, uart-cli-demo, uart-dma-demo]
+        EXAMPLES: [gpio-demo, i2c-demo, jtag-demo, lz4d-demo, psram-demo, pwm-demo, 
+          sdcard-demo, sdcard-gpt-demo, sdh-demo, sdh-dma-demo, spi-demo, uart-demo, uart-async-demo, uart-cli-demo]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: ${{ MATRIX.TARGET }}
+          toolchain: ${{ MATRIX.TOOLCHAIN }}
+      - name: Run build
+        run: cargo build --target ${{ MATRIX.TARGET }} --release -p ${{ MATRIX.EXAMPLES }}
+
+  build-bouffalo-hal-riscv32:
+    name: Build for riscv32
+    needs: fmt
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        TARGET: [riscv32imac-unknown-none-elf]
+        TOOLCHAIN: [nightly]
+        EXAMPLES: [uart-dma-demo]
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1

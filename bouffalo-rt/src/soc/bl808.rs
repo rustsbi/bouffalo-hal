@@ -1,7 +1,6 @@
 //! BL808 tri-core heterogeneous Wi-Fi 802.11b/g/n, Bluetooth 5, Zigbee AIoT system-on-chip.
 
 use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
-use core::ops::Deref;
 
 #[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
 #[naked]

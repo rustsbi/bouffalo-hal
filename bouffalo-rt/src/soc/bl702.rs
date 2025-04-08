@@ -9,7 +9,6 @@ use crate::arch::rvi::Stack;
 
 #[cfg(feature = "bl702")]
 use core::arch::naked_asm;
-use core::ops::Deref;
 
 #[cfg(feature = "bl702")]
 const LEN_STACK: usize = 1 * 1024;

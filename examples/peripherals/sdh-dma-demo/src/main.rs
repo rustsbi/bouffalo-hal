@@ -2,8 +2,9 @@
 #![no_main]
 
 use bouffalo_hal::{
+    dma::{self, *},
     prelude::*,
-    sdio::{Config as SdhConfig, NonSysDmaSdh},
+    sdio::{Config as SdhConfig, Sdh},
     uart::Config as UartConfig,
 };
 use bouffalo_rt::{Clocks, Peripherals, entry};
@@ -39,7 +40,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
         .freerun(config, ((tx, sig2), (rx, sig3)), &c)
         .unwrap();
 
-    writeln!(serial, "Welcome to sdh-demo!").ok();
+    writeln!(serial, "Welcome to sdh-dma-demo!").ok();
 
     // Sdh gpio init.
     let sdh_clk = p.gpio.io0.into_sdh();
@@ -50,10 +51,25 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let sdh_d3 = p.gpio.io5.into_sdh();
     let pads = (sdh_clk, sdh_cmd, sdh_d0, sdh_d1, sdh_d2, sdh_d3);
 
+    let rx_config = DmaChannelConfig {
+        direction: dma::DmaMode::Mem2Mem,
+        src_req: DmaPeriphReq::None,
+        dst_req: DmaPeriphReq::None,
+        src_addr_inc: true,
+        dst_addr_inc: true,
+        src_burst_size: dma::BurstSize::INCR1,
+        dst_burst_size: dma::BurstSize::INCR1,
+        src_transfer_width: dma::TransferWidth::Byte,
+        dst_transfer_width: dma::TransferWidth::Byte,
+    };
+
+    let dma0_ch0 = Dma::new(&p.dma0, Dma0Channel0, rx_config, &p.glb);
+
     // Sdh init.
     let config = SdhConfig::default();
-    let mut sdcard = NonSysDmaSdh::new(p.sdh, pads, config, &p.glb);
+    let mut sdcard = Sdh::new(p.sdh, pads, config, &p.glb).enable_sys_dma(dma0_ch0);
     sdcard.init(&mut serial, true);
+
     let time_source = MyTimeSource {};
     let mut volume_mgr = VolumeManager::new(sdcard, time_source);
     let volume_res = volume_mgr.open_raw_volume(embedded_sdmmc::VolumeIdx(0));
