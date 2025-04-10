@@ -28,7 +28,8 @@ enum Commands {
     Flash(Flash),
     /// Convert ELF file to binary file.
     Elf2bin(Elf2Bin),
-    /* TODO: Run(Run), */
+    /// Convert ELF to binary file, patch and flash image.
+    Run(Run),
 }
 
 #[derive(Args)]
@@ -62,7 +63,16 @@ struct Elf2Bin {
     patch: bool,
 }
 
-/* TODO: struct Run { input_file: PathBuf, port: Option<String> } */
+#[derive(Args)]
+struct Run {
+    /// The path to the input ELF file.
+    input_file: PathBuf,
+    /// The serial port to use for flashing. If not provided, a list of available ports will be shown.
+    #[arg(short, long)]
+    port: Option<String>,
+    #[arg(long, default_value_t = false)]
+    reset: bool,
+}
 
 fn main() {
     let args = Cli::parse();
@@ -89,15 +99,15 @@ fn main() {
                 patch_image(&output_path, &output_path);
             }
         }
+        Commands::Run(run) => {
+            let port = use_or_select_flash_port(&run.port);
+            let elf_file = run.input_file;
+            let bin_file = elf_file.with_extension("bin");
+            elf_to_bin(&elf_file, &bin_file).expect("convert ELF to BIN");
+            patch_image(&bin_file, &bin_file);
+            flash_image(&bin_file, &port, run.reset);
+        }
     }
-    // TODO: ^^ subcommand 'blri run'
-    /* Commands::Run(run) => {
-        let output_file = input_file.with_extension
-        let port = use_or_select_flash_port
-        elf_to_bin(input, output)
-        patch_image(output, output)
-        flash_image(output, port)
-    } */
 }
 
 fn patch_image(input_path: impl AsRef<Path>, output_path: impl AsRef<Path>) {
