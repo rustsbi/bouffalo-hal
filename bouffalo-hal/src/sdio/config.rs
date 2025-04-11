@@ -10,15 +10,6 @@ pub struct Config {
 }
 
 impl Config {
-    /// Default SDH config.
-    #[inline]
-    pub const fn default() -> Self {
-        Self {
-            bus_width_mode: BusWidthMode::SelectByDataTransferWidth,
-            transfer_width: TransferWidth::OneBitMode,
-            speed_mode: SpeedMode::HighSpeed,
-        }
-    }
     /// Set bus width mode.
     #[inline]
     pub const fn bus_width_mode(mut self, bus_width_mode: BusWidthMode) -> Self {
@@ -36,5 +27,16 @@ impl Config {
     pub const fn speed_mode(mut self, speed_mode: SpeedMode) -> Self {
         self.speed_mode = speed_mode;
         self
+    }
+}
+
+impl Default for Config {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            bus_width_mode: BusWidthMode::SelectByDataTransferWidth,
+            transfer_width: TransferWidth::OneBitMode,
+            speed_mode: SpeedMode::HighSpeed,
+        }
     }
 }
