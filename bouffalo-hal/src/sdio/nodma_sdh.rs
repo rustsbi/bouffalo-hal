@@ -1,32 +1,25 @@
-use super::ops::{card_init, send_command};
+use super::config::Config;
+use super::ops::{card_init, read_block};
 use super::pad::Pads;
-use super::register::{
-    AutoCMDMode, BusVoltage, ClkGenMode, CmdType, DataTransferMode, DmaMode, RegisterBlock,
-};
-use super::{SdhResp, config::Config};
-use crate::dma::{LliPool, LliTransfer, UntypedChannel};
+use super::register::{BusVoltage, ClkGenMode, DmaMode, RegisterBlock};
 use crate::glb;
 use core::ops::Deref;
 use embedded_io::Write;
 use embedded_sdmmc::{Block, BlockDevice, BlockIdx};
 
 /// Managed Secure Digital Host Controller peripheral.
-pub struct Sdh<SDH, PADS, CH> {
+pub struct Sdh<SDH, PADS> {
     sdh: SDH,
     pads: PADS,
-    dma_channel: CH,
     block_count: u32,
 }
 
-impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedChannel<'a>>>
-    Sdh<SDH, PADS, CH>
-{
+impl<SDH: Deref<Target = RegisterBlock>, PADS> Sdh<SDH, PADS> {
     /// Create a new instance of the SDH peripheral.
     #[inline]
     pub fn new<const I: usize>(
         sdh: SDH,
         pads: PADS,
-        dma_channel: CH,
         config: Config,
         glb: &glb::v2::RegisterBlock,
     ) -> Self
@@ -84,7 +77,6 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
         Self {
             sdh,
             pads,
-            dma_channel,
             block_count: 0,
         }
     }
@@ -96,76 +88,14 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
         self.block_count = card_init(&self.sdh, w, debug)
     }
 
-    /// Read block from sdcard using system dma controller.
-    #[inline]
-    fn read_block_sys_dma(&self, block: &mut Block, block_idx: u32) {
-        unsafe {
-            // SDH_SD_TRANSFER_MODE.
-            self.sdh.transfer_mode.modify(|val| {
-                val.set_data_transfer_mode(DataTransferMode::MISO) // SDH_TO_HOST_DIR.
-                    .set_auto_cmd_mode(AutoCMDMode::None) // SDH_AUTO_CMD_EN.
-            });
-
-            // Block_size.
-            self.sdh
-                .block_size
-                .modify(|val| val.set_transfer_block(512));
-
-            // Block_count.
-            self.sdh.block_count.modify(|val| val.set_blocks_count(1));
-
-            // SDH_ClearIntStatus (SDH_INT_BUFFER_READ_READY).
-            self.sdh
-                .normal_interrupt_status
-                .modify(|val| val.clear_buffer_read_ready());
-        }
-        send_command(&self.sdh, SdhResp::R1, CmdType::Normal, 17, block_idx, true);
-        while !self
-            .sdh
-            .normal_interrupt_status
-            .read()
-            .is_buffer_read_ready()
-        {
-            // SDH_INT_BUFFER_READ_READY.
-            // Wait for buffer read ready.
-            core::hint::spin_loop()
-        }
-
-        for j in 0..Block::LEN / 4 {
-            let rx_lli_pool = &mut [LliPool::new(); 1];
-            let val = &mut [0u8; 4];
-            let rx_transfer = &mut [LliTransfer {
-                src_addr: 0x20060020,
-                dst_addr: val.as_mut_ptr() as u32,
-                nbytes: 4,
-            }];
-
-            self.dma_channel.lli_reload(rx_lli_pool, 1, rx_transfer, 1);
-            self.dma_channel.start();
-
-            while self.dma_channel.is_busy() {
-                core::hint::spin_loop();
-            }
-
-            self.dma_channel.stop();
-
-            block[j * 4 + 0] = val[0];
-            block[j * 4 + 1] = val[1];
-            block[j * 4 + 2] = val[2];
-            block[j * 4 + 3] = val[3];
-        }
-    }
-
     /// Release the SDH instance and return the pads and configs.
     #[inline]
-    pub fn free(self) -> (SDH, PADS, CH) {
-        (self.sdh, self.pads, self.dma_channel)
+    pub fn free(self) -> (SDH, PADS) {
+        (self.sdh, self.pads)
     }
 }
 
-impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedChannel<'a>>>
-    BlockDevice for Sdh<SDH, PADS, CH>
-{
+impl<SDH: Deref<Target = RegisterBlock>, PADS> BlockDevice for Sdh<SDH, PADS> {
     type Error = core::convert::Infallible;
 
     #[inline]
@@ -176,7 +106,7 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
         _reason: &str,
     ) -> Result<(), Self::Error> {
         for (i, block) in blocks.iter_mut().enumerate() {
-            self.read_block_sys_dma(block, start_block_idx.0 + i as u32);
+            read_block(&self.sdh, block, start_block_idx.0 + i as u32);
         }
         Ok(())
     }

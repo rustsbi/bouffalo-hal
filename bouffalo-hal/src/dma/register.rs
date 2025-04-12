@@ -1,3 +1,7 @@
+use super::{
+    PeripheralId,
+    config::{Periph4Dma01, Periph4Dma2},
+};
 use volatile_register::{RO, RW, WO};
 
 /// Direct Memory Access peripheral registers.
@@ -475,80 +479,6 @@ pub enum DmaMode {
     Periph2PeriphCtrlBySrc,
 }
 
-/// Peripheral for DMA 0/1.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Periph4Dma01 {
-    /// UART0 receive.
-    Uart0Rx,
-    /// UART0 transmit.
-    Uart0Tx,
-    /// UART1 receive.
-    Uart1Rx,
-    /// UART1 transmit.
-    Uart1Tx,
-    /// UART2 receive.
-    Uart2Rx,
-    /// UART2 transmit.
-    Uart2Tx,
-    /// I2C0 receive.
-    I2c0Rx,
-    /// I2C0 transmit.
-    I2c0Tx,
-    /// IR transmit.
-    IrTx,
-    /// GPIO transmit.
-    GpioTx,
-    /// SPI0 receive.
-    Spi0Rx,
-    /// SPI0 transmit.
-    Spi0Tx,
-    /// AUDIO receive.
-    AudioRx,
-    /// AUDIO transmit.
-    AudioTx,
-    /// I2C1 receive.
-    I2c1Rx,
-    /// I2C1 transmit.
-    I2c1Tx,
-    /// I2S receive.
-    I2sRx,
-    /// I2S transmit.
-    I2sTx,
-    /// PDM receive.
-    PdmRx,
-    /// GPADC.
-    GpAdc = 22,
-    /// GPDAC.
-    GpDac,
-}
-
-/// Peripheral for DMA 2.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Periph4Dma2 {
-    /// UART3 receive.
-    Uart3Rx,
-    /// UART3 transmit.
-    Uart3Tx,
-    /// SPI1 receive.
-    Spi1Rx,
-    /// SPI1 transmit.
-    Spi1Tx,
-    /// I2C2 receive.
-    I2c2Rx = 6,
-    /// I2C2 transmit.
-    I2c2Tx,
-    /// I2C3 receive.
-    I2c3Rx,
-    /// I2C3 transmit.
-    I2c3Tx,
-    /// DSI receive.
-    DsiRx,
-    /// DSI transmit.
-    DsiTx,
-    /// DBI receive.
-    DbiTx = 22,
-}
-
 /// DMA peripheral request definition
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum DmaPeriphReq {
@@ -666,6 +596,16 @@ impl ChannelConfig {
             _ => DmaMode::Periph2PeriphCtrlBySrc,
         }
     }
+    /// Set destination peripheral for any DMA.
+    #[inline]
+    pub fn set_dst_periph(self, periph: impl PeripheralId) -> Self {
+        Self((self.0 & !Self::DST_PERIPH) | ((periph.id() as u32) << 6))
+    }
+    /// Clear destination peripheral for any DMA.
+    #[inline]
+    pub fn clear_dst_periph(self) -> Self {
+        Self(self.0 & !Self::DST_PERIPH)
+    }
     /// Set destination peripheral for DMA 0/1.
     #[inline]
     pub const fn set_dst_periph4dma01(self, periph: Periph4Dma01) -> Self {
@@ -721,6 +661,16 @@ impl ChannelConfig {
             22 => Periph4Dma2::DbiTx,
             _ => unreachable!(),
         }
+    }
+    /// Set source peripheral for any DMA.
+    #[inline]
+    pub fn set_src_periph(self, periph: impl PeripheralId) -> Self {
+        Self((self.0 & !Self::SRC_PERIPH) | ((periph.id() as u32) << 1))
+    }
+    /// Clear source peripheral for any DMA.
+    #[inline]
+    pub fn clear_src_periph(self) -> Self {
+        Self(self.0 & !Self::SRC_PERIPH)
     }
     /// Set source peripheral for DMA 0/1.
     #[inline]

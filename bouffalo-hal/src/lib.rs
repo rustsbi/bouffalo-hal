@@ -33,6 +33,7 @@ pub mod usb;
 
 #[doc(hidden)]
 pub mod prelude {
+    pub use crate::dma::DmaExt as _;
     pub use crate::gpio::{IntoPad as _, IntoPadv2 as _};
     pub use crate::lz4d::Lz4dExt as _;
     pub use crate::uart::UartExt as _;

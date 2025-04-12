@@ -2,15 +2,14 @@
 
 mod config;
 mod dma_sdh;
+mod nodma_sdh;
+mod ops;
 mod pad;
 mod register;
 pub use config::*;
 pub use dma_sdh::*;
 pub use pad::*;
 pub use register::*;
-
-use crate::dma::{FakeDmaChannel, FakeDmaRegisters};
-use core::arch::asm;
 
 /// SDH transfer flag.
 // TODO remove allow(dead_code)
@@ -53,13 +52,6 @@ enum SdhResp {
     R4,
 }
 
-/// Sleep for n milliseconds.
-fn sleep_ms(n: u32) {
-    for _ in 0..n * 125 {
-        unsafe { asm!("nop") }
-    }
-}
-
 /// Dma type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum DmaType {
@@ -92,14 +84,5 @@ impl DmaConfig {
     }
 }
 
-/// SDH peripheral type withoue system dma.
-pub type NonSysDmaSdh<'a, SDH, PADS, const I: usize> =
-    Sdh<'a, SDH, PADS, I, FakeDmaRegisters, FakeDmaChannel<0, 0>, 0, 0>;
-
-/// Parse CSD version 2.0.
-#[inline]
-fn parse_csd_v2(csd: u128) -> (u32, u32) {
-    let csd_structure = (((csd >> (32 * 3)) & 0xC00000) >> 22) as u32;
-    let c_size = (((csd >> 32) & 0x3FFFFF00) >> 8) as u32;
-    (csd_structure, c_size)
-}
+/// SDH peripheral type without system dma.
+pub type NonSysDmaSdh<SDH, PADS> = nodma_sdh::Sdh<SDH, PADS>;

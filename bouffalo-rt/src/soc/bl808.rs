@@ -998,6 +998,34 @@ soc! {
 }
 
 pub use bouffalo_hal::clocks::Clocks;
+use bouffalo_hal::dma::{DmaExt, EightChannels, FourChannels, Periph4Dma01, Periph4Dma2};
+
+impl DmaExt for DMA0 {
+    type Group<'a> = EightChannels<'a, Periph4Dma01>;
+
+    #[inline]
+    fn split(&self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group<'_> {
+        EightChannels::__new::<0>(self, glb)
+    }
+}
+
+impl DmaExt for DMA1 {
+    type Group<'a> = FourChannels<'a, Periph4Dma01>;
+
+    #[inline]
+    fn split(&self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group<'_> {
+        FourChannels::__new::<0>(self, glb)
+    }
+}
+
+impl DmaExt for DMA2 {
+    type Group<'a> = EightChannels<'a, Periph4Dma2>;
+
+    #[inline]
+    fn split(&self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group<'_> {
+        EightChannels::__new::<0>(self, glb)
+    }
+}
 
 // Used by macros only.
 #[allow(unused)]

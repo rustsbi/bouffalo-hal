@@ -329,6 +329,7 @@ pub enum CmdType {
     Abort,
     Empty,
 }
+
 /// Response type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ResponseType {

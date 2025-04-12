@@ -19,8 +19,8 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let mut serial = p.uart0.freerun(config, pads, &c).unwrap().enable_tx_dma();
     let tx_config = DmaChannelConfig {
         direction: DmaMode::Mem2Periph,
-        src_req: DmaPeriphReq::None,
-        dst_req: DmaPeriphReq::Dma01(Periph4Dma01::Uart0Tx),
+        src_req: None,
+        dst_req: Some(Periph4Dma01::Uart0Tx),
         src_addr_inc: true,
         dst_addr_inc: false,
         src_burst_size: BurstSize::INCR1,
@@ -28,7 +28,9 @@ fn main(p: Peripherals, c: Clocks) -> ! {
         src_transfer_width: TransferWidth::Byte,
         dst_transfer_width: TransferWidth::Byte,
     };
-    let dma0_ch0 = Dma::new(&p.dma0, Dma0Channel0, tx_config, &p.glb);
+    let mut dma0 = p.dma0.split(&p.glb);
+    dma0.ch0.configure(tx_config);
+    let dma0_ch0 = dma0.ch0;
     let tx_lli_pool = &mut [LliPool::new(); 1];
     let hello = b"Welcome to Universal Asynchronous Receiver/Transmitter with Direct Memory Access demo!\r\nHello world!";
     let hello_ptr = hello.as_ptr();
