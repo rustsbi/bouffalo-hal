@@ -52,7 +52,6 @@ impl<'a, T: PeripheralId> TypedChannel<'a, T> {
         let dma = self.inner.dma;
         let id = self.inner.channel_id;
         unsafe {
-            dma.global_config.modify(|val| val.enable_dma());
             dma.channels[id].config.modify(|val| val.disable_ch());
             dma.channels[id].control.modify(|val| {
                 let val = if channel_config.src_addr_inc {
@@ -104,7 +103,6 @@ impl<'a, T: PeripheralId> TypedChannel<'a, T> {
         let dma = self.inner.dma;
         let id = self.inner.channel_id;
         unsafe {
-            dma.global_config.modify(|val| val.enable_dma());
             dma.channels[id].config.modify(|val| val.disable_ch());
             dma.channels[id].control.modify(|val| {
                 let val = if channel_config.src_addr_inc {
