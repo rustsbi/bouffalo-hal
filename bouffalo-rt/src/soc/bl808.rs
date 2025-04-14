@@ -998,60 +998,12 @@ soc! {
 }
 
 pub use bouffalo_hal::clocks::Clocks;
-use bouffalo_hal::dma::{DmaExt, EightChannels, FourChannels, Periph4Dma01, Periph4Dma2};
+use bouffalo_hal::dma::{EightChannels, FourChannels, Periph4Dma01, Periph4Dma2};
 
-impl<'a> DmaExt for &'a mut DMA0 {
-    type Group = EightChannels<'a, Periph4Dma01>;
-
-    #[inline]
-    fn split(self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group {
-        EightChannels::__new::<0>(self, glb)
-    }
-}
-
-impl DmaExt for DMA0 {
-    type Group = EightChannels<'static, Periph4Dma01>;
-
-    #[inline]
-    fn split(self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group {
-        EightChannels::__new::<0>(unsafe { &*self.as_ptr() }, glb)
-    }
-}
-
-impl<'a> DmaExt for &'a mut DMA1 {
-    type Group = FourChannels<'a, Periph4Dma01>;
-
-    #[inline]
-    fn split(self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group {
-        FourChannels::__new::<1>(self, glb)
-    }
-}
-
-impl DmaExt for DMA1 {
-    type Group = FourChannels<'static, Periph4Dma01>;
-
-    #[inline]
-    fn split(self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group {
-        FourChannels::__new::<1>(unsafe { &*self.as_ptr() }, glb)
-    }
-}
-
-impl<'a> DmaExt for &'a mut DMA2 {
-    type Group = EightChannels<'a, Periph4Dma2>;
-
-    #[inline]
-    fn split(self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group {
-        EightChannels::__new::<2>(self, glb)
-    }
-}
-
-impl DmaExt for DMA2 {
-    type Group = EightChannels<'static, Periph4Dma2>;
-
-    #[inline]
-    fn split(self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group {
-        EightChannels::__new::<2>(unsafe { &*self.as_ptr() }, glb)
-    }
+dma! {
+    DMA0: (0, EightChannels, Periph4Dma01),
+    DMA1: (1, FourChannels, Periph4Dma01),
+    DMA2: (2, EightChannels, Periph4Dma2),
 }
 
 // Used by macros only.

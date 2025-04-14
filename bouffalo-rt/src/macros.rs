@@ -14,7 +14,7 @@ macro_rules! soc {
 
             impl $Ty {
                 #[inline]
-                pub const fn as_ptr(self) -> *const $DerefTy {
+                pub const fn ptr() -> *const $DerefTy {
                     $paddr as *const _
                 }
             }
@@ -33,5 +33,29 @@ macro_rules! soc {
                 }
             }
         )+
+    };
+}
+
+macro_rules! dma {
+    ($($DMAx: ty: ($x: expr, $WhatChannels: ident, $Periph: ty),)+) => {
+$(
+    impl<'a> bouffalo_hal::dma::DmaExt for &'a mut $DMAx {
+        type Group = $WhatChannels<'a, $Periph>;
+
+        #[inline]
+        fn split(self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group {
+            $WhatChannels::__new::<$x>(self, glb)
+        }
+    }
+
+    impl bouffalo_hal::dma::DmaExt for $DMAx {
+        type Group = $WhatChannels<'static, $Periph>;
+
+        #[inline]
+        fn split(self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group {
+            $WhatChannels::__new::<$x>(unsafe { &*Self::ptr() }, glb)
+        }
+    }
+)+
     };
 }
