@@ -1,7 +1,47 @@
 use super::register::{Argument, AutoCMDMode, CmdType, Command, DataTransferMode, RegisterBlock};
-use super::{SdhResp, SdhTransFlag};
 use embedded_io::Write;
 use embedded_sdmmc::Block;
+
+/// SDH response type.
+// TODO construct R5, R5B, R4 responses, remove allow(dead_code)
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub(crate) enum SdhResp {
+    None,
+    R1,
+    R5,
+    R6,
+    R7,
+    R1B,
+    R5B,
+    R2,
+    R3,
+    R4,
+}
+
+/// SDH transfer flag.
+// TODO remove allow(dead_code)
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum SdhTransFlag {
+    None = 0x00000000,
+    EnDma = 0x00000001,              // Enable DMA.
+    EnBlkCount = 0x00000002,         // Enable block count.
+    EnAutoCmd12 = 0x00000004,        // Enable auto CMD12.
+    EnAutoCmd23 = 0x00000008,        // Enable auto CMD23.
+    ReadData = 0x00000010,           // Enable read data.
+    MultiBlk = 0x00000020,           // Enable multi-block data operation.
+    Resp136Bits = 0x00010000,        // Response is 136 bits length.
+    Resp48Bits = 0x00020000,         // Response is 48 bits length.
+    Resp48BitsWithBusy = 0x00030000, // Response is 48 bits length with busy status.
+    EnCrcCheck = 0x00080000,         // Enable crc check.
+    EnIndexCheck = 0x00100000,       // Enable index check.
+    DataPresent = 0x00200000,        // Data present.
+    Suspend = 0x00400000,            // Suspend command.
+    Resume = 0x00800000,             // Resume command.
+    Abort = 0x00C00000,              // Abort command.
+}
 
 #[inline]
 pub(crate) fn read_block(sdh: &RegisterBlock, block: &mut Block, block_idx: u32) {

@@ -1,12 +1,12 @@
 use core::marker::PhantomData;
-use core::ops::Deref;
+use core::ops::{Deref, DerefMut};
 
 use crate::glb;
 
-use super::Mem2MemChannelConfig;
-use super::config::{DmaChannelConfig, PeripheralId};
+use super::LliPool;
+use super::config::{DmaChannelConfig, Mem2MemChannelConfig, PeripheralId};
 use super::register::{
-    ErrorClear, LliPool, LliTransfer, RegisterBlock, TransferCompleteClear, TransferWidth,
+    ErrorClear, LliTransfer, RegisterBlock, TransferCompleteClear, TransferWidth,
 };
 
 /// Managed DMA with eight split channels.
@@ -98,10 +98,33 @@ impl<'a, T: PeripheralId> TypedChannel<'a, T> {
                 .write(ErrorClear::default().clear_err_int(id as u8));
         }
     }
+}
 
+impl<'a, T> Deref for TypedChannel<'a, T> {
+    type Target = UntypedChannel<'a>;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+impl<'a, T> DerefMut for TypedChannel<'a, T> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
+/// Channel without a dedicated peripheral type.
+pub struct UntypedChannel<'a> {
+    dma: &'a RegisterBlock,
+    channel_id: usize,
+}
+
+impl<'a> UntypedChannel<'a> {
     pub fn memory_to_memory(&mut self, channel_config: Mem2MemChannelConfig) {
-        let dma = self.inner.dma;
-        let id = self.inner.channel_id;
+        let dma = self.dma;
+        let id = self.channel_id;
         unsafe {
             dma.channels[id].config.modify(|val| val.disable_ch());
             dma.channels[id].control.modify(|val| {
@@ -142,24 +165,6 @@ impl<'a, T: PeripheralId> TypedChannel<'a, T> {
                 .write(ErrorClear::default().clear_err_int(id as u8));
         }
     }
-}
-
-impl<'a, T> Deref for TypedChannel<'a, T> {
-    type Target = UntypedChannel<'a>;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-/// Channel without a dedicated peripheral type.
-pub struct UntypedChannel<'a> {
-    dma: &'a RegisterBlock,
-    channel_id: usize,
-}
-
-impl<'a> UntypedChannel<'a> {
     /// Configure linked list items.
     #[inline]
     pub fn lli_config(

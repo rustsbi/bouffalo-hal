@@ -1,9 +1,9 @@
-use super::ops::{card_init, send_command};
+use super::config::Config;
+use super::ops::{SdhResp, card_init, send_command};
 use super::pad::Pads;
 use super::register::{
     AutoCMDMode, BusVoltage, ClkGenMode, CmdType, DataTransferMode, DmaMode, RegisterBlock,
 };
-use super::{SdhResp, config::Config};
 use crate::dma::{LliPool, LliTransfer, UntypedChannel};
 use crate::glb;
 use core::ops::Deref;

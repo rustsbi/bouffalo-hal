@@ -215,32 +215,6 @@ pub struct ChannelRegisters {
     _reserved0: [u8; 0xec],
 }
 
-/// Linked list item pool descriptor.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-#[repr(C)]
-pub struct LliPool {
-    /// Source address.
-    pub src_addr: u32,
-    /// Destination address.
-    pub dst_addr: u32,
-    /// Physical address to next linked list item.
-    pub next_lli: u32,
-    /// Linked list item control register.
-    pub control: LliControl,
-}
-
-impl LliPool {
-    #[inline]
-    pub fn new() -> Self {
-        Self {
-            src_addr: 0,
-            dst_addr: 0,
-            next_lli: 0,
-            control: LliControl(0),
-        }
-    }
-}
-
 /// Linked list item transfer descriptor.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(C)]
@@ -254,7 +228,7 @@ pub struct LliTransfer {
 }
 
 /// Control register in linked list item.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct LliControl(u32);
 
 /// DMA transfer width.
