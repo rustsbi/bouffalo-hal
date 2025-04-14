@@ -51,10 +51,8 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let sdh_d3 = p.gpio.io5.into_sdh();
     let pads = (sdh_clk, sdh_cmd, sdh_d0, sdh_d1, sdh_d2, sdh_d3);
 
-    let rx_config = DmaChannelConfig {
+    let rx_config = Mem2MemChannelConfig {
         direction: dma::DmaMode::Mem2Mem,
-        src_req: DmaPeriphReq::None,
-        dst_req: DmaPeriphReq::None,
         src_addr_inc: true,
         dst_addr_inc: true,
         src_burst_size: dma::BurstSize::INCR1,
@@ -63,11 +61,12 @@ fn main(p: Peripherals, c: Clocks) -> ! {
         dst_transfer_width: dma::TransferWidth::Byte,
     };
 
-    let dma0_ch0 = Dma::new(&p.dma0, Dma0Channel0, rx_config, &p.glb);
+    let mut dma0 = p.dma0.split(&p.glb);
+    dma0.ch0.memory_to_memory(rx_config);
 
     // Sdh init.
     let config = SdhConfig::default();
-    let mut sdcard = Sdh::new(p.sdh, pads, config, &p.glb).enable_sys_dma(dma0_ch0);
+    let mut sdcard = Sdh::new(p.sdh, pads, dma0.ch0, config, &p.glb);
     sdcard.init(&mut serial, true);
 
     let time_source = MyTimeSource {};
