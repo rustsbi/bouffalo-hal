@@ -7,6 +7,7 @@ use super::{SdhResp, config::Config};
 use crate::dma::{LliPool, LliTransfer, UntypedChannel};
 use crate::glb;
 use core::ops::Deref;
+use core::sync::atomic::{Ordering, fence};
 use embedded_io::Write;
 use embedded_sdmmc::{Block, BlockDevice, BlockIdx};
 
@@ -148,6 +149,9 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
             }
 
             self.dma_channel.stop();
+
+            // FIXME modify to a proper fence
+            fence(Ordering::AcqRel);
 
             block[j * 4 + 0] = val[0];
             block[j * 4 + 1] = val[1];
