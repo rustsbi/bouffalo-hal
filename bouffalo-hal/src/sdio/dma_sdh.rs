@@ -151,7 +151,7 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
             self.dma_channel.stop();
 
             // FIXME modify to a proper fence
-            fence(Ordering::AcqRel);
+            fence(Ordering::SeqCst);
 
             block[j * 4 + 0] = val[0];
             block[j * 4 + 1] = val[1];
