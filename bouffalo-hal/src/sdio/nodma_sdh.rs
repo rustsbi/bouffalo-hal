@@ -1,5 +1,5 @@
 use super::config::Config;
-use super::ops::{card_init, read_block};
+use super::ops::{card_init, read_block, write_block};
 use super::pad::Pads;
 use super::register::{BusVoltage, ClkGenMode, DmaMode, RegisterBlock};
 use crate::glb;
@@ -67,8 +67,11 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS> Sdh<SDH, PADS> {
             // SDH_TX_INT_CLK_SEL.
             sdh.tx_configuration.modify(|val| val.set_tx_int_clk_sel(1));
             // SDH enable interrupt.
-            sdh.normal_interrupt_status_enable
-                .modify(|val| val.enable_buffer_read_ready());
+            sdh.normal_interrupt_status_enable.modify(|val| {
+                val.enable_buffer_read_ready()
+                    .enable_buffer_write_ready()
+                    .enable_transfer_complete()
+            });
             // SDH_Set_Timeout.
             sdh.timeout_control.modify(|val| val.set_timeout_val(0x0e));
             // SDH_Powon.
@@ -112,8 +115,11 @@ impl<SDH: Deref<Target = RegisterBlock>, PADS> BlockDevice for Sdh<SDH, PADS> {
     }
 
     #[inline]
-    fn write(&self, _blocks: &[Block], _start_block_idx: BlockIdx) -> Result<(), Self::Error> {
-        todo!();
+    fn write(&self, blocks: &[Block], start_block_idx: BlockIdx) -> Result<(), Self::Error> {
+        for (i, block) in blocks.iter().enumerate() {
+            write_block(&self.sdh, block, start_block_idx.0 + i as u32);
+        }
+        Ok(())
     }
 
     #[inline]

@@ -77,6 +77,60 @@ pub(crate) fn read_block(sdh: &RegisterBlock, block: &mut Block, block_idx: u32)
     }
 }
 
+#[inline]
+pub(crate) fn write_block(sdh: &RegisterBlock, block: &Block, block_idx: u32) {
+    unsafe {
+        // SDH_SD_TRANSFER_MODE.
+        sdh.transfer_mode.modify(|val| {
+            val.set_data_transfer_mode(DataTransferMode::MOSI) // SDH_TO_HOST_DIR.
+                .set_auto_cmd_mode(AutoCMDMode::None) // SDH_AUTO_CMD_EN.
+        });
+
+        // Block_size.
+        sdh.block_size.modify(|val| val.set_transfer_block(512));
+
+        // Block_count.
+        sdh.block_count.modify(|val| val.set_blocks_count(1));
+
+        // SDH_ClearIntStatus(SDH_INT_BUFFER_WRITE_READY).
+        sdh.normal_interrupt_status
+            .modify(|val| val.clear_buffer_write_ready());
+    }
+    send_command(sdh, SdhResp::R1, CmdType::Normal, 24, block_idx, true);
+
+    while !sdh.normal_interrupt_status.read().is_buffer_write_ready() {
+        // SDH_INT_BUFFER_WRITE_READY.
+        // Wait for buffer write ready.
+        core::hint::spin_loop()
+    }
+
+    for j in 0..Block::LEN / 4 {
+        let data_val = u32::from_le_bytes([
+            block[j * 4 + 0],
+            block[j * 4 + 1],
+            block[j * 4 + 2],
+            block[j * 4 + 3],
+        ]);
+
+        unsafe {
+            sdh.buffer_data_port
+                .modify(|val| val.set_buffer_data(data_val));
+            sdh.normal_interrupt_status
+                .modify(|val| val.clear_buffer_write_ready());
+        }
+    }
+
+    // Wait for transfer completed.
+    while !sdh.normal_interrupt_status.read().is_transfer_completed() {
+        core::hint::spin_loop();
+    }
+
+    unsafe {
+        sdh.normal_interrupt_status
+            .modify(|val| val.clear_transfer_completed());
+    }
+}
+
 /// Send command to sdcard.
 #[inline]
 pub(crate) fn send_command(
@@ -210,19 +264,19 @@ pub(crate) fn card_init<W: Write>(sdh: &RegisterBlock, w: &mut W, debug: bool) -
     send_command(sdh, SdhResp::R1, CmdType::Normal, 6, 0x0, false);
     sleep_ms(100);
 
-    let kb_size = (block_count as f64) * (block_size as f64) / 1024.0;
-    let mb_size = kb_size / 1024.0;
-    let gb_size = mb_size / 1024.0;
-
-    let cap = sdh.capabilities.read();
-    let version = sdh.host_controller_version.read();
-
-    writeln!(*w, "SpecifiicVersion: {:?}", version.specific_version()).ok();
-    writeln!(*w, "SlotType: {:?}", cap.slot_type()).ok();
-    writeln!(*w, "SDMA support: {}", cap.is_sdma_supported()).ok();
-    writeln!(*w, "ADMA2 support: {}", cap.is_adma2_supported()).ok();
-
     if debug {
+        let kb_size = (block_count as f64) * (block_size as f64) / 1024.0;
+        let mb_size = kb_size / 1024.0;
+        let gb_size = mb_size / 1024.0;
+
+        let cap = sdh.capabilities.read();
+        let version = sdh.host_controller_version.read();
+
+        writeln!(*w, "SpecifiicVersion: {:?}", version.specific_version()).ok();
+        writeln!(*w, "SlotType: {:?}", cap.slot_type()).ok();
+        writeln!(*w, "SDMA support: {}", cap.is_sdma_supported()).ok();
+        writeln!(*w, "ADMA2 support: {}", cap.is_adma2_supported()).ok();
+
         if kb_size < 1024.0 {
             writeln!(*w, "sdcard init done, size: {:.2} KB", kb_size).ok();
         } else if mb_size < 1024.0 {
