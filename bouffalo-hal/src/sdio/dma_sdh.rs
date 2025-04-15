@@ -9,7 +9,7 @@ use crate::glb;
 use core::ops::Deref;
 use core::sync::atomic::{Ordering, fence};
 use embedded_io::Write;
-use embedded_sdmmc::{Block, BlockDevice, BlockIdx};
+use embedded_sdmmc::Block;
 
 /// Managed Secure Digital Host Controller peripheral.
 pub struct Sdh<SDH, PADS, CH> {
@@ -102,7 +102,7 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
 
     /// Read block from sdcard using system dma controller.
     #[inline]
-    fn read_block_sys_dma(&self, block: &mut Block, block_idx: u32) {
+    pub(crate) fn read_block_sys_dma(&self, block: &mut Block, block_idx: u32) {
         unsafe {
             // SDH_SD_TRANSFER_MODE.
             self.sdh.transfer_mode.modify(|val| {
@@ -165,7 +165,7 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
 
     /// Write block from sdcard using system dma controller.
     #[inline]
-    fn write_block_sys_dma(&self, block: &Block, block_idx: u32) {
+    pub(crate) fn write_block_sys_dma(&self, block: &Block, block_idx: u32) {
         unsafe {
             // SDH_SD_TRANSFER_MODE.
             self.sdh.transfer_mode.modify(|val| {
@@ -249,41 +249,15 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
         }
     }
 
+    /// Read block from sdcard using system dma controller.
+    #[inline]
+    pub(crate) fn num_blocks(&self) -> embedded_sdmmc::BlockCount {
+        embedded_sdmmc::BlockCount(self.block_count)
+    }
+
     /// Release the SDH instance and return the pads and configs.
     #[inline]
     pub fn free(self) -> (SDH, PADS, CH) {
         (self.sdh, self.pads, self.dma_channel)
-    }
-}
-
-impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedChannel<'a>>>
-    BlockDevice for Sdh<SDH, PADS, CH>
-{
-    type Error = core::convert::Infallible;
-
-    #[inline]
-    fn read(
-        &self,
-        blocks: &mut [Block],
-        start_block_idx: BlockIdx,
-        _reason: &str,
-    ) -> Result<(), Self::Error> {
-        for (i, block) in blocks.iter_mut().enumerate() {
-            self.read_block_sys_dma(block, start_block_idx.0 + i as u32);
-        }
-        Ok(())
-    }
-
-    #[inline]
-    fn write(&self, blocks: &[Block], start_block_idx: BlockIdx) -> Result<(), Self::Error> {
-        for (i, block) in blocks.iter().enumerate() {
-            self.write_block_sys_dma(block, start_block_idx.0 + i as u32);
-        }
-        Ok(())
-    }
-
-    #[inline]
-    fn num_blocks(&self) -> Result<embedded_sdmmc::BlockCount, Self::Error> {
-        Ok(embedded_sdmmc::BlockCount(self.block_count))
     }
 }

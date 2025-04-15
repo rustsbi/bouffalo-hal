@@ -6,6 +6,7 @@ mod nodma_sdh;
 mod ops;
 mod pad;
 mod register;
+pub mod sdcard;
 pub use config::*;
 pub use dma_sdh::*;
 pub use pad::*;
