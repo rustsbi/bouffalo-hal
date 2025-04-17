@@ -3,7 +3,7 @@
 
 use bouffalo_hal::{
     prelude::*,
-    sdio::{Config as SdhConfig, NonSysDmaSdh},
+    sdio::{Config as SdhConfig, NonSysDmaSdh, sdcard::Sdcard},
     uart::Config as UartConfig,
 };
 use bouffalo_rt::{Clocks, Peripherals, entry};
@@ -52,8 +52,9 @@ fn main(p: Peripherals, c: Clocks) -> ! {
 
     // Sdh init.
     let config = SdhConfig::default();
-    let mut sdcard = NonSysDmaSdh::new(p.sdh, pads, config, &p.glb);
-    sdcard.init(&mut serial, true);
+    let mut sdh = NonSysDmaSdh::new(p.sdh, pads, config, &p.glb);
+    sdh.init(&mut serial, true);
+    let sdcard = Sdcard::new(&mut sdh);
     let time_source = MyTimeSource {};
     let mut volume_mgr = VolumeManager::new(sdcard, time_source);
     let volume_res = volume_mgr.open_raw_volume(embedded_sdmmc::VolumeIdx(0));

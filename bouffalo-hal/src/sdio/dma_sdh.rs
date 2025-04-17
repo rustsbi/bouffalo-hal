@@ -9,7 +9,7 @@ use crate::glb;
 use core::ops::Deref;
 use core::sync::atomic::{Ordering, fence};
 use embedded_io::Write;
-use embedded_sdmmc::{Block, BlockDevice, BlockIdx};
+use embedded_sdmmc::Block;
 
 /// Managed Secure Digital Host Controller peripheral.
 pub struct Sdh<SDH, PADS, CH> {
@@ -75,8 +75,11 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
             // SDH_TX_INT_CLK_SEL.
             sdh.tx_configuration.modify(|val| val.set_tx_int_clk_sel(1));
             // SDH enable interrupt.
-            sdh.normal_interrupt_status_enable
-                .modify(|val| val.enable_buffer_read_ready());
+            sdh.normal_interrupt_status_enable.modify(|val| {
+                val.enable_buffer_read_ready()
+                    .enable_buffer_write_ready()
+                    .enable_transfer_complete()
+            });
             // SDH_Set_Timeout.
             sdh.timeout_control.modify(|val| val.set_timeout_val(0x0e));
             // SDH_Powon.
@@ -99,7 +102,7 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
 
     /// Read block from sdcard using system dma controller.
     #[inline]
-    fn read_block_sys_dma(&self, block: &mut Block, block_idx: u32) {
+    pub(crate) fn read_block_sys_dma(&self, block: &mut Block, block_idx: u32) {
         unsafe {
             // SDH_SD_TRANSFER_MODE.
             self.sdh.transfer_mode.modify(|val| {
@@ -160,38 +163,101 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
         }
     }
 
+    /// Write block from sdcard using system dma controller.
+    #[inline]
+    pub(crate) fn write_block_sys_dma(&self, block: &Block, block_idx: u32) {
+        unsafe {
+            // SDH_SD_TRANSFER_MODE.
+            self.sdh.transfer_mode.modify(|val| {
+                val.set_data_transfer_mode(DataTransferMode::MOSI) // SDH_TO_HOST_DIR.
+                    .set_auto_cmd_mode(AutoCMDMode::None) // SDH_AUTO_CMD_EN.
+            });
+
+            // Block_size.
+            self.sdh
+                .block_size
+                .modify(|val| val.set_transfer_block(512));
+
+            // Block_count.
+            self.sdh.block_count.modify(|val| val.set_blocks_count(1));
+
+            // SDH_ClearIntStatus(SDH_INT_BUFFER_WRITE_READY).
+            self.sdh
+                .normal_interrupt_status
+                .modify(|val| val.clear_buffer_write_ready());
+        }
+        send_command(&self.sdh, SdhResp::R1, CmdType::Normal, 24, block_idx, true);
+
+        while !self
+            .sdh
+            .normal_interrupt_status
+            .read()
+            .is_buffer_write_ready()
+        {
+            // SDH_INT_BUFFER_WRITE_READY.
+            // Wait for buffer write ready.
+            core::hint::spin_loop()
+        }
+
+        for j in 0..Block::LEN / 4 {
+            let tx_lli_pool = &mut [LliPool::new(); 1];
+            let val = [
+                block[j * 4 + 0],
+                block[j * 4 + 1],
+                block[j * 4 + 2],
+                block[j * 4 + 3],
+            ];
+            let tx_transfer = &mut [LliTransfer {
+                src_addr: val.as_ptr() as u32,
+                dst_addr: 0x20060020,
+                nbytes: 4,
+            }];
+
+            self.dma_channel.lli_reload(tx_lli_pool, 1, tx_transfer, 1);
+            self.dma_channel.start();
+
+            while self.dma_channel.is_busy() {
+                core::hint::spin_loop();
+            }
+
+            self.dma_channel.stop();
+
+            // FIXME modify to a proper fence
+            fence(Ordering::SeqCst);
+
+            unsafe {
+                self.sdh
+                    .normal_interrupt_status
+                    .modify(|val| val.clear_buffer_write_ready());
+            }
+        }
+
+        // Wait for transfer completed.
+        while !self
+            .sdh
+            .normal_interrupt_status
+            .read()
+            .is_transfer_completed()
+        {
+            core::hint::spin_loop();
+        }
+
+        unsafe {
+            self.sdh
+                .normal_interrupt_status
+                .modify(|val| val.clear_transfer_completed());
+        }
+    }
+
+    /// Read block from sdcard using system dma controller.
+    #[inline]
+    pub(crate) fn num_blocks(&self) -> embedded_sdmmc::BlockCount {
+        embedded_sdmmc::BlockCount(self.block_count)
+    }
+
     /// Release the SDH instance and return the pads and configs.
     #[inline]
     pub fn free(self) -> (SDH, PADS, CH) {
         (self.sdh, self.pads, self.dma_channel)
-    }
-}
-
-impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedChannel<'a>>>
-    BlockDevice for Sdh<SDH, PADS, CH>
-{
-    type Error = core::convert::Infallible;
-
-    #[inline]
-    fn read(
-        &self,
-        blocks: &mut [Block],
-        start_block_idx: BlockIdx,
-        _reason: &str,
-    ) -> Result<(), Self::Error> {
-        for (i, block) in blocks.iter_mut().enumerate() {
-            self.read_block_sys_dma(block, start_block_idx.0 + i as u32);
-        }
-        Ok(())
-    }
-
-    #[inline]
-    fn write(&self, _blocks: &[Block], _start_block_idx: BlockIdx) -> Result<(), Self::Error> {
-        todo!();
-    }
-
-    #[inline]
-    fn num_blocks(&self) -> Result<embedded_sdmmc::BlockCount, Self::Error> {
-        Ok(embedded_sdmmc::BlockCount(self.block_count))
     }
 }
