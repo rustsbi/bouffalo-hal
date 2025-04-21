@@ -1,7 +1,6 @@
 //! BL808 tri-core heterogeneous Wi-Fi 802.11b/g/n, Bluetooth 5, Zigbee AIoT system-on-chip.
 
 use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
-use core::ops::Deref;
 
 #[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
 #[naked_function::naked]
@@ -531,11 +530,47 @@ impl plic::InterruptSource for RawPlicSource {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum DspInterrupt {
     /// UART3 interrupt.
-    UART3 = 16 + 4,
-    // TODO other interrupts.
-    // /// I2C2 interrupt.
-    // I2C2 = 16 + 5,
-    // ...
+    Uart3 = 16 + 4,
+    /// I2C2 interrupt.
+    I2c2 = 16 + 5,
+    /// I2C3 interrupt.
+    I2c3 = 16 + 6,
+    /// SPI1 interrupt.
+    Spi1 = 16 + 7,
+    /// DMA2 interrupt 0.
+    Dma2Int0 = 16 + 24,
+    /// DMA2 interrupt 1.
+    Dma2Int1 = 16 + 25,
+    /// DMA2 interrupt 2.
+    Dma2Int2 = 16 + 26,
+    /// DMA2 interrupt 3.
+    Dma2Int3 = 16 + 27,
+    /// DMA2 interrupt 4.
+    Dma2Int4 = 16 + 28,
+    /// DMA2 interrupt 5.
+    Dma2Int5 = 16 + 29,
+    /// DMA2 interrupt 6.
+    Dma2Int6 = 16 + 30,
+    /// DMA2 interrupt 7.
+    Dma2Int7 = 16 + 31,
+    /// EMAC2 interrupt.
+    Emac2 = 16 + 36,
+    /// DMA2D interrupt 0.
+    Dma2dInt0 = 16 + 45,
+    /// DMA2D interrupt 1.
+    Dma2dInt1 = 16 + 46,
+    /// PWM interrupt.
+    Pwm = 16 + 48,
+    /// TIM1 channel 0 interrupt.
+    Tim1Ch0 = 16 + 61,
+    /// TIM1 interrupt.
+    Tim1Ch1 = 16 + 62,
+    /// TIM1 WDT interrupt.
+    Tim1Wdt = 16 + 63,
+    /// AUDIO interrupt.
+    Audio = 16 + 64,
+    /// PDS interrupt.
+    Pds = 16 + 66,
 }
 
 impl plic::InterruptSource for DspInterrupt {
@@ -545,8 +580,55 @@ impl plic::InterruptSource for DspInterrupt {
     }
 }
 
-// TODO: MCU and Low-Power core interrupt source.
-// pub enum McuLpInterrupt { ... }
+/// MCU and Low-Power core interrupt source.
+pub enum McuLpInterrupt {
+    /// DMA0 all interrupt.
+    Dma0All = 16 + 15,
+    /// DMA1 all interrupt.
+    Dma1All = 16 + 16,
+    /// IR transmit interrupt.
+    IrTx = 16 + 19,
+    /// IR receive interrupt.
+    IrRx = 16 + 20,
+    /// USB interrupt.
+    Usb = 16 + 21,
+    /// EMAC interrupt.
+    Emac = 16 + 24,
+    /// GPADC DMA interrupt.
+    GpadcDma = 16 + 25,
+    /// SPI0 interrupt.
+    Spi0 = 16 + 27,
+    /// UART0 interrupt.
+    Uart0 = 16 + 28,
+    /// UART1 interrupt.
+    Uart1 = 16 + 29,
+    /// UART2 interrupt.
+    Uart2 = 16 + 30,
+    /// GPIO DMA interrupt.
+    GpioDma = 16 + 31,
+    /// I2C0 interrupt.
+    I2c0 = 16 + 32,
+    /// I2C1 interrupt.
+    I2c1 = 16 + 39,
+    /// PWM interrupt.
+    Pwm = 16 + 33,
+    /// TIM0 channel 0 interrupt.
+    Tim0Ch0 = 16 + 36,
+    /// TIM0 channel 1 interrupt.
+    Tim0Ch1 = 16 + 37,
+    /// TIM0 WDT interrupt.
+    Tim0Wdt = 16 + 38,
+    /// I2S interrupt.
+    I2s = 16 + 40,
+    /// GPIO interrupt.
+    Gpio = 16 + 44,
+    /// PDS wakeup interrupt.
+    PdsWakeup = 16 + 50,
+    /// HBN out 0 interrupt.
+    HbnOut0 = 16 + 51,
+    /// HBN out 1 interrupt.
+    HbnOut1 = 16 + 52,
+}
 
 /// Clock configuration at boot-time.
 #[cfg(any(doc, feature = "bl808-mcu", feature = "bl808-dsp"))]
@@ -860,6 +942,12 @@ pub struct Peripherals<'a> {
     pub psram: PSRAM,
     /// Secure Digital High Capacity peripheral.
     pub sdh: SDH,
+    /// Direct Memory Access peripheral 0.
+    pub dma0: DMA0,
+    /// Direct Memory Access peripheral 1.
+    pub dma1: DMA1,
+    /// Direct Memory Access peripheral 2.
+    pub dma2: DMA2,
 }
 
 soc! {
@@ -881,12 +969,18 @@ soc! {
     pub struct UART2 => 0x2000AA00, bouffalo_hal::uart::RegisterBlock;
     /// Hardware LZ4 Decompressor.
     pub struct LZ4D => 0x2000AD00, bouffalo_hal::lz4d::RegisterBlock;
+    /// Direct Memory Access peripheral 0.
+    pub struct DMA0 => 0x2000C000, bouffalo_hal::dma::RegisterBlock;
     /// Hibernation control peripheral.
     pub struct HBN => 0x2000F000, bouffalo_hal::hbn::RegisterBlock;
     /// Secure Digital High Capacity peripheral.
     pub struct SDH => 0x20060000, bouffalo_hal::sdio::RegisterBlock;
     /// Ethernet Media Access Control peripheral.
     pub struct EMAC => 0x20070000, bouffalo_hal::emac::RegisterBlock;
+    /// Direct Memory Access peripheral 1.
+    pub struct DMA1 => 0x20071000, bouffalo_hal::dma::RegisterBlock;
+    /// Direct Memory Access peripheral 2.
+    pub struct DMA2 => 0x30001000, bouffalo_hal::dma::RegisterBlock;
     /// Universal Asynchronous Receiver/Transmitter 3 with fixed base address.
     pub struct UART3 => 0x30002000, bouffalo_hal::uart::RegisterBlock;
     /// Inter-Integrated Circuit bus 2 with fixed base address.
@@ -904,6 +998,13 @@ soc! {
 }
 
 pub use bouffalo_hal::clocks::Clocks;
+use bouffalo_hal::dma::{EightChannels, FourChannels, Periph4Dma01, Periph4Dma2};
+
+dma! {
+    DMA0: (0, EightChannels, Periph4Dma01),
+    DMA1: (1, FourChannels, Periph4Dma01),
+    DMA2: (2, EightChannels, Periph4Dma2),
+}
 
 // Used by macros only.
 #[allow(unused)]
@@ -938,6 +1039,9 @@ pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
         mmglb: MMGLB { _private: () },
         psram: PSRAM { _private: () },
         sdh: SDH { _private: () },
+        dma0: DMA0 { _private: () },
+        dma1: DMA1 { _private: () },
+        dma2: DMA2 { _private: () },
     };
     let clocks = Clocks {
         xtal: Hertz(xtal_hz),
@@ -948,7 +1052,7 @@ pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
 #[cfg(test)]
 mod tests {
     use super::{HalBootheader, HalCpuCfg, HalPllConfig, HalSysClkConfig};
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_lengths() {

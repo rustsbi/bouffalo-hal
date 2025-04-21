@@ -10,7 +10,7 @@ publish = false
 bouffalo-rt = { path = "../.." }
 embedded-hal = "1.0.0"
 panic-halt = "1.0.0"
-riscv = "0.12.1"
+riscv = "0.13.0"
 
 [features]
 default = ["bl808-dsp"]

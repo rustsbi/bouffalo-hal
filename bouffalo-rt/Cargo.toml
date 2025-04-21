@@ -17,7 +17,6 @@ xuantie-riscv = { git = "https://github.com/rustsbi/xuantie", rev = "fe7ec712" }
 naked-function = "0.1.5"
 
 [dev-dependencies]
-memoffset = "0.9.1"
 
 [features]
 default = []

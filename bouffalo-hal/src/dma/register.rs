@@ -1,5 +1,7 @@
-//! Direct Memory Access peripheral.
-
+use super::{
+    PeripheralId,
+    config::{Periph4Dma01, Periph4Dma2},
+};
 use volatile_register::{RO, RW, WO};
 
 /// Direct Memory Access peripheral registers.
@@ -49,7 +51,7 @@ pub struct InterruptRegisters {
     pub raw_transfer_complete: RO<RawTransferComplete>,
     _reserved5: [u8; 3],
     /// Error interrupt state before masking.
-    pub raw_error: WO<RawError>,
+    pub raw_error: RO<RawError>,
     _reserved6: [u8; 3],
 }
 
@@ -58,9 +60,9 @@ pub struct InterruptRegisters {
 pub struct GlobalState(u8);
 
 impl GlobalState {
-    /// Check if channel interrupt is enabled.
+    /// Check if channel interrupt occurs.
     #[inline]
-    pub const fn is_int_enabled(self, ch: u8) -> bool {
+    pub const fn if_int_occurs(self, ch: u8) -> bool {
         ((self.0 >> ch) & 1) != 0
     }
 }
@@ -78,7 +80,7 @@ impl TransferCompleteState {
 }
 
 /// Clear transfer complete interrupt.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct TransferCompleteClear(u8);
 
 impl TransferCompleteClear {
@@ -102,7 +104,7 @@ impl ErrorState {
 }
 
 /// Clear error interrupt.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct ErrorClear(u8);
 
 impl ErrorClear {
@@ -162,7 +164,7 @@ pub enum EndianMode {
 
 impl GlobalConfig {
     const AHB_MASTER_ENDIAN_CFG: u32 = 0x1 << 1;
-    const SMDMA: u32 = 0x1;
+    const DMA: u32 = 0x1;
 
     /// Set AHB master endian mode.
     #[inline]
@@ -180,20 +182,20 @@ impl GlobalConfig {
             _ => EndianMode::BigEndian,
         }
     }
-    /// Enable SMDMA.
+    /// Enable DMA.
     #[inline]
-    pub const fn enable_smdma(self) -> Self {
-        Self((self.0 & !Self::SMDMA) | 1)
+    pub const fn enable_dma(self) -> Self {
+        Self((self.0 & !Self::DMA) | 1)
     }
-    /// Disable SMDMA.
+    /// Disable DMA.
     #[inline]
-    pub const fn disable_smdma(self) -> Self {
-        Self((self.0 & !Self::SMDMA) | 0)
+    pub const fn disable_dma(self) -> Self {
+        Self((self.0 & !Self::DMA) | 0)
     }
-    /// Check if SMDMA is enabled.
+    /// Check if DMA is enabled.
     #[inline]
-    pub const fn is_smdma_enabled(self) -> bool {
-        (self.0 & Self::SMDMA) != 0
+    pub const fn is_dma_enabled(self) -> bool {
+        (self.0 & Self::DMA) != 0
     }
 }
 
@@ -213,21 +215,20 @@ pub struct ChannelRegisters {
     _reserved0: [u8; 0xec],
 }
 
-/// Linked list item pool descriptor.
+/// Linked list item transfer descriptor.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(C)]
-pub struct LliItemPool {
+pub struct LliTransfer {
     /// Source address.
-    pub source_address: u32,
+    pub src_addr: u32,
     /// Destination address.
-    pub destination_address: u32,
-    /// Physical address to next linked list item.
-    pub linked_list_item: u32,
-    /// Linked list item control register.
-    pub control: LliControl,
+    pub dst_addr: u32,
+    /// How many bytes should be transferred.
+    pub nbytes: u32,
 }
 
 /// Control register in linked list item.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 pub struct LliControl(u32);
 
 /// DMA transfer width.
@@ -430,9 +431,11 @@ impl LliControl {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ChannelConfig(u32);
 
+/// DMA transfer mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum DMAMode {
+pub enum DmaMode {
     /// Memory to memory (DMA).
+    /// Notice: When the DMA mode is set to memory to memory, the source and destination address must be incremented.
     Mem2Mem,
     /// Peripheral to memory (DMA).
     Mem2Periph,
@@ -450,78 +453,15 @@ pub enum DMAMode {
     Periph2PeriphCtrlBySrc,
 }
 
-/// Peripheral for DMA 0/1.
+/// DMA peripheral request definition
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Periph4DMA01 {
-    /// UART0 receive.
-    Uart0Rx,
-    /// UART0 transmit.
-    Uart0Tx,
-    /// UART1 receive.
-    Uart1Rx,
-    /// UART1 transmit.
-    Uart1Tx,
-    /// UART2 receive.
-    Uart2Rx,
-    /// UART2 transmit.
-    Uart2Tx,
-    /// I2C0 receive.
-    I2c0Rx,
-    /// I2C0 transmit.
-    I2c0Tx,
-    /// IR transmit.
-    IrTx,
-    /// GPIO transmit.
-    GpioTx,
-    /// SPI0 receive.
-    Spi0Rx,
-    /// SPI0 transmit.
-    Spi0Tx,
-    /// AUDIO receive.
-    AudioRx,
-    /// AUDIO transmit.
-    AudioTx,
-    /// I2C1 receive.
-    I2c1Rx,
-    /// I2C1 transmit.
-    I2c1Tx,
-    /// I2S receive.
-    I2sRx,
-    /// I2S transmit.
-    I2sTx,
-    /// PDM receive.
-    PdmRx,
-    /// GPADC.
-    GpAdc = 22,
-    /// GPDAC.
-    GpDac,
-}
-
-/// Peripheral for DMA 2.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Periph4DMA2 {
-    /// UART3 receive.
-    Uart3Rx,
-    /// UART3 transmit.
-    Uart3Tx,
-    /// SPI1 receive.
-    Spi1Rx,
-    /// SPI1 transmit.
-    Spi1Tx,
-    /// I2C2 receive.
-    I2c2Rx = 6,
-    /// I2C2 transmit.
-    I2c2Tx,
-    /// I2C3 receive.
-    I2c3Rx,
-    /// I2C3 transmit.
-    I2c3Tx,
-    /// DSI receive.
-    DsiRx,
-    /// DSI transmit.
-    DsiTx,
-    /// DBI receive.
-    DbiTx = 22,
+pub enum DmaPeriphReq {
+    /// Dma request for peripheral for DMA 0/1.
+    Dma01(Periph4Dma01),
+    /// Dma request for peripheral for DMA 2.
+    Dma2(Periph4Dma2),
+    /// No dma request for peripheral .
+    None,
 }
 
 impl ChannelConfig {
@@ -540,6 +480,11 @@ impl ChannelConfig {
     #[inline]
     pub const fn lli_cnt(self) -> u16 {
         ((self.0 & Self::LLI_CNT) >> 20) as u16
+    }
+    /// Set link list item count.
+    #[inline]
+    pub const fn set_lli_cnt(self, cnt: u16) -> Self {
+        Self((self.0 & !Self::LLI_CNT) | ((cnt as u32) << 20))
     }
     /// Stop DMA.
     #[inline]
@@ -608,132 +553,152 @@ impl ChannelConfig {
     }
     /// Set DMA mode.
     #[inline]
-    pub const fn set_dma_mode(self, mode: DMAMode) -> Self {
+    pub const fn set_dma_mode(self, mode: DmaMode) -> Self {
         Self((self.0 & !Self::FLW_CTRL) | ((mode as u32) << 11))
     }
     /// Get DMA mode.
     #[inline]
-    pub const fn dma_mode(self) -> DMAMode {
+    pub const fn dma_mode(self) -> DmaMode {
         match ((self.0 & Self::FLW_CTRL) >> 11) as u8 {
-            0 => DMAMode::Mem2Mem,
-            1 => DMAMode::Mem2Periph,
-            2 => DMAMode::Periph2Mem,
-            3 => DMAMode::Periph2Periph,
-            4 => DMAMode::Periph2PeriphCtrlByDst,
-            5 => DMAMode::Mem2PeriphCtrlByPeriph,
-            6 => DMAMode::Periph2MemCtrlByPeriph,
-            _ => DMAMode::Periph2PeriphCtrlBySrc,
+            0 => DmaMode::Mem2Mem,
+            1 => DmaMode::Mem2Periph,
+            2 => DmaMode::Periph2Mem,
+            3 => DmaMode::Periph2Periph,
+            4 => DmaMode::Periph2PeriphCtrlByDst,
+            5 => DmaMode::Mem2PeriphCtrlByPeriph,
+            6 => DmaMode::Periph2MemCtrlByPeriph,
+            _ => DmaMode::Periph2PeriphCtrlBySrc,
         }
+    }
+    /// Set destination peripheral for any DMA.
+    #[inline]
+    pub fn set_dst_periph(self, periph: impl PeripheralId) -> Self {
+        Self((self.0 & !Self::DST_PERIPH) | ((periph.id() as u32) << 6))
+    }
+    /// Clear destination peripheral for any DMA.
+    #[inline]
+    pub fn clear_dst_periph(self) -> Self {
+        Self(self.0 & !Self::DST_PERIPH)
     }
     /// Set destination peripheral for DMA 0/1.
     #[inline]
-    pub const fn set_dst_periph4dma01(self, periph: Periph4DMA01) -> Self {
+    pub const fn set_dst_periph4dma01(self, periph: Periph4Dma01) -> Self {
         Self((self.0 & !Self::DST_PERIPH) | (Self::DST_PERIPH & ((periph as u32) << 6)))
     }
     /// Set destination peripheral for DMA2.
     #[inline]
-    pub const fn set_dst_periph4dma2(self, periph: Periph4DMA2) -> Self {
+    pub const fn set_dst_periph4dma2(self, periph: Periph4Dma2) -> Self {
         Self((self.0 & !Self::DST_PERIPH) | (Self::DST_PERIPH & ((periph as u32) << 6)))
     }
     /// Get destination peripheral for DMA 0/1.
     #[inline]
-    pub const fn dst_periph4dma01(self) -> Periph4DMA01 {
+    pub const fn dst_periph4dma01(self) -> Periph4Dma01 {
         match ((self.0 & Self::DST_PERIPH) >> 6) as u8 {
-            0 => Periph4DMA01::Uart0Rx,
-            1 => Periph4DMA01::Uart0Tx,
-            2 => Periph4DMA01::Uart1Rx,
-            3 => Periph4DMA01::Uart1Tx,
-            4 => Periph4DMA01::Uart2Rx,
-            5 => Periph4DMA01::Uart2Tx,
-            6 => Periph4DMA01::I2c0Rx,
-            7 => Periph4DMA01::I2c0Tx,
-            8 => Periph4DMA01::IrTx,
-            9 => Periph4DMA01::GpioTx,
-            10 => Periph4DMA01::Spi0Rx,
-            11 => Periph4DMA01::Spi0Tx,
-            12 => Periph4DMA01::AudioRx,
-            13 => Periph4DMA01::AudioTx,
-            14 => Periph4DMA01::I2c1Rx,
-            15 => Periph4DMA01::I2c1Tx,
-            16 => Periph4DMA01::I2sRx,
-            17 => Periph4DMA01::I2sTx,
-            18 => Periph4DMA01::PdmRx,
-            22 => Periph4DMA01::GpAdc,
-            23 => Periph4DMA01::GpDac,
+            0 => Periph4Dma01::Uart0Rx,
+            1 => Periph4Dma01::Uart0Tx,
+            2 => Periph4Dma01::Uart1Rx,
+            3 => Periph4Dma01::Uart1Tx,
+            4 => Periph4Dma01::Uart2Rx,
+            5 => Periph4Dma01::Uart2Tx,
+            6 => Periph4Dma01::I2c0Rx,
+            7 => Periph4Dma01::I2c0Tx,
+            8 => Periph4Dma01::IrTx,
+            9 => Periph4Dma01::GpioTx,
+            10 => Periph4Dma01::Spi0Rx,
+            11 => Periph4Dma01::Spi0Tx,
+            12 => Periph4Dma01::AudioRx,
+            13 => Periph4Dma01::AudioTx,
+            14 => Periph4Dma01::I2c1Rx,
+            15 => Periph4Dma01::I2c1Tx,
+            16 => Periph4Dma01::I2sRx,
+            17 => Periph4Dma01::I2sTx,
+            18 => Periph4Dma01::PdmRx,
+            22 => Periph4Dma01::GpAdc,
+            23 => Periph4Dma01::GpDac,
             _ => unreachable!(),
         }
     }
     /// Get destination peripheral for DMA2.
     #[inline]
-    pub const fn dst_periph4dma2(self) -> Periph4DMA2 {
+    pub const fn dst_periph4dma2(self) -> Periph4Dma2 {
         match ((self.0 & Self::DST_PERIPH) >> 6) as u8 {
-            0 => Periph4DMA2::Uart3Rx,
-            1 => Periph4DMA2::Uart3Tx,
-            2 => Periph4DMA2::Spi1Rx,
-            3 => Periph4DMA2::Spi1Tx,
-            6 => Periph4DMA2::I2c2Rx,
-            7 => Periph4DMA2::I2c2Tx,
-            8 => Periph4DMA2::I2c3Rx,
-            9 => Periph4DMA2::I2c3Tx,
-            10 => Periph4DMA2::DsiRx,
-            11 => Periph4DMA2::DsiTx,
-            22 => Periph4DMA2::DbiTx,
+            0 => Periph4Dma2::Uart3Rx,
+            1 => Periph4Dma2::Uart3Tx,
+            2 => Periph4Dma2::Spi1Rx,
+            3 => Periph4Dma2::Spi1Tx,
+            6 => Periph4Dma2::I2c2Rx,
+            7 => Periph4Dma2::I2c2Tx,
+            8 => Periph4Dma2::I2c3Rx,
+            9 => Periph4Dma2::I2c3Tx,
+            10 => Periph4Dma2::DsiRx,
+            11 => Periph4Dma2::DsiTx,
+            22 => Periph4Dma2::DbiTx,
             _ => unreachable!(),
         }
     }
+    /// Set source peripheral for any DMA.
+    #[inline]
+    pub fn set_src_periph(self, periph: impl PeripheralId) -> Self {
+        Self((self.0 & !Self::SRC_PERIPH) | ((periph.id() as u32) << 1))
+    }
+    /// Clear source peripheral for any DMA.
+    #[inline]
+    pub fn clear_src_periph(self) -> Self {
+        Self(self.0 & !Self::SRC_PERIPH)
+    }
     /// Set source peripheral for DMA 0/1.
     #[inline]
-    pub const fn set_src_periph4dma01(self, periph: Periph4DMA01) -> Self {
+    pub const fn set_src_periph4dma01(self, periph: Periph4Dma01) -> Self {
         Self((self.0 & !Self::SRC_PERIPH) | ((periph as u32) << 1))
     }
     /// Set source peripheral for DMA2.
     #[inline]
-    pub const fn set_src_periph4dma2(self, periph: Periph4DMA2) -> Self {
+    pub const fn set_src_periph4dma2(self, periph: Periph4Dma2) -> Self {
         Self((self.0 & !Self::SRC_PERIPH) | ((periph as u32) << 1))
     }
     /// Get source peripheral for DMA 0/1.
     #[inline]
-    pub const fn src_periph4dma01(self) -> Periph4DMA01 {
+    pub const fn src_periph4dma01(self) -> Periph4Dma01 {
         match ((self.0 & Self::SRC_PERIPH) >> 1) as u8 {
-            0 => Periph4DMA01::Uart0Rx,
-            1 => Periph4DMA01::Uart0Tx,
-            2 => Periph4DMA01::Uart1Rx,
-            3 => Periph4DMA01::Uart1Tx,
-            4 => Periph4DMA01::Uart2Rx,
-            5 => Periph4DMA01::Uart2Tx,
-            6 => Periph4DMA01::I2c0Rx,
-            7 => Periph4DMA01::I2c0Tx,
-            8 => Periph4DMA01::IrTx,
-            9 => Periph4DMA01::GpioTx,
-            10 => Periph4DMA01::Spi0Rx,
-            11 => Periph4DMA01::Spi0Tx,
-            12 => Periph4DMA01::AudioRx,
-            13 => Periph4DMA01::AudioTx,
-            14 => Periph4DMA01::I2c1Rx,
-            15 => Periph4DMA01::I2c1Tx,
-            16 => Periph4DMA01::I2sRx,
-            17 => Periph4DMA01::I2sTx,
-            18 => Periph4DMA01::PdmRx,
-            22 => Periph4DMA01::GpAdc,
-            23 => Periph4DMA01::GpDac,
+            0 => Periph4Dma01::Uart0Rx,
+            1 => Periph4Dma01::Uart0Tx,
+            2 => Periph4Dma01::Uart1Rx,
+            3 => Periph4Dma01::Uart1Tx,
+            4 => Periph4Dma01::Uart2Rx,
+            5 => Periph4Dma01::Uart2Tx,
+            6 => Periph4Dma01::I2c0Rx,
+            7 => Periph4Dma01::I2c0Tx,
+            8 => Periph4Dma01::IrTx,
+            9 => Periph4Dma01::GpioTx,
+            10 => Periph4Dma01::Spi0Rx,
+            11 => Periph4Dma01::Spi0Tx,
+            12 => Periph4Dma01::AudioRx,
+            13 => Periph4Dma01::AudioTx,
+            14 => Periph4Dma01::I2c1Rx,
+            15 => Periph4Dma01::I2c1Tx,
+            16 => Periph4Dma01::I2sRx,
+            17 => Periph4Dma01::I2sTx,
+            18 => Periph4Dma01::PdmRx,
+            22 => Periph4Dma01::GpAdc,
+            23 => Periph4Dma01::GpDac,
             _ => unreachable!(),
         }
     }
     /// Get source peripheral for DMA2.
     #[inline]
-    pub const fn src_periph4dma2(self) -> Periph4DMA2 {
+    pub const fn src_periph4dma2(self) -> Periph4Dma2 {
         match ((self.0 & Self::SRC_PERIPH) >> 1) as u8 {
-            0 => Periph4DMA2::Uart3Rx,
-            1 => Periph4DMA2::Uart3Tx,
-            2 => Periph4DMA2::Spi1Rx,
-            3 => Periph4DMA2::Spi1Tx,
-            6 => Periph4DMA2::I2c2Rx,
-            7 => Periph4DMA2::I2c2Tx,
-            8 => Periph4DMA2::I2c3Rx,
-            9 => Periph4DMA2::I2c3Tx,
-            10 => Periph4DMA2::DsiRx,
-            11 => Periph4DMA2::DsiTx,
-            22 => Periph4DMA2::DbiTx,
+            0 => Periph4Dma2::Uart3Rx,
+            1 => Periph4Dma2::Uart3Tx,
+            2 => Periph4Dma2::Spi1Rx,
+            3 => Periph4Dma2::Spi1Tx,
+            6 => Periph4Dma2::I2c2Rx,
+            7 => Periph4Dma2::I2c2Tx,
+            8 => Periph4Dma2::I2c3Rx,
+            9 => Periph4Dma2::I2c3Tx,
+            10 => Periph4Dma2::DsiRx,
+            11 => Periph4Dma2::DsiTx,
+            22 => Periph4Dma2::DbiTx,
             _ => unreachable!(),
         }
     }
@@ -757,12 +722,12 @@ impl ChannelConfig {
 #[cfg(test)]
 mod tests {
     use super::{
-        BurstSize, ChannelConfig, ChannelRegisters, DMAMode, EnabledChannels, EndianMode,
+        BurstSize, ChannelConfig, ChannelRegisters, DmaMode, EnabledChannels, EndianMode,
         ErrorClear, ErrorState, GlobalConfig, GlobalState, InterruptRegisters, LliControl,
-        Periph4DMA01, Periph4DMA2, RawError, RawTransferComplete, RegisterBlock,
+        Periph4Dma01, Periph4Dma2, RawError, RawTransferComplete, RegisterBlock,
         TransferCompleteClear, TransferCompleteState, TransferWidth,
     };
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {
@@ -801,7 +766,7 @@ mod tests {
     #[test]
     fn struct_interrupt_registers_function() {
         let val = GlobalState(0x10);
-        assert!(val.is_int_enabled(4));
+        assert!(val.if_int_occurs(4));
 
         let val = TransferCompleteState(0x10);
         assert!(val.if_cplt_int_occurs(4));
@@ -838,11 +803,11 @@ mod tests {
         assert_eq!(val.ahb_master_endian_mode(), EndianMode::LittleEndian);
         assert_eq!(val.0, 0x00000000);
 
-        val = val.enable_smdma();
-        assert!(val.is_smdma_enabled());
+        val = val.enable_dma();
+        assert!(val.is_dma_enabled());
         assert_eq!(val.0, 0x00000001);
-        val = val.disable_smdma();
-        assert!(!val.is_smdma_enabled());
+        val = val.disable_dma();
+        assert!(!val.is_dma_enabled());
         assert_eq!(val.0, 0x00000000);
     }
 
@@ -948,8 +913,10 @@ mod tests {
 
     #[test]
     fn struct_channel_config_functions() {
-        let mut val = ChannelConfig(0x3FF00000);
+        let mut val = ChannelConfig(0x0);
+        val = val.set_lli_cnt(0x3FF);
         assert_eq!(val.lli_cnt(), 0x3FF);
+        assert_eq!(val.0, 0x3FF00000);
 
         val = ChannelConfig(0x0);
         val = val.stop_dma();
@@ -988,14 +955,14 @@ mod tests {
         // The number 'i' is not related to the actual register, but only to make the code more concise.
         for i in 0..8 as u8 {
             let tmp_mode = match i {
-                0 => DMAMode::Mem2Mem,
-                1 => DMAMode::Mem2Periph,
-                2 => DMAMode::Periph2Mem,
-                3 => DMAMode::Periph2Periph,
-                4 => DMAMode::Periph2PeriphCtrlByDst,
-                5 => DMAMode::Mem2PeriphCtrlByPeriph,
-                6 => DMAMode::Periph2MemCtrlByPeriph,
-                _ => DMAMode::Periph2PeriphCtrlBySrc,
+                0 => DmaMode::Mem2Mem,
+                1 => DmaMode::Mem2Periph,
+                2 => DmaMode::Periph2Mem,
+                3 => DmaMode::Periph2Periph,
+                4 => DmaMode::Periph2PeriphCtrlByDst,
+                5 => DmaMode::Mem2PeriphCtrlByPeriph,
+                6 => DmaMode::Periph2MemCtrlByPeriph,
+                _ => DmaMode::Periph2PeriphCtrlBySrc,
             };
             let tmp_val = match i {
                 0 => 0x00000000,
@@ -1017,27 +984,27 @@ mod tests {
         // The number 'i' is not related to the actual register, but only to make the code more concise.
         for i in 0..21 as u8 {
             let tmp_periph = match i {
-                0 => Periph4DMA01::Uart0Rx,
-                1 => Periph4DMA01::Uart0Tx,
-                2 => Periph4DMA01::Uart1Rx,
-                3 => Periph4DMA01::Uart1Tx,
-                4 => Periph4DMA01::Uart2Rx,
-                5 => Periph4DMA01::Uart2Tx,
-                6 => Periph4DMA01::I2c0Rx,
-                7 => Periph4DMA01::I2c0Tx,
-                8 => Periph4DMA01::IrTx,
-                9 => Periph4DMA01::GpioTx,
-                10 => Periph4DMA01::Spi0Rx,
-                11 => Periph4DMA01::Spi0Tx,
-                12 => Periph4DMA01::AudioRx,
-                13 => Periph4DMA01::AudioTx,
-                14 => Periph4DMA01::I2c1Rx,
-                15 => Periph4DMA01::I2c1Tx,
-                16 => Periph4DMA01::I2sRx,
-                17 => Periph4DMA01::I2sTx,
-                18 => Periph4DMA01::PdmRx,
-                19 => Periph4DMA01::GpAdc,
-                _ => Periph4DMA01::GpDac,
+                0 => Periph4Dma01::Uart0Rx,
+                1 => Periph4Dma01::Uart0Tx,
+                2 => Periph4Dma01::Uart1Rx,
+                3 => Periph4Dma01::Uart1Tx,
+                4 => Periph4Dma01::Uart2Rx,
+                5 => Periph4Dma01::Uart2Tx,
+                6 => Periph4Dma01::I2c0Rx,
+                7 => Periph4Dma01::I2c0Tx,
+                8 => Periph4Dma01::IrTx,
+                9 => Periph4Dma01::GpioTx,
+                10 => Periph4Dma01::Spi0Rx,
+                11 => Periph4Dma01::Spi0Tx,
+                12 => Periph4Dma01::AudioRx,
+                13 => Periph4Dma01::AudioTx,
+                14 => Periph4Dma01::I2c1Rx,
+                15 => Periph4Dma01::I2c1Tx,
+                16 => Periph4Dma01::I2sRx,
+                17 => Periph4Dma01::I2sTx,
+                18 => Periph4Dma01::PdmRx,
+                19 => Periph4Dma01::GpAdc,
+                _ => Periph4Dma01::GpDac,
             };
             let tmp_val = match i {
                 0 => 0x00000000,
@@ -1071,17 +1038,17 @@ mod tests {
         // The number 'i' is not related to the actual register, but only to make the code more concise.
         for i in 0..11 as u8 {
             let tmp_periph = match i {
-                0 => Periph4DMA2::Uart3Rx,
-                1 => Periph4DMA2::Uart3Tx,
-                2 => Periph4DMA2::Spi1Rx,
-                3 => Periph4DMA2::Spi1Tx,
-                4 => Periph4DMA2::I2c2Rx,
-                5 => Periph4DMA2::I2c2Tx,
-                6 => Periph4DMA2::I2c3Rx,
-                7 => Periph4DMA2::I2c3Tx,
-                8 => Periph4DMA2::DsiRx,
-                9 => Periph4DMA2::DsiTx,
-                _ => Periph4DMA2::DbiTx,
+                0 => Periph4Dma2::Uart3Rx,
+                1 => Periph4Dma2::Uart3Tx,
+                2 => Periph4Dma2::Spi1Rx,
+                3 => Periph4Dma2::Spi1Tx,
+                4 => Periph4Dma2::I2c2Rx,
+                5 => Periph4Dma2::I2c2Tx,
+                6 => Periph4Dma2::I2c3Rx,
+                7 => Periph4Dma2::I2c3Tx,
+                8 => Periph4Dma2::DsiRx,
+                9 => Periph4Dma2::DsiTx,
+                _ => Periph4Dma2::DbiTx,
             };
             let tmp_val = match i {
                 0 => 0x00000000,
@@ -1105,27 +1072,27 @@ mod tests {
         // The number 'i' is not related to the actual register, but only to make the code more concise.
         for i in 0..21 as u8 {
             let tmp_periph = match i {
-                0 => Periph4DMA01::Uart0Rx,
-                1 => Periph4DMA01::Uart0Tx,
-                2 => Periph4DMA01::Uart1Rx,
-                3 => Periph4DMA01::Uart1Tx,
-                4 => Periph4DMA01::Uart2Rx,
-                5 => Periph4DMA01::Uart2Tx,
-                6 => Periph4DMA01::I2c0Rx,
-                7 => Periph4DMA01::I2c0Tx,
-                8 => Periph4DMA01::IrTx,
-                9 => Periph4DMA01::GpioTx,
-                10 => Periph4DMA01::Spi0Rx,
-                11 => Periph4DMA01::Spi0Tx,
-                12 => Periph4DMA01::AudioRx,
-                13 => Periph4DMA01::AudioTx,
-                14 => Periph4DMA01::I2c1Rx,
-                15 => Periph4DMA01::I2c1Tx,
-                16 => Periph4DMA01::I2sRx,
-                17 => Periph4DMA01::I2sTx,
-                18 => Periph4DMA01::PdmRx,
-                19 => Periph4DMA01::GpAdc,
-                _ => Periph4DMA01::GpDac,
+                0 => Periph4Dma01::Uart0Rx,
+                1 => Periph4Dma01::Uart0Tx,
+                2 => Periph4Dma01::Uart1Rx,
+                3 => Periph4Dma01::Uart1Tx,
+                4 => Periph4Dma01::Uart2Rx,
+                5 => Periph4Dma01::Uart2Tx,
+                6 => Periph4Dma01::I2c0Rx,
+                7 => Periph4Dma01::I2c0Tx,
+                8 => Periph4Dma01::IrTx,
+                9 => Periph4Dma01::GpioTx,
+                10 => Periph4Dma01::Spi0Rx,
+                11 => Periph4Dma01::Spi0Tx,
+                12 => Periph4Dma01::AudioRx,
+                13 => Periph4Dma01::AudioTx,
+                14 => Periph4Dma01::I2c1Rx,
+                15 => Periph4Dma01::I2c1Tx,
+                16 => Periph4Dma01::I2sRx,
+                17 => Periph4Dma01::I2sTx,
+                18 => Periph4Dma01::PdmRx,
+                19 => Periph4Dma01::GpAdc,
+                _ => Periph4Dma01::GpDac,
             };
             let tmp_val = match i {
                 0 => 0x00000000,
@@ -1159,17 +1126,17 @@ mod tests {
         // The number 'i' is not related to the actual register, but only to make the code more concise.
         for i in 0..11 as u8 {
             let tmp_periph = match i {
-                0 => Periph4DMA2::Uart3Rx,
-                1 => Periph4DMA2::Uart3Tx,
-                2 => Periph4DMA2::Spi1Rx,
-                3 => Periph4DMA2::Spi1Tx,
-                4 => Periph4DMA2::I2c2Rx,
-                5 => Periph4DMA2::I2c2Tx,
-                6 => Periph4DMA2::I2c3Rx,
-                7 => Periph4DMA2::I2c3Tx,
-                8 => Periph4DMA2::DsiRx,
-                9 => Periph4DMA2::DsiTx,
-                _ => Periph4DMA2::DbiTx,
+                0 => Periph4Dma2::Uart3Rx,
+                1 => Periph4Dma2::Uart3Tx,
+                2 => Periph4Dma2::Spi1Rx,
+                3 => Periph4Dma2::Spi1Tx,
+                4 => Periph4Dma2::I2c2Rx,
+                5 => Periph4Dma2::I2c2Tx,
+                6 => Periph4Dma2::I2c3Rx,
+                7 => Periph4Dma2::I2c3Tx,
+                8 => Periph4Dma2::DsiRx,
+                9 => Periph4Dma2::DsiTx,
+                _ => Periph4Dma2::DbiTx,
             };
             let tmp_val = match i {
                 0 => 0x00000000,

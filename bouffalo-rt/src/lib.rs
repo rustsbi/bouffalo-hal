@@ -428,7 +428,7 @@ pub static CRC32: u32 = 0xdeadbeef;
 #[cfg(test)]
 mod tests {
     use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg, SpiFlashCfgType};
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_lengths() {

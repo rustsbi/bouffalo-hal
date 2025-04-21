@@ -1,7 +1,12 @@
+mod isp;
+pub use isp::{BootInfo, DeviceReset, EraseFlash, GetBootInfo, IspCommand, IspError, WriteFlash};
+
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
+use object::{Object, ObjectSection, SectionFlags};
 use sha2::{Digest, Sha256};
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::path::Path;
 
 const HEAD_LENGTH: u64 = 0x160;
 const HEAD_MAGIC: u32 = 0x42464e50;
@@ -136,6 +141,9 @@ pub fn check(f: &mut File) -> Result<Operations> {
     f.seek(SeekFrom::Start(0x00))?;
     let mut buf = vec![0u8; 0x15C];
     f.read_exact(&mut buf)?;
+    if let Some(ref new_hash) = refill_hash_operation {
+        buf[0x90..0xB0].copy_from_slice(new_hash);
+    }
     let calculated_header_crc = crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(&buf);
 
     f.seek(SeekFrom::Start(0x15C))?;
@@ -164,5 +172,148 @@ pub fn process(f: &mut File, ops: &Operations) -> Result<()> {
         f.seek(SeekFrom::Start(0x15C))?;
         f.write_u32::<LittleEndian>(*header_crc_to_fill)?;
     }
+    Ok(())
+}
+
+// The following functions are for elf2bin module
+// Most of the code is adapted from `https://github.com/llvm/llvm-project/tree/main/llvm/lib/ObjCopy/ELF`
+
+/// Main logic for converting ELF to binary, adapted from LLVM's objcopy
+///
+/// Ref: https://github.com/llvm/llvm-project/blob/main/llvm/lib/ObjCopy/ELF/ELFObjcopy.cpp  `Error
+/// objcopy::elf::executeObjcopyOnBinary()` method
+pub fn elf_to_bin_bytes(elf_data: &[u8]) -> Result<Vec<u8>> {
+    // Parse the ELF file
+    let elf_file = object::File::parse(elf_data)
+        .map_err(|e| Error::Io(io::Error::new(io::ErrorKind::Other, e)))?;
+
+    // Get loadable sections
+    let mut sections = get_loadable_sections(&elf_file);
+    // Sort sections by their offset in the file
+    sort_sections_with_offset(&mut sections);
+
+    // Log section information
+    log_section_info(&sections);
+
+    // Create final binary output
+    let output_data = process_sections(sections)?;
+
+    Ok(output_data)
+}
+
+/// Wrapper function for converting ELF to binary, takes input and output file paths
+pub fn elf_to_bin(input_path: impl AsRef<Path>, output_path: impl AsRef<Path>) -> Result<()> {
+    // Read the ELF file
+    let elf_data = fs::read(input_path)?;
+
+    // Convert ELF to binary
+    let bin_data = elf_to_bin_bytes(&elf_data)?;
+
+    // Write the binary data to the output file
+    fs::write(output_path, bin_data)?;
+
+    Ok(())
+}
+
+// The following functions are helpers for elf2bin module
+
+/// Log section information using `println`
+fn log_section_info(sections: &[object::Section]) {
+    println!("Found {} loadable sections", sections.len());
+
+    for section in sections {
+        println!(
+            "Section: {} at address 0x{:x} with size 0x{:x}",
+            section.name().unwrap_or("<unnamed>"),
+            section.address(),
+            section.size()
+        );
+    }
+}
+
+/// Get loadable sections from the ELF file
+///
+/// Loadable sections are those with the ALLOC section header flag set
+///
+/// Ref: https://github.com/llvm/llvm-project/blob/main/llvm/lib/ObjCopy/ELF/ELFObject.cpp `Error BinaryWriter::finalize()` method
+fn get_loadable_sections<'a>(elf_file: &'a object::File) -> Vec<object::Section<'a, 'a>> {
+    // Find sections with ALLOC flag
+    let mut sections: Vec<_> = elf_file
+        .sections()
+        .filter(|s| {
+            // Check if section has ALLOC flag set (should be loaded into memory)
+            match s.flags() {
+                SectionFlags::Elf { sh_flags } => (sh_flags & object::elf::SHF_ALLOC as u64) != 0,
+                _ => false, // Other formats don't apply for ELF conversion
+            }
+        })
+        .collect();
+
+    // Sort sections by address
+    sections.sort_by_key(|s| s.address());
+
+    sections
+}
+
+/// Get the offset of a section using the `compressed_file_range` method,
+/// panic if this method fails.
+fn get_section_offset(section: &object::Section) -> u64 {
+    section
+        .compressed_file_range()
+        .expect("Section file range not found!")
+        .offset
+}
+
+/// Sort sections by their offset in the file
+///
+/// Ref:
+/// https://github.com/llvm/llvm-project/blob/main/llvm/lib/ObjCopy/ELF/ELFObject.cpp
+/// `Error BinaryWriter::write()`
+fn sort_sections_with_offset(sections: &mut Vec<object::Section>) {
+    sections.sort_by_key(|s| get_section_offset(s));
+}
+
+/// Process sections and write them to the output binary, the input sections
+/// must be sorted properly by their offset in the file
+fn process_sections(sections: Vec<object::Section>) -> Result<Vec<u8>> {
+    let mut output_data = Vec::new();
+
+    for section in sections {
+        let addr = section.address();
+        let size = section.size();
+        let name = section.name().unwrap_or("<unnamed>");
+
+        println!(
+            "Writing section: {} at address 0x{:x} with size 0x{:x}",
+            name, addr, size
+        );
+
+        if size == 0 {
+            continue;
+        }
+
+        write_section_data(&mut output_data, &section)?;
+    }
+
+    Ok(output_data)
+}
+
+/// Write section data to the output binary
+fn write_section_data(output: &mut Vec<u8>, section: &object::Section) -> Result<()> {
+    // Handle regular sections and NOBITS sections differently
+    if let Ok(data) = section.data() {
+        // Regular section - copy the data
+        output.write_all(data)?;
+    } else {
+        // NOBITS section (like .bss) - write zeros
+        let zeros = vec![0u8; section.size() as usize];
+        println!(
+            "Section {} is NOBITS, writing zeros of size 0x{:x}",
+            section.name().unwrap_or("<unnamed>"),
+            section.size()
+        );
+        output.write_all(&zeros)?;
+    }
+
     Ok(())
 }

@@ -654,8 +654,7 @@ impl<PWM: Deref<Target = RegisterBlock>, S0: Signal0, S1: Signal1> Pwm<PWM, (S0,
     /// Creates a pulse width modulation instance with given signal settings.
     #[rustfmt::skip]
     #[inline]
-    pub fn new<GLB>(pwm: PWM, signal_0: S0, signal_1: S1, glb: &GLB) -> Self
-    where GLB: Deref<Target = glb::v2::RegisterBlock> {
+    pub fn new(pwm: PWM, signal_0: S0, signal_1: S1, glb: &glb::v2::RegisterBlock) -> Self {
         unsafe {
             glb.pwm_config
                 .modify(|config| config.set_signal_0(S0::VALUE).set_signal_1(S1::VALUE));
@@ -1190,7 +1189,7 @@ mod tests {
         Interrupt, InterruptClear, InterruptConfig, InterruptEnable, InterruptMask, InterruptState,
         PeriodConfig, Polarity, RegisterBlock, StopMode, Threshold,
     };
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {

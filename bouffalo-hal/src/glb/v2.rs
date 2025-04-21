@@ -24,11 +24,16 @@ pub struct RegisterBlock {
     pub sdh_config: RW<SdhConfig>,
     _reserved5: [u8; 0xdd],
     pub param_config: RW<ParamConfig>,
-    _reserved6: [u8; 0x70],
-    // TODO: clock_config_0, clock_config_2, clock_config_3 registers
+    _reserved6: [u8; 0x6c],
+    /// Clock generation configuration 0.
+    pub clock_config_0: RW<ClockConfig0>,
     /// Clock generation configuration 1.
     pub clock_config_1: RW<ClockConfig1>,
-    _reserved7: [u8; 0x148],
+    /// Clock generation configuration 2.
+    pub clock_config_2: RW<ClockConfig2>,
+    /// Clock generation configuration 3.
+    pub clock_config_3: RW<ClockConfig3>,
+    _reserved7: [u8; 0x140],
     /// LDO12UHS config.
     pub ldo12uhs_config: RW<Ldo12uhsConfig>,
     _reserved8: [u8; 0x1f0],
@@ -438,19 +443,81 @@ pub enum SpiMode {
     Slave = 1,
 }
 
+/// Clock generation configuration register 0.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct ClockConfig0(u32);
+
+impl ClockConfig0 {
+    // const CCI: u32 = 0x1 << 4;
+    const DMA: u32 = 0x1 << 3;
+    // const SEC: u32 = 0x1 << 2;
+    // const SDU: u32 = 0x1 << 1;
+    // const CPU: u32 = 0x1;
+
+    /// Enable clock gate for Direct Memory Access controller.
+    #[inline]
+    pub const fn enable_dma(self) -> Self {
+        Self(self.0 | Self::DMA)
+    }
+    /// Disable clock gate for Direct Memory Access controller.
+    #[inline]
+    pub const fn disable_dma(self) -> Self {
+        Self(self.0 & !Self::DMA)
+    }
+    /// Check if clock gate for Direct Memory Access controller is enabled.
+    #[inline]
+    pub const fn is_dma_enabled(self) -> bool {
+        (self.0 & Self::DMA) != 0
+    }
+    // TODO: implment left fields.
+}
+
 /// Clock generation configuration register 1.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct ClockConfig1(u32);
 
 impl ClockConfig1 {
+    const DMA0: u32 = 0x1 << 12;
     const UART0: u32 = 0x1 << 16;
     const UART1: u32 = 0x1 << 17;
     const I2C: u32 = 0x1 << 19;
     const PWM: u32 = 0x1 << 20;
+    const DMA2: u32 = 0x1 << 24;
     const UART2: u32 = 0x1 << 26;
     const LZ4D: u32 = 0x1 << 29;
 
+    /// Enable clock gate for Direct Memory Access controller.
+    #[inline]
+    pub const fn enable_dma<const I: usize>(self) -> Self {
+        match I {
+            0 => Self(self.0 | Self::DMA0),
+            1 => self,
+            2 => Self(self.0 | Self::DMA2),
+            _ => unreachable!(),
+        }
+    }
+    /// Disable clock gate for Direct Memory Access controller.
+    #[inline]
+    pub const fn disable_dma<const I: usize>(self) -> Self {
+        match I {
+            0 => Self(self.0 & !Self::DMA0),
+            1 => self,
+            2 => Self(self.0 & !Self::DMA2),
+            _ => unreachable!(),
+        }
+    }
+    /// Check if clock gate for Direct Memory Access controller is enabled.
+    #[inline]
+    pub const fn is_dma_enabled<const I: usize>(self) -> bool {
+        match I {
+            0 => (self.0 & Self::DMA0) != 0,
+            1 => true,
+            2 => (self.0 & Self::DMA2) != 0,
+            _ => unreachable!(),
+        }
+    }
     /// Enable clock gate for Universal Asynchronous Receiver/Transmitter peripheral.
     #[inline]
     pub const fn enable_uart<const I: usize>(self) -> Self {
@@ -529,6 +596,24 @@ impl ClockConfig1 {
     pub const fn is_lz4d_enabled(self) -> bool {
         self.0 & Self::LZ4D != 0
     }
+}
+
+/// Clock generation configuration register 2.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct ClockConfig2(u32);
+
+impl ClockConfig2 {
+    // TODO
+}
+
+/// Clock generation configuration register 3.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct ClockConfig3(u32);
+
+impl ClockConfig3 {
+    // TODO
 }
 
 /// Generic Purpose Input/Output Configuration register.
@@ -845,13 +930,14 @@ impl Ldo12uhsConfig {
 #[cfg(test)]
 mod tests {
     use crate::glb::v2::SpiClockSource;
+    use crate::glb::v2::SpiMode;
 
     use super::{
-        Drive, Function, GpioConfig, I2cClockSource, I2cConfig, InterruptMode, Mode, Pull,
-        PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, SdhConfig, SpiConfig, UartConfig,
-        UartMuxGroup, UartSignal,
+        ClockConfig1, Drive, Function, GpioConfig, I2cClockSource, I2cConfig, InterruptMode, Mode,
+        ParamConfig, Pull, PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, SdhConfig, SpiConfig,
+        UartConfig, UartMuxGroup, UartSignal,
     };
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {
@@ -862,7 +948,10 @@ mod tests {
         assert_eq!(offset_of!(RegisterBlock, pwm_config), 0x1d0);
         assert_eq!(offset_of!(RegisterBlock, sdh_config), 0x430);
         assert_eq!(offset_of!(RegisterBlock, param_config), 0x510);
+        assert_eq!(offset_of!(RegisterBlock, clock_config_0), 0x580);
         assert_eq!(offset_of!(RegisterBlock, clock_config_1), 0x584);
+        assert_eq!(offset_of!(RegisterBlock, clock_config_2), 0x588);
+        assert_eq!(offset_of!(RegisterBlock, clock_config_3), 0x58c);
         assert_eq!(offset_of!(RegisterBlock, ldo12uhs_config), 0x6d0);
         assert_eq!(offset_of!(RegisterBlock, gpio_config), 0x8c4);
         assert_eq!(offset_of!(RegisterBlock, gpio_input), 0xac4);
@@ -1123,6 +1212,27 @@ mod tests {
     }
 
     #[test]
+    fn struct_param_config_functions() {
+        let mut config = ParamConfig(0x0);
+
+        config = config.set_spi_mode::<0>(SpiMode::Master);
+        assert_eq!(config.0, 0x1000);
+        assert_eq!(config.spi_mode::<0>(), SpiMode::Master);
+
+        config = config.set_spi_mode::<0>(SpiMode::Slave);
+        assert_eq!(config.0, 0x0000);
+        assert_eq!(config.spi_mode::<0>(), SpiMode::Slave);
+
+        config = config.set_spi_mode::<1>(SpiMode::Master);
+        assert_eq!(config.0, 0x8000000);
+        assert_eq!(config.spi_mode::<1>(), SpiMode::Master);
+
+        config = config.set_spi_mode::<1>(SpiMode::Slave);
+        assert_eq!(config.0, 0x0000000);
+        assert_eq!(config.spi_mode::<1>(), SpiMode::Slave);
+    }
+
+    #[test]
     fn struct_sdh_config_functions() {
         let mut val = SdhConfig(0x0);
         val = val.enable_sdh_clk();
@@ -1141,4 +1251,74 @@ mod tests {
         assert_eq!(val.sdh_clk_div_len(), 0x7);
         assert_eq!(val.0, 0x0E00);
     }
+
+    #[test]
+    fn struct_clock_config1_functions() {
+        let mut config = ClockConfig1(0x0);
+
+        config = config.enable_uart::<0>();
+        assert_eq!(config.0, 0x10000);
+        assert!(config.is_uart_enabled::<0>());
+
+        config = config.disable_uart::<0>();
+        assert_eq!(config.0, 0x00000);
+        assert!(!config.is_uart_enabled::<0>());
+
+        config = config.enable_uart::<1>();
+        assert_eq!(config.0, 0x20000);
+        assert!(config.is_uart_enabled::<1>());
+
+        config = config.disable_uart::<1>();
+        assert_eq!(config.0, 0x00000);
+        assert!(!config.is_uart_enabled::<1>());
+
+        config = config.enable_uart::<2>();
+        assert_eq!(config.0, 0x4000000);
+        assert!(config.is_uart_enabled::<2>());
+
+        config = config.disable_uart::<2>();
+        assert_eq!(config.0, 0x0000000);
+        assert!(!config.is_uart_enabled::<2>());
+
+        config = config.enable_i2c();
+        assert_eq!(config.0, 0x80000);
+        assert!(config.is_i2c_enabled());
+
+        config = config.disable_i2c();
+        assert_eq!(config.0, 0x00000);
+        assert!(!config.is_i2c_enabled());
+
+        config = config.enable_pwm();
+        assert_eq!(config.0, 0x100000);
+        assert!(config.is_pwm_enabled());
+
+        config = config.disable_pwm();
+        assert_eq!(config.0, 0x000000);
+        assert!(!config.is_pwm_enabled());
+
+        config = config.enable_lz4d();
+        assert_eq!(config.0, 0x20000000);
+        assert!(config.is_lz4d_enabled());
+
+        config = config.disable_lz4d();
+        assert_eq!(config.0, 0x00000000);
+        assert!(!config.is_lz4d_enabled());
+    }
+}
+
+#[test]
+fn struct_ldo12uhs_config_functions() {
+    let mut config = Ldo12uhsConfig(0x0);
+
+    config = config.power_up();
+    assert_eq!(config.0, 0x1);
+    assert!(config.is_powered_up());
+
+    config = config.power_down();
+    assert_eq!(config.0, 0x0);
+    assert!(!config.is_powered_up());
+
+    config = config.set_output_voltage(0x5);
+    assert_eq!(config.0, 0x500000);
+    assert_eq!(config.get_output_voltage(), 0x5);
 }

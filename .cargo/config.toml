@@ -1,2 +1,5 @@
 [alias]
 blri = "run --package blri --release --"
+
+[target.'cfg(target_os = "none")']
+runner = "cargo blri run"

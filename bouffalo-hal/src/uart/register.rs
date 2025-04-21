@@ -771,7 +771,7 @@ mod tests {
     use crate::uart::{StopBits, WordLength};
 
     use super::{BitPeriod, Parity, ReceiveConfig, RegisterBlock, TransmitConfig};
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {
@@ -922,7 +922,9 @@ mod tests {
             assert_eq!(val.receive_time_interval(), recv);
         }
 
-        // TODO: use getter functions to check default value for BitPeriod
+        val = BitPeriod::default();
+        assert_eq!(val.transmit_time_interval(), 0xff);
+        assert_eq!(val.receive_time_interval(), 0xff);
     }
 
     #[test]
@@ -1011,7 +1013,208 @@ mod tests {
             assert_eq!(val.0, (length as u32) << 16);
             assert_eq!(val.transfer_length(), length);
         }
+
+        let default = ReceiveConfig::default();
+        assert_eq!(default.transfer_length(), 0);
+        assert_eq!(default.deglitch_cycles(), 0);
+        assert!(!default.is_deglitch_enabled());
+        assert_eq!(default.word_length(), WordLength::Eight);
+        assert_eq!(default.parity(), Parity::None);
+        assert!(!default.is_ir_inverse_enabled());
+        assert!(!default.is_ir_receive_enabled());
+        assert!(!default.is_lin_receive_enabled());
+        assert!(!default.is_auto_baudrate_enabled());
+        assert!(!default.is_rxd_enabled());
     }
 
-    // TODO: use getter functions to check default value for ReceiveConfig
+    #[test]
+    fn struct_data_config_functions() {
+        let mut val: super::DataConfig = super::DataConfig(0x0);
+
+        val = val.set_bit_order(super::BitOrder::MsbFirst);
+        assert_eq!(val.0, 0x00000001);
+        assert_eq!(val.bit_order(), super::BitOrder::MsbFirst);
+        val = val.set_bit_order(super::BitOrder::LsbFirst);
+        assert_eq!(val.0, 0x00000000);
+        assert_eq!(val.bit_order(), super::BitOrder::LsbFirst);
+
+        let default = super::DataConfig::default();
+        assert_eq!(default.bit_order(), super::BitOrder::LsbFirst);
+    }
+
+    #[test]
+    fn struct_interrupt_state_functions() {
+        let val: super::InterruptState = super::InterruptState(0x0);
+
+        for i in 0..=11 {
+            let interrupt = match i {
+                0 => super::Interrupt::TransmitEnd,
+                1 => super::Interrupt::ReceiveEnd,
+                2 => super::Interrupt::TransmitFifoReady,
+                3 => super::Interrupt::ReceiveFifoReady,
+                4 => super::Interrupt::ReceiveTimeout,
+                5 => super::Interrupt::ReceiveParityError,
+                6 => super::Interrupt::TransmitFifoError,
+                7 => super::Interrupt::ReceiveFifoError,
+                8 => super::Interrupt::ReceiveSyncError,
+                9 => super::Interrupt::ReceiveByteCountReached,
+                10 => super::Interrupt::ReceiveAutoBaudrateByStartBit,
+                11 => super::Interrupt::ReceiveAutoBaudrateByFiveFive,
+                _ => unreachable!(),
+            };
+            assert_eq!(val.has_interrupt(interrupt), false);
+        }
+    }
+
+    #[test]
+    fn struct_interrupt_mask_functions() {
+        let mut val: super::InterruptMask = super::InterruptMask(0x0);
+
+        for i in 0..=11 {
+            let interrupt = match i {
+                0 => super::Interrupt::TransmitEnd,
+                1 => super::Interrupt::ReceiveEnd,
+                2 => super::Interrupt::TransmitFifoReady,
+                3 => super::Interrupt::ReceiveFifoReady,
+                4 => super::Interrupt::ReceiveTimeout,
+                5 => super::Interrupt::ReceiveParityError,
+                6 => super::Interrupt::TransmitFifoError,
+                7 => super::Interrupt::ReceiveFifoError,
+                8 => super::Interrupt::ReceiveSyncError,
+                9 => super::Interrupt::ReceiveByteCountReached,
+                10 => super::Interrupt::ReceiveAutoBaudrateByStartBit,
+                11 => super::Interrupt::ReceiveAutoBaudrateByFiveFive,
+                _ => unreachable!(),
+            };
+            val = val.mask_interrupt(interrupt);
+            assert_eq!(val.is_interrupt_masked(interrupt), true);
+            val = val.unmask_interrupt(interrupt);
+            assert_eq!(val.is_interrupt_masked(interrupt), false);
+        }
+    }
+
+    #[test]
+    fn struct_interrupt_clear_functions() {
+        let mut val: super::InterruptClear = super::InterruptClear(0x0);
+
+        for i in 0..=11 {
+            let interrupt = match i {
+                0 => super::Interrupt::TransmitEnd,
+                1 => super::Interrupt::ReceiveEnd,
+                2 => super::Interrupt::TransmitFifoReady,
+                3 => super::Interrupt::ReceiveFifoReady,
+                4 => super::Interrupt::ReceiveTimeout,
+                5 => super::Interrupt::ReceiveParityError,
+                6 => super::Interrupt::TransmitFifoError,
+                7 => super::Interrupt::ReceiveFifoError,
+                8 => super::Interrupt::ReceiveSyncError,
+                9 => super::Interrupt::ReceiveByteCountReached,
+                10 => super::Interrupt::ReceiveAutoBaudrateByStartBit,
+                11 => super::Interrupt::ReceiveAutoBaudrateByFiveFive,
+                _ => unreachable!(),
+            };
+            val = val.clear_interrupt(interrupt);
+            assert_eq!(val.0 & (1 << i), 1 << i);
+        }
+    }
+
+    #[test]
+    fn struct_interrupt_enable_functions() {
+        let mut val: super::InterruptEnable = super::InterruptEnable(0x0);
+
+        for i in 0..=11 {
+            let interrupt = match i {
+                0 => super::Interrupt::TransmitEnd,
+                1 => super::Interrupt::ReceiveEnd,
+                2 => super::Interrupt::TransmitFifoReady,
+                3 => super::Interrupt::ReceiveFifoReady,
+                4 => super::Interrupt::ReceiveTimeout,
+                5 => super::Interrupt::ReceiveParityError,
+                6 => super::Interrupt::TransmitFifoError,
+                7 => super::Interrupt::ReceiveFifoError,
+                8 => super::Interrupt::ReceiveSyncError,
+                9 => super::Interrupt::ReceiveByteCountReached,
+                10 => super::Interrupt::ReceiveAutoBaudrateByStartBit,
+                11 => super::Interrupt::ReceiveAutoBaudrateByFiveFive,
+                _ => unreachable!(),
+            };
+            val = val.enable_interrupt(interrupt);
+            assert_eq!(val.is_interrupt_enabled(interrupt), true);
+            val = val.disable_interrupt(interrupt);
+            assert_eq!(val.is_interrupt_enabled(interrupt), false);
+        }
+    }
+
+    #[test]
+    fn struct_bus_state_functions() {
+        let val: super::BusState = super::BusState(0x0);
+
+        assert_eq!(val.transmit_busy(), false);
+        assert_eq!(val.receive_busy(), false);
+    }
+
+    #[test]
+    fn struct_fifo_config0_functions() {
+        let mut val: super::FifoConfig0 = super::FifoConfig0(0x0);
+
+        val = val.enable_transmit_dma();
+        assert_eq!(val.0, 0x00000001);
+        assert!(val.is_transmit_dma_enabled());
+        val = val.disable_transmit_dma();
+        assert_eq!(val.0, 0x00000000);
+
+        val = val.enable_receive_dma();
+        assert_eq!(val.0, 0x00000002);
+        assert!(val.is_receive_dma_enabled());
+        val = val.disable_receive_dma();
+        assert_eq!(val.0, 0x00000000);
+
+        val = val.clear_transmit_fifo();
+        assert_eq!(val.0, 0x00000004);
+        val = val.clear_receive_fifo();
+        assert_eq!(val.0, 0x0000000C);
+
+        val = val.enable_transmit_dma();
+        assert_eq!(val.0, 0x0000000D);
+        assert!(val.is_transmit_dma_enabled());
+        val = val.enable_receive_dma();
+
+        assert_eq!(val.transmit_fifo_overflow(), false);
+        assert_eq!(val.transmit_fifo_underflow(), false);
+        assert_eq!(val.receive_fifo_overflow(), false);
+        assert_eq!(val.receive_fifo_underflow(), false);
+
+        let default = super::FifoConfig0::default();
+        assert_eq!(default.transmit_fifo_underflow(), false);
+        assert_eq!(default.transmit_fifo_overflow(), false);
+        assert_eq!(default.receive_fifo_underflow(), false);
+        assert_eq!(default.receive_fifo_overflow(), false);
+        assert_eq!(default.is_receive_dma_enabled(), false);
+        assert_eq!(default.is_transmit_dma_enabled(), false);
+        assert_eq!(default.clear_receive_fifo().0, 0x08);
+        assert_eq!(default.clear_transmit_fifo().0, 0x04);
+        assert_eq!(default.disable_receive_dma().0, 0x00);
+        assert_eq!(default.disable_transmit_dma().0, 0x00);
+    }
+
+    #[test]
+    fn struct_fifo_config1_functions() {
+        let val: super::FifoConfig1 = super::FifoConfig1(0x0);
+
+        let val = val.set_receive_threshold(0x12);
+        assert_eq!(val.0, 0x12000000);
+        assert_eq!(val.receive_threshold(), 0x12);
+        let val = val.set_transmit_threshold(0x34);
+        assert_eq!(val.0, 0x12340000);
+        assert_eq!(val.transmit_threshold(), 0x14);
+
+        assert_eq!(val.transmit_available_bytes(), 0);
+        assert_eq!(val.receive_available_bytes(), 0);
+
+        let default = super::FifoConfig1::default();
+        assert_eq!(default.transmit_available_bytes(), 0);
+        assert_eq!(default.receive_available_bytes(), 0);
+        assert_eq!(default.transmit_threshold(), 0);
+        assert_eq!(default.receive_threshold(), 0);
+    }
 }

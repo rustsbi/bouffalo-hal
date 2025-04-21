@@ -193,7 +193,7 @@ impl<ADC: Deref<Target = RegisterBlock>> Adc<ADC> {
 #[cfg(test)]
 mod tests {
     use super::RegisterBlock;
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_gpadc_config_functions() {

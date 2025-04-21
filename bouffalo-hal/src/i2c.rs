@@ -707,7 +707,7 @@ mod tests {
         InterruptMask, InterruptState, PeriodData, PeriodStart, PeriodStop, RegisterBlock,
         SubAddressByteCount,
     };
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {

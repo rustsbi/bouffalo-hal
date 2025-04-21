@@ -11,6 +11,10 @@ clap = { version = "4.5.18", features = ["derive"] }
 crc = "3.2.1"
 sha2 = "0.10.8"
 thiserror = "2.0.3"
+inquire = "0.7.5"
+serialport = { version = "4.3", default-features = false }
+object = "0.36.7"
+same-file = "1.0.6"
 
 [dev-dependencies]
 tempfile = "3.12.0"

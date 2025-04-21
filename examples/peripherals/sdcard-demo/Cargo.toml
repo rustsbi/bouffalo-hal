@@ -12,7 +12,7 @@ bouffalo-rt = { path = "../../../bouffalo-rt", features = ["bl808-dsp"] }
 panic-halt = "1.0.0"
 embedded-time = "0.12.1"
 embedded-hal = "1.0.0"
-riscv = "0.12.1"
+riscv = "0.13.0"
 embedded-sdmmc = "0.8.1"
 
 [[bin]]

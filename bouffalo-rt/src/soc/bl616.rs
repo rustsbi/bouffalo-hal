@@ -1,7 +1,6 @@
 //! BL616/BL618 single-core Wi-Fi 6, Bluetooth 5.3, Zigbee AIoT system-on-chip.
 
 use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
-use core::ops::Deref;
 
 #[cfg(all(feature = "bl616", target_arch = "riscv32"))]
 #[naked_function::naked]
@@ -294,7 +293,7 @@ pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
 #[cfg(test)]
 mod tests {
     use super::{HalBootheader, HalPllConfig, HalSysClkConfig};
-    use memoffset::offset_of;
+    use core::mem::offset_of;
 
     #[test]
     fn struct_lengths() {
