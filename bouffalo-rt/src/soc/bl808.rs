@@ -3,7 +3,7 @@
 use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
 
 #[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
-#[naked]
+#[unsafe(naked)]
 #[unsafe(link_section = ".text.entry")]
 #[unsafe(export_name = "_start")]
 unsafe extern "C" fn start() -> ! {
@@ -57,61 +57,59 @@ unsafe extern "C" fn start() -> ! {
 }
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
-#[naked]
+#[unsafe(naked)]
 #[unsafe(link_section = ".text.entry")]
 #[unsafe(export_name = "_start")]
 unsafe extern "C" fn start() -> ! {
-    unsafe {
-        use crate::arch::rvi::Stack;
-        const LEN_STACK_DSP: usize = 4 * 1024;
-        #[unsafe(link_section = ".bss.uninit")]
-        static mut STACK: Stack<LEN_STACK_DSP> = Stack([0; LEN_STACK_DSP]);
-        core::arch::naked_asm!(
-            "   la      sp, {stack}
-            li      t0, {hart_stack_size}
-            add     sp, sp, t0",
-            "   la      t1, sbss
-            la      t2, ebss
-        1:  bgeu    t1, t2, 1f
-            sd      zero, 0(t1)
-            addi    t1, t1, 8 
-            j       1b
-        1:",
-            "   la      t3, sidata
-            la      t4, sdata
-            la      t5, edata
-        1:  bgeu    t4, t5, 1f
-            ld      t6, 0(t3)
-            sd      t6, 0(t4)
-            addi    t3, t3, 8
-            addi    t4, t4, 8
-            j       1b
-        1:",
-            "   la      t0, {trap_entry}
-            ori     t0, t0, {trap_mode}
-            csrw    mtvec, t0",
-            "   li      t1, {stack_protect_pmp_address_begin}
-            csrw    pmpaddr0, t1
-            li      t1, {stack_protect_pmp_address_end}
-            csrw    pmpaddr1, t1
-            li      t2, {stack_protect_pmp_flags}
-            csrw    pmpcfg0, t2",
-            "   call    {main}",
-            stack = sym STACK,
-            hart_stack_size = const LEN_STACK_DSP,
-            trap_entry = sym trap_vectored,
-            trap_mode = const 1, // RISC-V standard vectored trap
-            // Set PMP entry to block U/S-mode stack access (TOR, no R/W/X permissions)
-            stack_protect_pmp_address_begin = const {0x3F000000 >> 2},
-            stack_protect_pmp_address_end = const {(0x3F000000 + 32 * 1024) >> 2},
-            stack_protect_pmp_flags = const 0b00001000 << 8,
-            main = sym main,
-        )
-    }
+    use crate::arch::rvi::Stack;
+    const LEN_STACK_DSP: usize = 4 * 1024;
+    #[unsafe(link_section = ".bss.uninit")]
+    static mut STACK: Stack<LEN_STACK_DSP> = Stack([0; LEN_STACK_DSP]);
+    core::arch::naked_asm!(
+        "   la      sp, {stack}
+        li      t0, {hart_stack_size}
+        add     sp, sp, t0",
+        "   la      t1, sbss
+        la      t2, ebss
+    1:  bgeu    t1, t2, 1f
+        sd      zero, 0(t1)
+        addi    t1, t1, 8 
+        j       1b
+    1:",
+        "   la      t3, sidata
+        la      t4, sdata
+        la      t5, edata
+    1:  bgeu    t4, t5, 1f
+        ld      t6, 0(t3)
+        sd      t6, 0(t4)
+        addi    t3, t3, 8
+        addi    t4, t4, 8
+        j       1b
+    1:",
+        "   la      t0, {trap_entry}
+        ori     t0, t0, {trap_mode}
+        csrw    mtvec, t0",
+        "   li      t1, {stack_protect_pmp_address_begin}
+        csrw    pmpaddr0, t1
+        li      t1, {stack_protect_pmp_address_end}
+        csrw    pmpaddr1, t1
+        li      t2, {stack_protect_pmp_flags}
+        csrw    pmpcfg0, t2",
+        "   call    {main}",
+        stack = sym STACK,
+        hart_stack_size = const LEN_STACK_DSP,
+        trap_entry = sym trap_vectored,
+        trap_mode = const 1, // RISC-V standard vectored trap
+        // Set PMP entry to block U/S-mode stack access (TOR, no R/W/X permissions)
+        stack_protect_pmp_address_begin = const {0x3F000000 >> 2},
+        stack_protect_pmp_address_end = const {(0x3F000000 + 32 * 1024) >> 2},
+        stack_protect_pmp_flags = const 0b00001000 << 8,
+        main = sym main,
+    )
 }
 
 #[cfg(all(feature = "bl808-lp", target_arch = "riscv32"))]
-#[naked]
+#[unsafe(naked)]
 #[unsafe(link_section = ".text.entry")]
 #[unsafe(export_name = "_start")]
 unsafe extern "C" fn start() -> ! {
@@ -167,49 +165,47 @@ unsafe extern "Rust" {
     all(feature = "bl808-dsp", target_arch = "riscv64")
 ))]
 #[unsafe(link_section = ".trap.trap-entry")]
-#[naked]
+#[unsafe(naked)]
 unsafe extern "C" fn trap_vectored() -> ! {
-    unsafe {
-        core::arch::naked_asm!(
-            ".p2align 2",
-            "j {exceptions}",
-            "j {supervisor_software}",
-            "j {reserved}",
-            "j {machine_software}",
-            "j {reserved}",
-            "j {supervisor_timer}",
-            "j {reserved}",
-            "j {machine_timer}",
-            "j {reserved}",
-            "j {supervisor_external}",
-            "j {reserved}",
-            "j {machine_external}",
-            "j {reserved}",
-            "j {reserved}",
-            "j {reserved}",
-            "j {reserved}",
-            "j {reserved}",
-            "j {thead_hpm_overflow}",
-            exceptions = sym exceptions_trampoline,
-            supervisor_software = sym reserved,
-            machine_software = sym reserved,
-            supervisor_timer = sym reserved,
-            machine_timer = sym reserved,
-            machine_external = sym machine_external_trampoline,
-            supervisor_external = sym reserved,
-            thead_hpm_overflow = sym reserved,
-            reserved = sym reserved,
-        )
-    }
+    core::arch::naked_asm!(
+        ".p2align 2",
+        "j {exceptions}",
+        "j {supervisor_software}",
+        "j {reserved}",
+        "j {machine_software}",
+        "j {reserved}",
+        "j {supervisor_timer}",
+        "j {reserved}",
+        "j {machine_timer}",
+        "j {reserved}",
+        "j {supervisor_external}",
+        "j {reserved}",
+        "j {machine_external}",
+        "j {reserved}",
+        "j {reserved}",
+        "j {reserved}",
+        "j {reserved}",
+        "j {reserved}",
+        "j {thead_hpm_overflow}",
+        exceptions = sym exceptions_trampoline,
+        supervisor_software = sym reserved,
+        machine_software = sym reserved,
+        supervisor_timer = sym reserved,
+        machine_timer = sym reserved,
+        machine_external = sym machine_external_trampoline,
+        supervisor_external = sym reserved,
+        thead_hpm_overflow = sym reserved,
+        reserved = sym reserved,
+    )
 }
 
 #[cfg(any(
     all(feature = "bl808-mcu", target_arch = "riscv32"),
     all(feature = "bl808-dsp", target_arch = "riscv64")
 ))]
-#[naked]
+#[unsafe(naked)]
 unsafe extern "C" fn reserved() -> ! {
-    unsafe { core::arch::naked_asm!("1: j   1b") }
+    core::arch::naked_asm!("1: j   1b")
 }
 
 #[cfg(any(all(feature = "bl808-dsp", target_arch = "riscv64")))]
@@ -219,136 +215,132 @@ unsafe extern "C" {
 
 // TODO exceptions_trampoline for bl808-mcu
 #[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
-#[naked]
+#[unsafe(naked)]
 unsafe extern "C" fn exceptions_trampoline() -> ! {
     unsafe { core::arch::naked_asm!("") }
 }
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
-#[naked]
+#[unsafe(naked)]
 unsafe extern "C" fn exceptions_trampoline() -> ! {
-    unsafe {
-        core::arch::naked_asm!(
-            "addi   sp, sp, -19*8",
-            "sd     ra, 0*8(sp)",
-            "sd     t0, 1*8(sp)",
-            "sd     t1, 2*8(sp)",
-            "sd     t2, 3*8(sp)",
-            "sd     a0, 4*8(sp)",
-            "sd     a1, 5*8(sp)",
-            "sd     a2, 6*8(sp)",
-            "sd     a3, 7*8(sp)",
-            "sd     a4, 8*8(sp)",
-            "sd     a5, 9*8(sp)",
-            "sd     a6, 10*8(sp)",
-            "sd     a7, 11*8(sp)",
-            "sd     t3, 12*8(sp)",
-            "sd     t4, 13*8(sp)",
-            "sd     t5, 14*8(sp)",
-            "sd     t6, 15*8(sp)",
-            "csrr   t0, mcause",
-            "sd     t0, 16*8(sp)",
-            "csrr   t1, mepc",
-            "sd     t1, 17*8(sp)",
-            "csrr   t2, mstatus",
-            "sd     t2, 18*8(sp)",
-            // "csrs   mstatus, 8", // TODO: disallow nested interrupt by now
-            "mv     a0, sp",
-            "call   {rust_exceptions}",
-            "ld     t0, 16*8(sp)",
-            "csrw   mcause, t0",
-            "ld     t1, 17*8(sp)",
-            "csrw   mepc, t1",
-            "ld     t2, 18*8(sp)",
-            "csrw   mstatus, t2",
-            "ld     ra, 0*8(sp)",
-            "ld     t0, 1*8(sp)",
-            "ld     t1, 2*8(sp)",
-            "ld     t2, 3*8(sp)",
-            "ld     a0, 4*8(sp)",
-            "ld     a1, 5*8(sp)",
-            "ld     a2, 6*8(sp)",
-            "ld     a3, 7*8(sp)",
-            "ld     a4, 8*8(sp)",
-            "ld     a5, 9*8(sp)",
-            "ld     a6, 10*8(sp)",
-            "ld     a7, 11*8(sp)",
-            "ld     t3, 12*8(sp)",
-            "ld     t4, 13*8(sp)",
-            "ld     t5, 14*8(sp)",
-            "ld     t6, 15*8(sp)",
-            "addi   sp, sp, 19*8",
-            "mret",
-            rust_exceptions = sym exceptions,
-        )
-    }
+    core::arch::naked_asm!(
+        "addi   sp, sp, -19*8",
+        "sd     ra, 0*8(sp)",
+        "sd     t0, 1*8(sp)",
+        "sd     t1, 2*8(sp)",
+        "sd     t2, 3*8(sp)",
+        "sd     a0, 4*8(sp)",
+        "sd     a1, 5*8(sp)",
+        "sd     a2, 6*8(sp)",
+        "sd     a3, 7*8(sp)",
+        "sd     a4, 8*8(sp)",
+        "sd     a5, 9*8(sp)",
+        "sd     a6, 10*8(sp)",
+        "sd     a7, 11*8(sp)",
+        "sd     t3, 12*8(sp)",
+        "sd     t4, 13*8(sp)",
+        "sd     t5, 14*8(sp)",
+        "sd     t6, 15*8(sp)",
+        "csrr   t0, mcause",
+        "sd     t0, 16*8(sp)",
+        "csrr   t1, mepc",
+        "sd     t1, 17*8(sp)",
+        "csrr   t2, mstatus",
+        "sd     t2, 18*8(sp)",
+        // "csrs   mstatus, 8", // TODO: disallow nested interrupt by now
+        "mv     a0, sp",
+        "call   {rust_exceptions}",
+        "ld     t0, 16*8(sp)",
+        "csrw   mcause, t0",
+        "ld     t1, 17*8(sp)",
+        "csrw   mepc, t1",
+        "ld     t2, 18*8(sp)",
+        "csrw   mstatus, t2",
+        "ld     ra, 0*8(sp)",
+        "ld     t0, 1*8(sp)",
+        "ld     t1, 2*8(sp)",
+        "ld     t2, 3*8(sp)",
+        "ld     a0, 4*8(sp)",
+        "ld     a1, 5*8(sp)",
+        "ld     a2, 6*8(sp)",
+        "ld     a3, 7*8(sp)",
+        "ld     a4, 8*8(sp)",
+        "ld     a5, 9*8(sp)",
+        "ld     a6, 10*8(sp)",
+        "ld     a7, 11*8(sp)",
+        "ld     t3, 12*8(sp)",
+        "ld     t4, 13*8(sp)",
+        "ld     t5, 14*8(sp)",
+        "ld     t6, 15*8(sp)",
+        "addi   sp, sp, 19*8",
+        "mret",
+        rust_exceptions = sym exceptions,
+    )
 }
 
 // TODO machine_external_trampoline for bl808-mcu
 #[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
-#[naked]
+#[unsafe(naked)]
 unsafe extern "C" fn machine_external_trampoline() -> ! {
-    unsafe { core::arch::naked_asm!("") }
+    core::arch::naked_asm!("")
 }
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
-#[naked]
+#[unsafe(naked)]
 unsafe extern "C" fn machine_external_trampoline() -> ! {
-    unsafe {
-        core::arch::naked_asm!(
-            "addi   sp, sp, -19*8",
-            "sd     ra, 0*8(sp)",
-            "sd     t0, 1*8(sp)",
-            "sd     t1, 2*8(sp)",
-            "sd     t2, 3*8(sp)",
-            "sd     a0, 4*8(sp)",
-            "sd     a1, 5*8(sp)",
-            "sd     a2, 6*8(sp)",
-            "sd     a3, 7*8(sp)",
-            "sd     a4, 8*8(sp)",
-            "sd     a5, 9*8(sp)",
-            "sd     a6, 10*8(sp)",
-            "sd     a7, 11*8(sp)",
-            "sd     t3, 12*8(sp)",
-            "sd     t4, 13*8(sp)",
-            "sd     t5, 14*8(sp)",
-            "sd     t6, 15*8(sp)",
-            "csrr   t0, mcause",
-            "sd     t0, 16*8(sp)",
-            "csrr   t1, mepc",
-            "sd     t1, 17*8(sp)",
-            "csrr   t2, mstatus",
-            "sd     t2, 18*8(sp)",
-            // "csrs   mstatus, 8", // TODO: disallow nested interrupt by now
-            "mv     a0, sp",
-            "call   {rust_all_traps}",
-            "ld     t0, 16*8(sp)",
-            "csrw   mcause, t0",
-            "ld     t1, 17*8(sp)",
-            "csrw   mepc, t1",
-            "ld     t2, 18*8(sp)",
-            "csrw   mstatus, t2",
-            "ld     ra, 0*8(sp)",
-            "ld     t0, 1*8(sp)",
-            "ld     t1, 2*8(sp)",
-            "ld     t2, 3*8(sp)",
-            "ld     a0, 4*8(sp)",
-            "ld     a1, 5*8(sp)",
-            "ld     a2, 6*8(sp)",
-            "ld     a3, 7*8(sp)",
-            "ld     a4, 8*8(sp)",
-            "ld     a5, 9*8(sp)",
-            "ld     a6, 10*8(sp)",
-            "ld     a7, 11*8(sp)",
-            "ld     t3, 12*8(sp)",
-            "ld     t4, 13*8(sp)",
-            "ld     t5, 14*8(sp)",
-            "ld     t6, 15*8(sp)",
-            "addi   sp, sp, 19*8",
-            "mret",
-            rust_all_traps = sym rust_bl808_dsp_machine_external,
-        )
-    }
+    core::arch::naked_asm!(
+        "addi   sp, sp, -19*8",
+        "sd     ra, 0*8(sp)",
+        "sd     t0, 1*8(sp)",
+        "sd     t1, 2*8(sp)",
+        "sd     t2, 3*8(sp)",
+        "sd     a0, 4*8(sp)",
+        "sd     a1, 5*8(sp)",
+        "sd     a2, 6*8(sp)",
+        "sd     a3, 7*8(sp)",
+        "sd     a4, 8*8(sp)",
+        "sd     a5, 9*8(sp)",
+        "sd     a6, 10*8(sp)",
+        "sd     a7, 11*8(sp)",
+        "sd     t3, 12*8(sp)",
+        "sd     t4, 13*8(sp)",
+        "sd     t5, 14*8(sp)",
+        "sd     t6, 15*8(sp)",
+        "csrr   t0, mcause",
+        "sd     t0, 16*8(sp)",
+        "csrr   t1, mepc",
+        "sd     t1, 17*8(sp)",
+        "csrr   t2, mstatus",
+        "sd     t2, 18*8(sp)",
+        // "csrs   mstatus, 8", // TODO: disallow nested interrupt by now
+        "mv     a0, sp",
+        "call   {rust_all_traps}",
+        "ld     t0, 16*8(sp)",
+        "csrw   mcause, t0",
+        "ld     t1, 17*8(sp)",
+        "csrw   mepc, t1",
+        "ld     t2, 18*8(sp)",
+        "csrw   mstatus, t2",
+        "ld     ra, 0*8(sp)",
+        "ld     t0, 1*8(sp)",
+        "ld     t1, 2*8(sp)",
+        "ld     t2, 3*8(sp)",
+        "ld     a0, 4*8(sp)",
+        "ld     a1, 5*8(sp)",
+        "ld     a2, 6*8(sp)",
+        "ld     a3, 7*8(sp)",
+        "ld     a4, 8*8(sp)",
+        "ld     a5, 9*8(sp)",
+        "ld     a6, 10*8(sp)",
+        "ld     a7, 11*8(sp)",
+        "ld     t3, 12*8(sp)",
+        "ld     t4, 13*8(sp)",
+        "ld     t5, 14*8(sp)",
+        "ld     t6, 15*8(sp)",
+        "addi   sp, sp, 19*8",
+        "mret",
+        rust_all_traps = sym rust_bl808_dsp_machine_external,
+    )
 }
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]

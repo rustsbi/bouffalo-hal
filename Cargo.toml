@@ -24,4 +24,4 @@ members = [
     "examples/peripherals/sdh-demo",
     "examples/peripherals/sdh-dma-demo",
 ]
-resolver = "2"
+resolver = "3"
