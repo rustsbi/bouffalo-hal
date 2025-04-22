@@ -14,7 +14,7 @@ use core::arch::naked_asm;
 const LEN_STACK: usize = 1 * 1024;
 
 #[cfg(feature = "bl702")]
-#[naked_function::naked]
+#[unsafe(naked)]
 #[unsafe(link_section = ".text.entry")]
 #[unsafe(export_name = "_start")]
 unsafe extern "C" fn start() -> ! {
