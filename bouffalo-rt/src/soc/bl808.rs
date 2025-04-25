@@ -998,6 +998,13 @@ dma! {
     DMA2: (2, EightChannels, Periph4Dma2),
 }
 
+uart! {
+    UART0: 0,
+    UART1: 1,
+    UART2: 2,
+    UART3: 3,
+}
+
 // Used by macros only.
 #[allow(unused)]
 #[doc(hidden)]
