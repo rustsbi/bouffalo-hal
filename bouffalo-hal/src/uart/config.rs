@@ -68,7 +68,7 @@ impl Config {
 }
 
 impl Default for Config {
-    /// Serial configuration defaults to 8-bit word, no parity check, 1 stop bit, LSB first.
+    /// Serial configuration defaults to 115200 Bd, 8-bit word, no parity check, 1 stop bit, LSB first.
     #[inline]
     fn default() -> Self {
         Config {

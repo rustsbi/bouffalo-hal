@@ -63,6 +63,34 @@ $(
 macro_rules! uart {
     ($($UARTx: ty: $i: expr,)+) => {
 $(
+    impl<'a, PADS> bouffalo_hal::uart::UartExt<'a, PADS, $i> for &'a mut $UARTx {
+        #[inline]
+        fn freerun(
+            self,
+            config: bouffalo_hal::uart::Config,
+            pads: PADS,
+            clocks: &Clocks,
+        ) -> Result<bouffalo_hal::uart::BlockingSerial<'a, PADS>, bouffalo_hal::uart::ConfigError>
+        where
+            PADS: bouffalo_hal::uart::Pads<$i>,
+        {
+            bouffalo_hal::uart::BlockingSerial::__new_freerun(self, config, pads, clocks)
+        }
+        #[inline]
+        fn with_interrupt(
+            self,
+            config: bouffalo_hal::uart::Config,
+            pads: PADS,
+            clocks: &Clocks,
+            state: &'static bouffalo_hal::uart::SerialState,
+        ) -> Result<bouffalo_hal::uart::AsyncSerial<'a, PADS>, bouffalo_hal::uart::ConfigError>
+        where
+            PADS: bouffalo_hal::uart::Pads<$i>,
+        {
+            bouffalo_hal::uart::AsyncSerial::__new(self, config, pads, clocks, state)
+        }
+    }
+
     impl<PADS> bouffalo_hal::uart::UartExt<'static, PADS, $i> for $UARTx {
         #[inline]
         fn freerun(
@@ -83,11 +111,11 @@ $(
             pads: PADS,
             clocks: &Clocks,
             state: &'static bouffalo_hal::uart::SerialState,
-        ) -> Result<bouffalo_hal::uart::AsyncSerial<Self, PADS>, bouffalo_hal::uart::ConfigError>
+        ) -> Result<bouffalo_hal::uart::AsyncSerial<'static, PADS>, bouffalo_hal::uart::ConfigError>
         where
             PADS: bouffalo_hal::uart::Pads<$i>,
         {
-            bouffalo_hal::uart::AsyncSerial::new(self, config, pads, clocks, state)
+            bouffalo_hal::uart::AsyncSerial::__new(unsafe { &*Self::ptr() }, config, pads, clocks, state)
         }
     }
 )+
