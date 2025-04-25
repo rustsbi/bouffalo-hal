@@ -1,4 +1,7 @@
-use super::{BlockingReceiveHalf, BlockingTransmitHalf, MuxCts, MuxRts, MuxRxd, MuxTxd, UartMux};
+use super::{
+    BlockingReceiveHalf, BlockingTransmitHalf, MuxCts, MuxRts, MuxRxd, MuxTxd, RegisterBlock,
+    UartMux,
+};
 use crate::gpio::{Alternate, MmUart, Uart};
 
 /// Check if target gpio `Pin` is internally connected to UART signal index `I`.
@@ -70,22 +73,19 @@ pub trait Pads<const U: usize> {
     /// Checks if this pin configuration includes Receive feature.
     const RXD: bool;
     /// Valid split configuration type for current pads and multiplexers.
-    type Split<T>;
+    type Split<'a>;
 
-    fn split<T>(self, uart: T) -> Self::Split<T>;
+    fn split<'a>(self, uart: &'a RegisterBlock) -> Self::Split<'a>;
 }
 
 #[inline]
-fn from_pads<T, TX, RX>(
-    uart: T,
+fn from_pads<'a, TX, RX>(
+    uart: &'a RegisterBlock,
     tx: TX,
     rx: RX,
-) -> (BlockingTransmitHalf<T, TX>, BlockingReceiveHalf<T, RX>) {
+) -> (BlockingTransmitHalf<'a, TX>, BlockingReceiveHalf<'a, RX>) {
     (
-        BlockingTransmitHalf {
-            uart: unsafe { core::ptr::read_volatile(&uart) },
-            _pads: tx,
-        },
+        BlockingTransmitHalf { uart, _pads: tx },
         BlockingReceiveHalf { uart, _pads: rx },
     )
 }
@@ -99,12 +99,12 @@ where
     const CTS: bool = false;
     const TXD: bool = true;
     const RXD: bool = false;
-    type Split<T> = (
-        BlockingTransmitHalf<T, (Alternate<'a, N, Uart>, UartMux<'b, I, MuxTxd<U>>)>,
-        BlockingReceiveHalf<T, ()>,
+    type Split<'u> = (
+        BlockingTransmitHalf<'u, (Alternate<'a, N, Uart>, UartMux<'b, I, MuxTxd<U>>)>,
+        BlockingReceiveHalf<'u, ()>,
     );
     #[inline]
-    fn split<T>(self, uart: T) -> Self::Split<T> {
+    fn split<'u>(self, uart: &'u RegisterBlock) -> Self::Split<'u> {
         from_pads(uart, self, ())
     }
 }
@@ -132,12 +132,12 @@ where
     const CTS: bool = false;
     const TXD: bool = true;
     const RXD: bool = true;
-    type Split<T> = (
-        BlockingTransmitHalf<T, (Alternate<'a, N1, Uart>, UartMux<'b, I1, MuxTxd<U>>)>,
-        BlockingReceiveHalf<T, (Alternate<'c, N2, Uart>, UartMux<'d, I2, MuxRxd<U>>)>,
+    type Split<'u> = (
+        BlockingTransmitHalf<'u, (Alternate<'a, N1, Uart>, UartMux<'b, I1, MuxTxd<U>>)>,
+        BlockingReceiveHalf<'u, (Alternate<'c, N2, Uart>, UartMux<'d, I2, MuxRxd<U>>)>,
     );
     #[inline]
-    fn split<T>(self, uart: T) -> Self::Split<T> {
+    fn split<'u>(self, uart: &'u RegisterBlock) -> Self::Split<'u> {
         from_pads(uart, self.0, self.1)
     }
 }
@@ -165,15 +165,15 @@ where
     const CTS: bool = true;
     const TXD: bool = true;
     const RXD: bool = false;
-    type Split<T> = BlockingTransmitHalf<
-        T,
+    type Split<'u> = BlockingTransmitHalf<
+        'u,
         (
             (Alternate<'a, N1, Uart>, UartMux<'b, I1, MuxTxd<U>>),
             (Alternate<'c, N2, Uart>, UartMux<'d, I2, MuxCts<U>>),
         ),
     >;
     #[inline]
-    fn split<T>(self, uart: T) -> Self::Split<T> {
+    fn split<'u>(self, uart: &'u RegisterBlock) -> Self::Split<'u> {
         BlockingTransmitHalf { uart, _pads: self }
     }
 }
@@ -213,16 +213,16 @@ where
     const CTS: bool = true;
     const TXD: bool = true;
     const RXD: bool = false;
-    type Split<T> = (
+    type Split<'u> = (
         BlockingTransmitHalf<
-            T,
+            'u,
             (
                 (Alternate<'a, N1, Uart>, UartMux<'b, I1, MuxTxd<U>>),
                 (Alternate<'g, N4, Uart>, UartMux<'h, I4, MuxCts<U>>),
             ),
         >,
         BlockingReceiveHalf<
-            T,
+            'u,
             (
                 (Alternate<'c, N2, Uart>, UartMux<'d, I2, MuxRxd<U>>),
                 (Alternate<'e, N3, Uart>, UartMux<'f, I3, MuxRts<U>>),
@@ -230,7 +230,7 @@ where
         >,
     );
     #[inline]
-    fn split<T>(self, uart: T) -> Self::Split<T> {
+    fn split<'u>(self, uart: &'u RegisterBlock) -> Self::Split<'u> {
         from_pads(uart, (self.0, self.3), (self.1, self.2))
     }
 }
@@ -247,9 +247,9 @@ where
     const CTS: bool = { N % 4 == 3 };
     const TXD: bool = { N % 4 == 0 };
     const RXD: bool = { N % 4 == 1 };
-    type Split<T> = ();
+    type Split<'u> = ();
     #[inline]
-    fn split<T>(self, uart: T) -> Self::Split<T> {
+    fn split<'u>(self, uart: &'u RegisterBlock) -> Self::Split<'u> {
         let _ = uart;
         ()
     }
@@ -265,9 +265,9 @@ where
     const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 };
     const TXD: bool = { N1 % 4 == 0 || N2 % 4 == 0 };
     const RXD: bool = { N1 % 4 == 1 || N2 % 4 == 1 };
-    type Split<T> = ();
+    type Split<'u> = ();
     #[inline]
-    fn split<T>(self, uart: T) -> Self::Split<T> {
+    fn split<'u>(self, uart: &'u RegisterBlock) -> Self::Split<'u> {
         let _ = uart;
         ()
     }
@@ -288,9 +288,9 @@ where
     const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 || N3 % 4 == 3 };
     const TXD: bool = { N1 % 4 == 0 || N2 % 4 == 0 || N3 % 4 == 0 };
     const RXD: bool = { N1 % 4 == 1 || N2 % 4 == 1 || N3 % 4 == 1 };
-    type Split<T> = ();
+    type Split<'u> = ();
     #[inline]
-    fn split<T>(self, uart: T) -> Self::Split<T> {
+    fn split<'u>(self, uart: &'u RegisterBlock) -> Self::Split<'u> {
         let _ = uart;
         ()
     }
@@ -314,9 +314,9 @@ where
     const CTS: bool = { N1 % 4 == 3 || N2 % 4 == 3 || N3 % 4 == 3 || N4 % 4 == 3 };
     const TXD: bool = { N1 % 4 == 0 || N2 % 4 == 0 || N3 % 4 == 0 || N4 % 4 == 0 };
     const RXD: bool = { N1 % 4 == 1 || N2 % 4 == 1 || N3 % 4 == 1 || N4 % 4 == 1 };
-    type Split<T> = ();
+    type Split<'u> = ();
     #[inline]
-    fn split<T>(self, uart: T) -> Self::Split<T> {
+    fn split<'u>(self, uart: &'u RegisterBlock) -> Self::Split<'u> {
         let _ = uart;
         ()
     }
