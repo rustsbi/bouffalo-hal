@@ -17,7 +17,7 @@ mod asynch;
 pub use asynch::*;
 
 /// Extend constructor to owned UART register blocks.
-pub trait UartExt<'a, PADS, const I: usize>: Sized {
+pub trait UartExt<'a, PADS, const I: usize> {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
     fn freerun(
         self,
@@ -34,7 +34,7 @@ pub trait UartExt<'a, PADS, const I: usize>: Sized {
         pads: PADS,
         clocks: &Clocks,
         state: &'static SerialState,
-    ) -> Result<AsyncSerial<Self, PADS>, ConfigError>
+    ) -> Result<AsyncSerial<'a, PADS>, ConfigError>
     where
         PADS: Pads<I>;
 }

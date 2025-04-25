@@ -4,30 +4,29 @@ use super::{
 use crate::clocks::Clocks;
 use core::{
     future::Future,
-    ops::Deref,
     pin::Pin,
     sync::atomic::{AtomicUsize, Ordering},
     task::{Context, Poll},
 };
 
 /// Managed async/await serial peripheral.
-#[derive(Debug)]
-pub struct AsyncSerial<UART, PADS> {
-    uart: UART,
+pub struct AsyncSerial<'a, PADS> {
+    uart: &'a RegisterBlock,
     pads: PADS,
-    state: &'static SerialState,
+    state: &'a SerialState,
 }
 
-impl<UART: Deref<Target = RegisterBlock>, PADS> AsyncSerial<UART, PADS> {
+impl<'a, PADS> AsyncSerial<'a, PADS> {
     /// Creates the async/await serial peripheral from owned peripheral structure, configuration, pads
     /// and a waker registry.
+    #[doc(hidden)]
     #[inline]
-    pub fn new<const I: usize>(
-        uart: UART,
+    pub fn __new<const I: usize>(
+        uart: &'a RegisterBlock,
         config: Config,
         pads: PADS,
         clocks: &Clocks,
-        state: &'static SerialState,
+        state: &'a SerialState,
     ) -> Result<Self, ConfigError>
     where
         PADS: Pads<I>,
@@ -54,8 +53,8 @@ impl<UART: Deref<Target = RegisterBlock>, PADS> AsyncSerial<UART, PADS> {
 
     /// Release serial instance and return its peripheral and pads.
     #[inline]
-    pub fn free(self) -> (UART, PADS) {
-        (self.uart, self.pads)
+    pub fn free(self) -> PADS {
+        self.pads
     }
 }
 
@@ -188,22 +187,18 @@ async fn uart_read_async(
     Ok(len)
 }
 
-impl<UART, PADS> embedded_io_async::ErrorType for AsyncSerial<UART, PADS> {
+impl<'a, PADS> embedded_io_async::ErrorType for AsyncSerial<'a, PADS> {
     type Error = Error;
 }
 
-impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io_async::Write
-    for AsyncSerial<UART, PADS>
-{
+impl<'a, PADS> embedded_io_async::Write for AsyncSerial<'a, PADS> {
     #[inline]
     async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         uart_write_async(&self.uart, buf, &self.state.transmit_ready).await
     }
 }
 
-impl<UART: Deref<Target = RegisterBlock>, PADS> embedded_io_async::Read
-    for AsyncSerial<UART, PADS>
-{
+impl<'a, PADS> embedded_io_async::Read for AsyncSerial<'a, PADS> {
     #[inline]
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         uart_read_async(&self.uart, buf, &self.state.receive_ready).await
