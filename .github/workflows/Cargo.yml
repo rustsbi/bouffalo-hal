@@ -19,7 +19,7 @@ jobs:
           components: rustfmt
       - name: Rustfmt Check
         uses: actions-rust-lang/rustfmt@v1
-  
+
   test-bouffalo-hal:
     name: Test
     needs: fmt
@@ -54,6 +54,13 @@ jobs:
           toolchain: ${{ MATRIX.TOOLCHAIN }}
       - name: Run build
         run: cargo build --target ${{ MATRIX.TARGET }} --release -p ${{ MATRIX.EXAMPLES }}
+      # Upload build artifacts
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: riscv64-${{ matrix.EXAMPLES }}
+          path: target/${{ matrix.TARGET }}/release/${{ matrix.EXAMPLES }}
+          retention-days: 1
 
   build-bouffalo-hal-riscv32:
     name: Build for riscv32
@@ -72,3 +79,40 @@ jobs:
           toolchain: ${{ MATRIX.TOOLCHAIN }}
       - name: Run build
         run: cargo build --target ${{ MATRIX.TARGET }} --release -p ${{ MATRIX.EXAMPLES }}
+
+  test-elf2bin-conversion:
+    name: Test ELF to binary conversion
+    needs: build-bouffalo-hal-riscv64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Download the build artifacts
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: riscv64-*
+          path: target/riscv64imac-unknown-none-elf/release/
+
+      # Set up Rust with nightly toolchain and necessary components
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly
+          target: riscv64imac-unknown-none-elf
+          components: llvm-tools-preview
+
+      # Install cargo-binutils for rust-objcopy
+      - name: Install cargo-binutils
+        run: cargo install cargo-binutils
+
+      # Build the blri CLI tool
+      - name: Build blri tool
+        run: cargo build --bin blri
+
+      # Make the test script executable
+      - name: Prepare test script
+        run: chmod +x blri/ci/test_elf2bin.sh
+
+      # Run the test script
+      - name: Run ELF to binary comparison tests
+        run: ./blri/ci/test_elf2bin.sh
