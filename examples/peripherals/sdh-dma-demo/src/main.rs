@@ -57,8 +57,8 @@ fn main(p: Peripherals, c: Clocks) -> ! {
         dst_addr_inc: true,
         src_burst_size: dma::BurstSize::INCR1,
         dst_burst_size: dma::BurstSize::INCR1,
-        src_transfer_width: dma::TransferWidth::Byte,
-        dst_transfer_width: dma::TransferWidth::Byte,
+        src_transfer_width: dma::TransferWidth::Word,
+        dst_transfer_width: dma::TransferWidth::Word,
     };
 
     let mut dma0 = p.dma0.split(&p.glb);

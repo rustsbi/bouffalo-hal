@@ -59,6 +59,11 @@ impl<'a, T: InnerSdh<'a>> Sdcard<'a, T> {
     pub fn new(sdh: &'a mut T) -> Self {
         Self { sdh }
     }
+
+    /// Free the SD card.
+    pub fn free(self) -> &'a mut T {
+        self.sdh
+    }
 }
 
 impl<'a, T: InnerSdh<'a>> BlockDevice for Sdcard<'a, T> {
