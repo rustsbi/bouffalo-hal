@@ -137,7 +137,7 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
 
         for j in 0..Block::LEN / 4 {
             let rx_lli_pool = &mut [LliPool::new(); 1];
-            let val = &mut [0u8; 4];
+            let val = &mut [0u32; 1];
             let rx_transfer = &mut [LliTransfer {
                 src_addr: 0x20060020,
                 dst_addr: val.as_mut_ptr() as u32,
@@ -156,10 +156,10 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
             // FIXME modify to a proper fence
             fence(Ordering::SeqCst);
 
-            block[j * 4 + 0] = val[0];
-            block[j * 4 + 1] = val[1];
-            block[j * 4 + 2] = val[2];
-            block[j * 4 + 3] = val[3];
+            block[j * 4 + 0] = (val[0] >> 0) as u8;
+            block[j * 4 + 1] = (val[0] >> 8) as u8;
+            block[j * 4 + 2] = (val[0] >> 16) as u8;
+            block[j * 4 + 3] = (val[0] >> 24) as u8;
         }
     }
 
@@ -201,12 +201,12 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
 
         for j in 0..Block::LEN / 4 {
             let tx_lli_pool = &mut [LliPool::new(); 1];
-            let val = [
+            let val = [u32::from_le_bytes([
                 block[j * 4 + 0],
                 block[j * 4 + 1],
                 block[j * 4 + 2],
                 block[j * 4 + 3],
-            ];
+            ])];
             let tx_transfer = &mut [LliTransfer {
                 src_addr: val.as_ptr() as u32,
                 dst_addr: 0x20060020,
