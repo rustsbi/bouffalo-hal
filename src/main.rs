@@ -1,7 +1,10 @@
 #![no_std]
 #![no_main]
 
-use bouffalo_hal::{prelude::*, psram::init_psram, spi::Spi, uart::Config as UartConfig};
+use bouffalo_hal::sdio::NonSysDmaSdh;
+use bouffalo_hal::{
+    prelude::*, psram::init_psram, sdio::Config as SdhConfig, uart::Config as UartConfig,
+};
 use bouffalo_rt::{Clocks, Peripherals, entry};
 use bouffaloader::{Device, DynamicInfo};
 use bouffaloader::{
@@ -12,7 +15,7 @@ use bouffaloader::{
 use core::fmt::Write as _;
 use core::ptr;
 use embedded_cli::{Command, cli::CliBuilder};
-use embedded_hal::{digital::OutputPin, spi::MODE_3};
+use embedded_hal::digital::OutputPin;
 use embedded_io::{Read, Write};
 use embedded_time::rate::*;
 use heapless::String;
@@ -39,22 +42,24 @@ fn main(p: Peripherals, c: Clocks) -> ! {
         let config = UartConfig::default().set_baudrate(2000000.Bd());
         let serial = p.uart0.freerun(config, ((tx, sig2), (rx, sig3)), &c);
 
-        serial.split()
+        serial.unwrap().split()
     };
     let led = p.gpio.io8.into_floating_output();
-    let spi = {
-        let spi_clk = p.gpio.io3.into_spi::<1>();
-        let spi_mosi = p.gpio.io1.into_spi::<1>();
-        let spi_miso = p.gpio.io2.into_spi::<1>();
-        let spi_cs = p.gpio.io0.into_spi::<1>();
-        Spi::new(
-            p.spi1,
-            (spi_clk, spi_mosi, spi_miso, spi_cs),
-            MODE_3,
-            &p.glb,
-        )
+
+    // Sdh gpio init.
+    let sdh = {
+        let sdh_clk = p.gpio.io0.into_sdh();
+        let sdh_cmd = p.gpio.io1.into_sdh();
+        let sdh_d0 = p.gpio.io2.into_sdh();
+        let sdh_d1 = p.gpio.io3.into_sdh();
+        let sdh_d2 = p.gpio.io4.into_sdh();
+        let sdh_d3 = p.gpio.io5.into_sdh();
+        let pads = (sdh_clk, sdh_cmd, sdh_d0, sdh_d1, sdh_d2, sdh_d3);
+        let config = SdhConfig::default();
+        NonSysDmaSdh::new(p.sdh, pads, config, &p.glb)
     };
-    let mut d = Device { tx, rx, led, spi };
+
+    let mut d = Device { tx, rx, led, sdh };
     let mut bootargs = String::new();
     // Display welcome message.
     writeln!(d.tx, "Welcome to bouffaloader🦀!").ok();
@@ -104,11 +109,10 @@ fn run_cli<
     W: Write,
     R: Read,
     L: OutputPin,
-    SPI: core::ops::Deref<Target = bouffalo_hal::spi::RegisterBlock>,
+    SDH: core::ops::Deref<Target = bouffalo_hal::sdio::RegisterBlock>,
     PADS,
-    const I: usize,
 >(
-    d: &mut Device<W, R, L, SPI, PADS, I>,
+    d: &mut Device<W, R, L, SDH, PADS>,
     b: &mut String<128>,
 ) -> ! {
     #[derive(Command)]

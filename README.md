@@ -4,25 +4,25 @@
 
 ### Compile
 
-```
+```bash
 cargo build --target riscv64imac-unknown-none-elf --release
 ```
 
 ### Convert ELF file to binary file
 
-```
+```bash
 cargo blri elf2bin ./target/riscv64imac-unknown-none-elf/release/bouffaloader
 ```
 
 ### Fix the image header (CRC and other fields)
 
-```
+```bash
 cargo blri patch ./target/riscv64imac-unknown-none-elf/release/bouffaloader.bin
 ```
 
 ### Flash to the development board
 
-```
+```bash
 cargo blri flash ./target/riscv64imac-unknown-none-elf/release/bouffaloader.bin
 ```
 
@@ -30,14 +30,14 @@ cargo blri flash ./target/riscv64imac-unknown-none-elf/release/bouffaloader.bin
 
 ### Build
 
-```
+```bash
 rustup target install riscv64imac-unknown-none-elf
 cargo build --target riscv64imac-unknown-none-elf --release
 ```
 
 ### Convert the elf file to a binary file
 
-```
+```bash
 cargo install cargo-binutils
 rustup component add llvm-tools-preview
 rust-objcopy .\target\riscv64imac-unknown-none-elf\release\bouffaloader -O binary .\target\riscv64imac-unknown-none-elf\release\bouffaloader.bin

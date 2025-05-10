@@ -11,10 +11,10 @@ members = [
 ]
 
 [dependencies]
-bouffalo-hal = { git = "https://github.com/rustsbi/bouffalo-hal", rev = "968b949", features = [
+bouffalo-hal = { git = "https://github.com/rustsbi/bouffalo-hal", rev = "65a354d", features = [
     "bl808",
 ] }
-bouffalo-rt = { git = "https://github.com/rustsbi/bouffalo-hal", rev = "968b949", features = [
+bouffalo-rt = { git = "https://github.com/rustsbi/bouffalo-hal", rev = "65a354d", features = [
     "bl808-dsp",
 ] }
 panic-halt = "1.0.0"

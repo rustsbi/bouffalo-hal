@@ -8,7 +8,7 @@ pub mod utils;
 
 pub use error::Error;
 
-use bouffalo_hal::spi::Spi;
+use bouffalo_hal::sdio::NonSysDmaSdh;
 use core::clone::Clone;
 use core::fmt::Debug;
 use core::marker::Copy;
@@ -23,14 +23,13 @@ pub struct Device<
     W: Write,
     R: Read,
     L: OutputPin,
-    SPI: core::ops::Deref<Target = bouffalo_hal::spi::RegisterBlock>,
+    SDH: core::ops::Deref<Target = bouffalo_hal::sdio::RegisterBlock>,
     PADS,
-    const I: usize,
 > {
     pub tx: W,
     pub rx: R,
     pub led: L,
-    pub spi: Spi<SPI, PADS, I>,
+    pub sdh: NonSysDmaSdh<SDH, PADS>,
 }
 
 /// Configuration settings for bouffaloader.
