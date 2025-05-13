@@ -2,6 +2,15 @@
 
 ## Usage with Cargo
 
+### Quick Start
+
+```bash
+cargo make
+cargo blri run
+```
+
+Consisitent with following steps.
+
 ### Compile
 
 ```bash
