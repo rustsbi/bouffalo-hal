@@ -40,19 +40,22 @@ pub fn load_from_sdcard<
     // Read configuration from `config.toml`.
     let bl808_cfg = "CONFIG~1.TOM";
     let buffer = &mut [0u8; 512];
-    if let Ok(toml) = volume_mgr.open_file_in_dir(root_dir, bl808_cfg, Mode::ReadOnly) {
-        if load_file_into_memory(&mut volume_mgr, toml, buffer.as_mut_ptr() as usize, 512).is_err()
+    let size = if let Ok(toml) = volume_mgr.open_file_in_dir(root_dir, bl808_cfg, Mode::ReadOnly) {
+        if let Ok(size) =
+            load_file_into_memory(&mut volume_mgr, toml, buffer.as_mut_ptr() as usize, 512)
         {
+            size
+        } else {
             writeln!(d.tx, "error: cannot load config file `config.toml`.").ok();
             return Err(());
         }
     } else {
         writeln!(d.tx, "error: cannot find config file `config.toml`.").ok();
         return Err(());
-    }
+    };
 
     // Parse configuration.
-    let Ok(toml_str) = core::str::from_utf8(buffer) else {
+    let Ok(toml_str) = core::str::from_utf8(&buffer[..size]) else {
         writeln!(d.tx, "error: invalid config encoding.").ok();
         return Err(());
     };
