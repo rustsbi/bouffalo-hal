@@ -1,3 +1,4 @@
+use embedded_hal::spi::{Phase, Polarity};
 use volatile_register::{RO, RW, WO};
 
 /// Serial Peripheral Interface registers.
@@ -258,24 +259,6 @@ pub enum FrameSize {
     TwentyFour,
     /// 4 bytes (32 bits) per frame.
     ThirtyTwo,
-}
-
-/// Clock polarity settings.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Polarity {
-    /// Clock signal low when idle.
-    IdleLow,
-    /// Clock signal high when idle.
-    IdleHigh,
-}
-
-/// Clock phase settings.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Phase {
-    /// Data in "captured" on the second clock transition.
-    CaptureOnSecondTransition,
-    /// Data in "captured" on the first clock transition.
-    CaptureOnFirstTransition,
 }
 
 /// Interrupt configuration and state register.

@@ -23,29 +23,16 @@ impl<SPI: Deref<Target = RegisterBlock>, PADS, const I: usize> Spi<SPI, PADS, I>
         PADS: Pads<I>,
         GLB: Deref<Target = glb::v2::RegisterBlock>,
     {
-        let mut config = Config::default()
+        let config = Config::default()
             .disable_deglitch()
             .disable_slave_three_pin()
             .enable_master_continuous()
             .disable_byte_inverse()
             .disable_bit_inverse()
             .set_frame_size(FrameSize::Eight)
-            .disable_master();
-
-        config = match mode.phase {
-            embedded_hal::spi::Phase::CaptureOnFirstTransition => {
-                config.set_clock_phase(Phase::CaptureOnFirstTransition)
-            }
-
-            embedded_hal::spi::Phase::CaptureOnSecondTransition => {
-                config.set_clock_phase(Phase::CaptureOnSecondTransition)
-            }
-        };
-
-        config = match mode.polarity {
-            embedded_hal::spi::Polarity::IdleHigh => config.set_clock_polarity(Polarity::IdleHigh),
-            embedded_hal::spi::Polarity::IdleLow => config.set_clock_polarity(Polarity::IdleLow),
-        };
+            .disable_master()
+            .set_clock_phase(mode.phase)
+            .set_clock_polarity(mode.polarity);
 
         unsafe {
             glb.param_config
