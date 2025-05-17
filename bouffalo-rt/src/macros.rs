@@ -39,12 +39,26 @@ macro_rules! soc {
 macro_rules! dma {
     ($($DMAx: ty: ($x: expr, $WhatChannels: ident, $Periph: ty),)+) => {
 $(
+    impl bouffalo_hal::dma::Instance<'static> for $DMAx {
+        #[inline]
+        fn register_block(self) -> &'static bouffalo_hal::dma::RegisterBlock {
+            unsafe { &*Self::ptr() }
+        }
+    }
+
+    impl<'a> bouffalo_hal::dma::Instance<'a> for &'a mut $DMAx {
+        #[inline]
+        fn register_block(self) -> &'a bouffalo_hal::dma::RegisterBlock {
+            &*self
+        }
+    }
+
     impl<'a> bouffalo_hal::dma::DmaExt for &'a mut $DMAx {
         type Group = $WhatChannels<'a, $Periph>;
 
         #[inline]
         fn split(self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group {
-            $WhatChannels::__new::<$x>(self, glb)
+            $WhatChannels::new::<$x>(self, glb)
         }
     }
 
@@ -53,7 +67,7 @@ $(
 
         #[inline]
         fn split(self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group {
-            $WhatChannels::__new::<$x>(unsafe { &*Self::ptr() }, glb)
+            $WhatChannels::new::<$x>(self, glb)
         }
     }
 )+
