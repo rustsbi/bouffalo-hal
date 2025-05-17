@@ -38,3 +38,9 @@ pub trait UartExt<'a, PADS, const I: usize> {
     where
         PADS: Pads<I>;
 }
+
+/// Peripheral instance for UART.
+pub trait Instance<'a> {
+    /// Retrieve register block from this instance.
+    fn register_block(self) -> &'a RegisterBlock;
+}

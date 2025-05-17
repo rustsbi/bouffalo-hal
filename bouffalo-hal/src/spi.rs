@@ -25,6 +25,8 @@ impl embedded_hal::spi::Error for Error {
     }
 }
 
+/// Peripheral instance for SPI.
 pub trait Instance<'a> {
+    /// Retrieve register block from this instance.
     fn register_block(self) -> &'a RegisterBlock;
 }
