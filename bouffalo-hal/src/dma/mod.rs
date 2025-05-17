@@ -10,6 +10,12 @@ pub use register::*;
 
 use crate::glb;
 
+/// Peripheral instance for DMA.
+pub trait Instance<'a> {
+    /// Retrieve register block from this instance.
+    fn register_block(self) -> &'a RegisterBlock;
+}
+
 /// DMA peripheral data register address definition.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum DmaAddr {

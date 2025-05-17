@@ -55,7 +55,7 @@ impl core::fmt::Display for Error {
     }
 }
 
-impl<T: embedded_sdmmc::BlockDevice> gpt_disk_io::BlockIo for MySdCard<T> {
+impl<'a, T: embedded_sdmmc::BlockDevice> gpt_disk_io::BlockIo for &'a mut MySdCard<T> {
     type Error = Error;
     #[inline]
     fn block_size(&self) -> gpt_disk_io::gpt_disk_types::BlockSize {
@@ -223,8 +223,8 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     writeln!(serial, "Card size: {}", sdcard.num_bytes().unwrap()).ok();
     writeln!(serial, "").ok();
 
-    let my_sdcard = MySdCard::new(sdcard);
-    let mut disk = Disk::new(my_sdcard).unwrap();
+    let mut my_sdcard = MySdCard::new(sdcard);
+    let mut disk = Disk::new(&mut my_sdcard).unwrap();
     let mut buffer = [0u8; 512];
     let header = disk.read_primary_gpt_header(&mut buffer).unwrap();
     writeln!(serial, "Primary header: {:?}", header).ok();
@@ -242,23 +242,8 @@ fn main(p: Peripherals, c: Clocks) -> ! {
         writeln!(serial, "Partition: {:?}", res).ok();
     }
     drop(iter);
+    drop(disk);
 
-    // TODO: switch to disk.into_inner() once Disk struct have this function
-    let my_sdcard: MySdCard<
-        SdCard<
-            Spi<
-                bouffalo_rt::soc::bl808::SPI0,
-                (
-                    bouffalo_hal::gpio::Alternate<3, bouffalo_hal::gpio::Spi<1>>,
-                    bouffalo_hal::gpio::Alternate<1, bouffalo_hal::gpio::Spi<1>>,
-                    bouffalo_hal::gpio::Alternate<2, bouffalo_hal::gpio::Spi<1>>,
-                    bouffalo_hal::gpio::Alternate<0, bouffalo_hal::gpio::Spi<1>>,
-                ),
-                1,
-            >,
-            riscv::delay::McycleDelay,
-        >,
-    > = unsafe { core::mem::transmute(disk) };
     let my_volume = MyVolume::new(my_sdcard, Lba(2048), Lba(616447));
     let fs = fatfs::FileSystem::new(my_volume, fatfs::FsOptions::new()).unwrap();
     let root_dir = fs.root_dir();

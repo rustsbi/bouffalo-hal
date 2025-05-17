@@ -39,12 +39,26 @@ macro_rules! soc {
 macro_rules! dma {
     ($($DMAx: ty: ($x: expr, $WhatChannels: ident, $Periph: ty),)+) => {
 $(
+    impl bouffalo_hal::dma::Instance<'static> for $DMAx {
+        #[inline]
+        fn register_block(self) -> &'static bouffalo_hal::dma::RegisterBlock {
+            unsafe { &*Self::ptr() }
+        }
+    }
+
+    impl<'a> bouffalo_hal::dma::Instance<'a> for &'a mut $DMAx {
+        #[inline]
+        fn register_block(self) -> &'a bouffalo_hal::dma::RegisterBlock {
+            &*self
+        }
+    }
+
     impl<'a> bouffalo_hal::dma::DmaExt for &'a mut $DMAx {
         type Group = $WhatChannels<'a, $Periph>;
 
         #[inline]
         fn split(self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group {
-            $WhatChannels::__new::<$x>(self, glb)
+            $WhatChannels::new::<$x>(self, glb)
         }
     }
 
@@ -53,7 +67,7 @@ $(
 
         #[inline]
         fn split(self, glb: &bouffalo_hal::glb::v2::RegisterBlock) -> Self::Group {
-            $WhatChannels::__new::<$x>(unsafe { &*Self::ptr() }, glb)
+            $WhatChannels::new::<$x>(self, glb)
         }
     }
 )+
@@ -63,6 +77,20 @@ $(
 macro_rules! uart {
     ($($UARTx: ty: $i: expr,)+) => {
 $(
+    impl bouffalo_hal::uart::Instance<'static> for $UARTx {
+        #[inline]
+        fn register_block(self) -> &'static bouffalo_hal::uart::RegisterBlock {
+            unsafe { &*Self::ptr() }
+        }
+    }
+
+    impl<'a> bouffalo_hal::uart::Instance<'a> for &'a mut $UARTx {
+        #[inline]
+        fn register_block(self) -> &'a bouffalo_hal::uart::RegisterBlock {
+            &*self
+        }
+    }
+
     impl<'a, PADS> bouffalo_hal::uart::UartExt<'a, PADS, $i> for &'a mut $UARTx {
         #[inline]
         fn freerun(
@@ -74,7 +102,7 @@ $(
         where
             PADS: bouffalo_hal::uart::Pads<$i>,
         {
-            bouffalo_hal::uart::BlockingSerial::__new_freerun(self, config, pads, clocks)
+            bouffalo_hal::uart::BlockingSerial::new_freerun(self, config, pads, clocks)
         }
         #[inline]
         fn with_interrupt(
@@ -87,7 +115,7 @@ $(
         where
             PADS: bouffalo_hal::uart::Pads<$i>,
         {
-            bouffalo_hal::uart::AsyncSerial::__new(self, config, pads, clocks, state)
+            bouffalo_hal::uart::AsyncSerial::new(self, config, pads, clocks, state)
         }
     }
 
@@ -102,7 +130,7 @@ $(
         where
             PADS: bouffalo_hal::uart::Pads<$i>,
         {
-            bouffalo_hal::uart::BlockingSerial::__new_freerun(unsafe { &*Self::ptr() }, config, pads, clocks)
+            bouffalo_hal::uart::BlockingSerial::new_freerun(self, config, pads, clocks)
         }
         #[inline]
         fn with_interrupt(
@@ -115,9 +143,49 @@ $(
         where
             PADS: bouffalo_hal::uart::Pads<$i>,
         {
-            bouffalo_hal::uart::AsyncSerial::__new(unsafe { &*Self::ptr() }, config, pads, clocks, state)
+            bouffalo_hal::uart::AsyncSerial::new(self, config, pads, clocks, state)
         }
     }
 )+
+    };
+}
+
+macro_rules! spi {
+    ($($SPIx: ty,)+) => {
+    $(
+impl bouffalo_hal::spi::Instance<'static> for $SPIx {
+    #[inline]
+    fn register_block(self) -> &'static bouffalo_hal::spi::RegisterBlock {
+        unsafe { &*Self::ptr() }
+    }
+}
+
+impl<'a> bouffalo_hal::spi::Instance<'a> for &'a mut $SPIx {
+    #[inline]
+    fn register_block(self) -> &'a bouffalo_hal::spi::RegisterBlock {
+        &*self
+    }
+}
+    )+
+    };
+}
+
+macro_rules! pwm {
+    ($($PWMx: ty,)+) => {
+    $(
+impl bouffalo_hal::pwm::Instance<'static> for $PWMx {
+    #[inline]
+    fn register_block(self) -> &'static bouffalo_hal::pwm::RegisterBlock {
+        unsafe { &*Self::ptr() }
+    }
+}
+
+impl<'a> bouffalo_hal::pwm::Instance<'a> for &'a mut $PWMx {
+    #[inline]
+    fn register_block(self) -> &'a bouffalo_hal::pwm::RegisterBlock {
+        &*self
+    }
+}
+    )+
     };
 }

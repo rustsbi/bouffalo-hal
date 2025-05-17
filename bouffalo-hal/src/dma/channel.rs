@@ -3,11 +3,11 @@ use core::ops::{Deref, DerefMut};
 
 use crate::glb;
 
-use super::LliPool;
 use super::config::{DmaChannelConfig, Mem2MemChannelConfig, PeripheralId};
 use super::register::{
     ErrorClear, LliTransfer, RegisterBlock, TransferCompleteClear, TransferWidth,
 };
+use super::{Instance, LliPool};
 
 /// Managed DMA with eight split channels.
 pub struct EightChannels<'a, T> {
@@ -45,6 +45,17 @@ pub struct FourChannels<'a, T> {
 pub struct TypedChannel<'a, T> {
     inner: UntypedChannel<'a>,
     _type_of_peripheral: PhantomData<T>,
+}
+
+impl<'a, T> TypedChannel<'a, T> {
+    /// Internal constructor.
+    #[inline]
+    const fn new(dma: &'a RegisterBlock, channel_id: usize) -> Self {
+        Self {
+            inner: UntypedChannel { dma, channel_id },
+            _type_of_peripheral: PhantomData,
+        }
+    }
 }
 
 impl<'a, T: PeripheralId> TypedChannel<'a, T> {
@@ -315,75 +326,41 @@ impl<'a> UntypedChannel<'a> {
 }
 
 impl<'a, T> EightChannels<'a, T> {
-    #[doc(hidden)]
-    pub fn __new<const D: usize>(dma: &'a RegisterBlock, glb: &glb::v2::RegisterBlock) -> Self {
+    /// Create an eight-channel DMA structure.
+    pub fn new<const D: usize>(dma: impl Instance<'a>, glb: &glb::v2::RegisterBlock) -> Self {
+        let dma = dma.register_block();
         unsafe {
             glb.clock_config_0.modify(|val| val.enable_dma());
             glb.clock_config_1.modify(|val| val.enable_dma::<D>());
             dma.global_config.modify(|val| val.enable_dma());
         }
         Self {
-            ch0: TypedChannel {
-                inner: UntypedChannel { dma, channel_id: 0 },
-                _type_of_peripheral: PhantomData,
-            },
-            ch1: TypedChannel {
-                inner: UntypedChannel { dma, channel_id: 1 },
-                _type_of_peripheral: PhantomData,
-            },
-            ch2: TypedChannel {
-                inner: UntypedChannel { dma, channel_id: 2 },
-                _type_of_peripheral: PhantomData,
-            },
-            ch3: TypedChannel {
-                inner: UntypedChannel { dma, channel_id: 3 },
-                _type_of_peripheral: PhantomData,
-            },
-            ch4: TypedChannel {
-                inner: UntypedChannel { dma, channel_id: 4 },
-                _type_of_peripheral: PhantomData,
-            },
-            ch5: TypedChannel {
-                inner: UntypedChannel { dma, channel_id: 5 },
-                _type_of_peripheral: PhantomData,
-            },
-            ch6: TypedChannel {
-                inner: UntypedChannel { dma, channel_id: 6 },
-                _type_of_peripheral: PhantomData,
-            },
-            ch7: TypedChannel {
-                inner: UntypedChannel { dma, channel_id: 7 },
-                _type_of_peripheral: PhantomData,
-            },
+            ch0: TypedChannel::new(dma, 0),
+            ch1: TypedChannel::new(dma, 1),
+            ch2: TypedChannel::new(dma, 2),
+            ch3: TypedChannel::new(dma, 3),
+            ch4: TypedChannel::new(dma, 4),
+            ch5: TypedChannel::new(dma, 5),
+            ch6: TypedChannel::new(dma, 6),
+            ch7: TypedChannel::new(dma, 7),
         }
     }
 }
 
 impl<'a, T> FourChannels<'a, T> {
-    #[doc(hidden)]
-    pub fn __new<const D: usize>(dma: &'a RegisterBlock, glb: &glb::v2::RegisterBlock) -> Self {
+    /// Create an four-channel DMA structure.
+    pub fn new<const D: usize>(dma: impl Instance<'a>, glb: &glb::v2::RegisterBlock) -> Self {
+        let dma = dma.register_block();
         unsafe {
             glb.clock_config_0.modify(|val| val.enable_dma());
             glb.clock_config_1.modify(|val| val.enable_dma::<D>());
             dma.global_config.modify(|val| val.enable_dma());
         }
         Self {
-            ch0: TypedChannel {
-                inner: UntypedChannel { dma, channel_id: 0 },
-                _type_of_peripheral: PhantomData,
-            },
-            ch1: TypedChannel {
-                inner: UntypedChannel { dma, channel_id: 1 },
-                _type_of_peripheral: PhantomData,
-            },
-            ch2: TypedChannel {
-                inner: UntypedChannel { dma, channel_id: 2 },
-                _type_of_peripheral: PhantomData,
-            },
-            ch3: TypedChannel {
-                inner: UntypedChannel { dma, channel_id: 3 },
-                _type_of_peripheral: PhantomData,
-            },
+            ch0: TypedChannel::new(dma, 0),
+            ch1: TypedChannel::new(dma, 1),
+            ch2: TypedChannel::new(dma, 2),
+            ch3: TypedChannel::new(dma, 3),
         }
     }
 }

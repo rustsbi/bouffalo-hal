@@ -1,5 +1,6 @@
 use super::{
-    Config, ConfigError, Error, Interrupt, InterruptClear, Pads, RegisterBlock, uart_config,
+    Config, ConfigError, Error, Instance, Interrupt, InterruptClear, Pads, RegisterBlock,
+    uart_config,
 };
 use crate::clocks::Clocks;
 use core::{
@@ -19,10 +20,9 @@ pub struct AsyncSerial<'a, PADS> {
 impl<'a, PADS> AsyncSerial<'a, PADS> {
     /// Creates the async/await serial peripheral from owned peripheral structure, configuration, pads
     /// and a waker registry.
-    #[doc(hidden)]
     #[inline]
-    pub fn __new<const I: usize>(
-        uart: &'a RegisterBlock,
+    pub fn new<const I: usize>(
+        uart: impl Instance<'a>,
         config: Config,
         pads: PADS,
         clocks: &Clocks,
@@ -31,6 +31,7 @@ impl<'a, PADS> AsyncSerial<'a, PADS> {
     where
         PADS: Pads<I>,
     {
+        let uart = uart.register_block();
         // Calculate transmit interval and register values from configuration.
         let (bit_period, data_config, transmit_config, receive_config) =
             uart_config::<I, PADS>(config, &clocks)?;

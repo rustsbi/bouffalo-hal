@@ -1,4 +1,4 @@
-use super::{Config, ConfigError, Error, Pads, RegisterBlock, uart_config};
+use super::{Config, ConfigError, Error, Instance, Pads, RegisterBlock, uart_config};
 use crate::clocks::Clocks;
 
 /// Managed blocking serial peripheral.
@@ -9,10 +9,9 @@ pub struct BlockingSerial<'a, PADS> {
 
 impl<'a, PADS> BlockingSerial<'a, PADS> {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
-    #[doc(hidden)]
     #[inline]
-    pub fn __new_freerun<const I: usize>(
-        uart: &'a RegisterBlock,
+    pub fn new_freerun<const I: usize>(
+        uart: impl Instance<'a>,
         config: Config,
         pads: PADS,
         clocks: &Clocks,
@@ -20,6 +19,7 @@ impl<'a, PADS> BlockingSerial<'a, PADS> {
     where
         PADS: Pads<I>,
     {
+        let uart = uart.register_block();
         // Calculate transmit interval and register values from configuration.
         let (bit_period, data_config, transmit_config, receive_config) =
             uart_config::<I, PADS>(config, &clocks)?;
