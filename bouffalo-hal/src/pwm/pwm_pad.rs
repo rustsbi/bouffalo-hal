@@ -1,6 +1,6 @@
 use super::{
     channel::Channel,
-    register::{ElectricLevel, RegisterBlock},
+    register::ElectricLevel,
     signal::{Negative, Positive},
 };
 use core::marker::PhantomData;
@@ -12,21 +12,28 @@ use core::ops::{Deref, DerefMut};
 /// With `PwmPin`, users may seamlessly use both PWM and GPIO functions at the same time
 /// without switching GPIO pin mode.
 pub struct PwmPin<CHANNEL, PIN, POLARITY> {
-    pub(crate) channel: CHANNEL,
-    pub(crate) pin: PIN,
-    pub(crate) _polarity: PhantomData<POLARITY>,
+    channel: CHANNEL,
+    pin: PIN,
+    _polarity: PhantomData<POLARITY>,
 }
 
 impl<CHANNEL, PIN, POLARITY> PwmPin<CHANNEL, PIN, POLARITY> {
+    /// Internal construtor.
+    #[inline]
+    pub(crate) fn new(channel: CHANNEL, pin: PIN) -> Self {
+        Self {
+            channel,
+            pin,
+            _polarity: PhantomData,
+        }
+    }
     #[inline]
     pub fn free(self) -> (CHANNEL, PIN) {
         (self.channel, self.pin)
     }
 }
 
-impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN>
-    PwmPin<Channel<PWM, S, I, J>, PIN, Positive>
-{
+impl<'a, S, const I: usize, const J: usize, PIN> PwmPin<Channel<'a, S, I, J>, PIN, Positive> {
     /// Enable PWM output for this pin.
     #[inline]
     pub fn enable_pwm_output(&mut self) {
@@ -38,9 +45,7 @@ impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN>
     }
 }
 
-impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN>
-    PwmPin<Channel<PWM, S, I, J>, PIN, Negative>
-{
+impl<'a, S, const I: usize, const J: usize, PIN> PwmPin<Channel<'a, S, I, J>, PIN, Negative> {
     /// Enable PWM output for this pin.
     #[inline]
     pub fn enable_pwm_output(&mut self) {
@@ -52,14 +57,14 @@ impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN>
     }
 }
 
-impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN, POLARITY>
-    embedded_hal::digital::ErrorType for PwmPin<Channel<PWM, S, I, J>, PIN, POLARITY>
+impl<'a, S, const I: usize, const J: usize, PIN, POLARITY> embedded_hal::digital::ErrorType
+    for PwmPin<Channel<'a, S, I, J>, PIN, POLARITY>
 {
     type Error = core::convert::Infallible;
 }
 
-impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN>
-    embedded_hal::digital::OutputPin for PwmPin<Channel<PWM, S, I, J>, PIN, Positive>
+impl<'a, S, const I: usize, const J: usize, PIN> embedded_hal::digital::OutputPin
+    for PwmPin<Channel<'a, S, I, J>, PIN, Positive>
 {
     #[inline]
     fn set_low(&mut self) -> Result<(), Self::Error> {
@@ -83,8 +88,8 @@ impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN>
     }
 }
 
-impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN>
-    embedded_hal::digital::OutputPin for PwmPin<Channel<PWM, S, I, J>, PIN, Negative>
+impl<'a, S, const I: usize, const J: usize, PIN> embedded_hal::digital::OutputPin
+    for PwmPin<Channel<'a, S, I, J>, PIN, Negative>
 {
     #[inline]
     fn set_low(&mut self) -> Result<(), Self::Error> {
@@ -108,17 +113,17 @@ impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN>
     }
 }
 
-impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN, POLARITY> Deref
-    for PwmPin<Channel<PWM, S, I, J>, PIN, POLARITY>
+impl<'a, S, const I: usize, const J: usize, PIN, POLARITY> Deref
+    for PwmPin<Channel<'a, S, I, J>, PIN, POLARITY>
 {
-    type Target = Channel<PWM, S, I, J>;
+    type Target = Channel<'a, S, I, J>;
     fn deref(&self) -> &Self::Target {
         &self.channel
     }
 }
 
-impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize, PIN, POLARITY> DerefMut
-    for PwmPin<Channel<PWM, S, I, J>, PIN, POLARITY>
+impl<'a, S, const I: usize, const J: usize, PIN, POLARITY> DerefMut
+    for PwmPin<Channel<'a, S, I, J>, PIN, POLARITY>
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.channel

@@ -169,3 +169,23 @@ impl<'a> bouffalo_hal::spi::Instance<'a> for &'a mut $SPIx {
     )+
     };
 }
+
+macro_rules! pwm {
+    ($($PWMx: ty,)+) => {
+    $(
+impl bouffalo_hal::pwm::Instance<'static> for $PWMx {
+    #[inline]
+    fn register_block(self) -> &'static bouffalo_hal::pwm::RegisterBlock {
+        unsafe { &*Self::ptr() }
+    }
+}
+
+impl<'a> bouffalo_hal::pwm::Instance<'a> for &'a mut $PWMx {
+    #[inline]
+    fn register_block(self) -> &'a bouffalo_hal::pwm::RegisterBlock {
+        &*self
+    }
+}
+    )+
+    };
+}
