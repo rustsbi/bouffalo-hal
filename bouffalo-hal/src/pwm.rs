@@ -11,3 +11,9 @@ pub use signal::*;
 
 #[rustfmt::skip]
 mod pads;
+
+/// Peripheral instance for PWM.
+pub trait Instance<'a> {
+    /// Retrieve register block from this instance.
+    fn register_block(self) -> &'a RegisterBlock;
+}

@@ -2,47 +2,50 @@ use crate::clocks::Clocks;
 use crate::glb;
 use crate::gpio::{self, Alternate};
 use core::marker::PhantomData;
-use core::ops::Deref;
 use embedded_time::rate::Hertz;
 
 use super::{
+    Instance,
     pwm_pad::PwmPin,
     register::{ClockSource, RegisterBlock},
     signal::{HasPwmExternalBreak, HasPwmSignal, Negative, Positive, Signal0, Signal1},
 };
 
 /// Managed pulse width modulation peripheral.
-pub struct Pwm<PWM, S> {
-    pub group0: Channels<PWM, S, 0>,
-    pub group1: Channels<PWM, S, 1>,
+pub struct Pwm<'a, S> {
+    /// Group 0 of current PWM peripheral.
+    pub group0: Channels<'a, S, 0>,
+    /// Group 1 of current PWM peripheral.
+    pub group1: Channels<'a, S, 1>,
 }
 
-impl<PWM: Deref<Target = RegisterBlock>, S0: Signal0, S1: Signal1> Pwm<PWM, (S0, S1)> {
+impl<'a, S0: Signal0, S1: Signal1> Pwm<'a, (S0, S1)> {
     /// Creates a pulse width modulation instance with given signal settings.
     #[rustfmt::skip]
     #[inline]
-    pub fn new(pwm: PWM, signal_0: S0, signal_1: S1, glb: &glb::v2::RegisterBlock) -> Self {
+    pub fn new(pwm: impl Instance<'a>, signal_0: S0, signal_1: S1, glb: &glb::v2::RegisterBlock) -> Self {
         unsafe {
             glb.pwm_config
                 .modify(|config| config.set_signal_0(S0::VALUE).set_signal_1(S1::VALUE));
             glb.clock_config_1.modify(|config| config.enable_pwm());
         }
         drop((signal_0, signal_1));
+        let pwm = pwm.register_block();
         Pwm {
             group0: Channels {
-                channel0: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
-                channel1: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
-                channel2: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
-                channel3: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
+                channel0: Channel::new(pwm),
+                channel1: Channel::new(pwm),
+                channel2: Channel::new(pwm),
+                channel3: Channel::new(pwm),
                 external_break: ExternalBreak { _signals: PhantomData },
-                pwm: unsafe { core::ptr::read(&pwm as *const _) },
+                pwm,
                 _signals: PhantomData,
             },
             group1: Channels {
-                channel0: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
-                channel1: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
-                channel2: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
-                channel3: Channel { pwm: unsafe { core::ptr::read(&pwm as *const _) }, _signals: PhantomData },
+                channel0: Channel::new(pwm),
+                channel1: Channel::new(pwm),
+                channel2: Channel::new(pwm),
+                channel3: Channel::new(pwm),
                 external_break: ExternalBreak { _signals: PhantomData },
                 pwm,
                 _signals: PhantomData,
@@ -52,22 +55,22 @@ impl<PWM: Deref<Target = RegisterBlock>, S0: Signal0, S1: Signal1> Pwm<PWM, (S0,
 }
 
 /// PWM group with all its channels.
-pub struct Channels<PWM, S, const I: usize> {
+pub struct Channels<'a, S, const I: usize> {
     /// Channel 0 of current PWM group.
-    pub channel0: Channel<PWM, S, I, 0>,
+    pub channel0: Channel<'a, S, I, 0>,
     /// Channel 1 of current PWM group.
-    pub channel1: Channel<PWM, S, I, 1>,
+    pub channel1: Channel<'a, S, I, 1>,
     /// Channel 2 of current PWM group.
-    pub channel2: Channel<PWM, S, I, 2>,
+    pub channel2: Channel<'a, S, I, 2>,
     /// Channel 3 of current PWM group.
-    pub channel3: Channel<PWM, S, I, 3>,
+    pub channel3: Channel<'a, S, I, 3>,
     /// External break signal for current PWM group.
     pub external_break: ExternalBreak<S, I>,
-    pwm: PWM,
+    pwm: &'a RegisterBlock,
     _signals: PhantomData<S>,
 }
 
-impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize> Channels<PWM, S, I> {
+impl<'a, S, const I: usize> Channels<'a, S, I> {
     /// Configure clock settings for current PWM group.
     ///
     /// Clock settings would affect all the channels in the PWM group.
@@ -125,46 +128,47 @@ impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize> Channels<PWM, S, I> 
 }
 
 /// Pulse Width Modulation channel.
-pub struct Channel<PWM, S, const I: usize, const J: usize> {
-    pub(crate) pwm: PWM,
+pub struct Channel<'a, S, const I: usize, const J: usize> {
+    pub(crate) pwm: &'a RegisterBlock,
     _signals: PhantomData<S>,
 }
 
-impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize> Channel<PWM, S, I, J> {
+impl<'a, S, const I: usize, const J: usize> Channel<'a, S, I, J> {
     /// Wrap current channel as positive signal with GPIO pin.
     ///
     /// This function statically checks if target GPIO pin mode matches current PWM channel.
     /// If won't match, it will raise compile error.
     #[inline]
-    pub fn positive_signal_pin<'a, const N: usize, const F: usize>(
+    pub fn positive_signal_pin<'b, const N: usize, const F: usize>(
         self,
-        pin: Alternate<'a, N, gpio::Pwm<F>>,
-    ) -> PwmPin<Self, Alternate<'a, N, gpio::Pwm<F>>, Positive>
+        pin: Alternate<'b, N, gpio::Pwm<F>>,
+    ) -> PwmPin<Self, Alternate<'b, N, gpio::Pwm<F>>, Positive>
     where
-        Alternate<'a, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Positive>,
+        Alternate<'b, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Positive>,
     {
-        PwmPin {
-            channel: self,
-            pin,
-            _polarity: PhantomData,
-        }
+        PwmPin::new(self, pin)
     }
     /// Wrap current channel as negative signal with GPIO pin.
     ///
     /// This function statically checks if target GPIO pin mode matches current PWM channel.
     /// If won't match, it will raise compile error.
     #[inline]
-    pub fn negative_signal_pin<'a, const N: usize, const F: usize>(
+    pub fn negative_signal_pin<'b, const N: usize, const F: usize>(
         self,
-        pin: Alternate<'a, N, gpio::Pwm<F>>,
-    ) -> PwmPin<Self, Alternate<'a, N, gpio::Pwm<F>>, Negative>
+        pin: Alternate<'b, N, gpio::Pwm<F>>,
+    ) -> PwmPin<Self, Alternate<'b, N, gpio::Pwm<F>>, Negative>
     where
-        Alternate<'a, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Negative>,
+        Alternate<'b, N, gpio::Pwm<F>>: HasPwmSignal<S, I, J, Negative>,
     {
-        PwmPin {
-            channel: self,
-            pin,
-            _polarity: PhantomData,
+        PwmPin::new(self, pin)
+    }
+
+    /// Internal constructor.
+    #[inline]
+    const fn new(pwm: &'a RegisterBlock) -> Self {
+        Self {
+            pwm,
+            _signals: PhantomData,
         }
     }
 }
@@ -187,22 +191,16 @@ impl<S, const I: usize> ExternalBreak<S, I> {
     where
         Alternate<'a, N, gpio::Pwm<F>>: HasPwmExternalBreak<I>,
     {
-        PwmPin {
-            channel: self,
-            pin,
-            _polarity: PhantomData,
-        }
+        PwmPin::new(self, pin)
     }
 }
 
-impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize>
-    embedded_hal::pwm::ErrorType for Channel<PWM, S, I, J>
-{
+impl<'a, S, const I: usize, const J: usize> embedded_hal::pwm::ErrorType for Channel<'a, S, I, J> {
     type Error = core::convert::Infallible;
 }
 
-impl<PWM: Deref<Target = RegisterBlock>, S, const I: usize, const J: usize>
-    embedded_hal::pwm::SetDutyCycle for Channel<PWM, S, I, J>
+impl<'a, S, const I: usize, const J: usize> embedded_hal::pwm::SetDutyCycle
+    for Channel<'a, S, I, J>
 {
     #[inline]
     fn max_duty_cycle(&self) -> u16 {

@@ -115,6 +115,8 @@ uart! {
 
 spi! { SPI0, SPI1, }
 
+pwm! { PWM, }
+
 // Used by macros only.
 #[allow(unused)]
 #[doc(hidden)]
