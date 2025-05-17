@@ -121,3 +121,23 @@ $(
 )+
     };
 }
+
+macro_rules! spi {
+    ($($SPIx: ty,)+) => {
+    $(
+impl bouffalo_hal::spi::Instance<'static> for $SPIx {
+    #[inline]
+    fn register_block(self) -> &'static bouffalo_hal::spi::RegisterBlock {
+        unsafe { &*Self::ptr() }
+    }
+}
+
+impl<'a> bouffalo_hal::spi::Instance<'a> for &'a mut $SPIx {
+    #[inline]
+    fn register_block(self) -> &'a bouffalo_hal::spi::RegisterBlock {
+        &*self
+    }
+}
+    )+
+    };
+}
