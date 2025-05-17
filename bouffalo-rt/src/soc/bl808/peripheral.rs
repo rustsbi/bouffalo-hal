@@ -113,6 +113,8 @@ uart! {
     UART3: 3,
 }
 
+spi! { SPI0, SPI1, }
+
 // Used by macros only.
 #[allow(unused)]
 #[doc(hidden)]
