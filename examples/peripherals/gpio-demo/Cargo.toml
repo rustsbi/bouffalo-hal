@@ -7,8 +7,8 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bouffalo-hal = { path = "../../../bouffalo-hal", features = ["bl808"] }
-bouffalo-rt = { path = "../../../bouffalo-rt", features = ["bl808-dsp"] }
+bouffalo-hal = { path = "../../../bouffalo-hal" }
+bouffalo-rt = { path = "../../../bouffalo-rt" }
 panic-halt = "1.0.0"
 embedded-hal = "1.0.0"
 riscv = "0.13.0"
@@ -16,3 +16,8 @@ riscv = "0.13.0"
 [[bin]]
 name = "gpio-demo"
 test = false
+
+[features]
+default = ["bl808-dsp"]
+bl808-dsp = ["bouffalo-hal/bl808", "bouffalo-rt/bl808-dsp"]
+bl702 = ["bouffalo-hal/bl702", "bouffalo-rt/bl702"]

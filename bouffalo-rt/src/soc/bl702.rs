@@ -20,36 +20,34 @@ const LEN_STACK: usize = 1 * 1024;
 #[unsafe(link_section = ".text.entry")]
 #[unsafe(export_name = "_start")]
 unsafe extern "C" fn start() -> ! {
-    unsafe {
-        #[unsafe(link_section = ".bss.uninit")]
-        static mut STACK: Stack<LEN_STACK> = Stack([0; LEN_STACK]);
-        naked_asm!(
-            "   la      sp, {stack}
-            li      t0, {hart_stack_size}
-            add     sp, sp, t0",
-            "   la      t1, sbss
-            la      t2, ebss
-        1:  bgeu    t1, t2, 1f
-            sw      zero, 0(t1)
-            addi    t1, t1, 4
-            j       1b
-        1:",
-            "   la      t3, sidata
-            la      t4, sdata
-            la      t5, edata
-        1:  bgeu    t4, t5, 1f
-            lw      t6, 0(t3)
-            sw      t6, 0(t4)
-            addi    t3, t3, 4
-            addi    t4, t4, 4
-            j       1b
-        1:",
-            "   call  {main}",
-            stack = sym STACK,
-            hart_stack_size = const LEN_STACK,
-            main = sym main,
-        )
-    }
+    #[unsafe(link_section = ".bss.uninit")]
+    static mut STACK: Stack<LEN_STACK> = Stack([0; LEN_STACK]);
+    naked_asm!(
+        "   la      sp, {stack}
+        li      t0, {hart_stack_size}
+        add     sp, sp, t0",
+        "   la      t1, sbss
+        la      t2, ebss
+    1:  bgeu    t1, t2, 1f
+        sw      zero, 0(t1)
+        addi    t1, t1, 4
+        j       1b
+    1:",
+        "   la      t3, sidata
+        la      t4, sdata
+        la      t5, edata
+    1:  bgeu    t4, t5, 1f
+        lw      t6, 0(t3)
+        sw      t6, 0(t4)
+        addi    t3, t3, 4
+        addi    t4, t4, 4
+        j       1b
+    1:",
+        "   call  {main}",
+        stack = sym STACK,
+        hart_stack_size = const LEN_STACK,
+        main = sym main,
+    )
 }
 
 #[cfg(feature = "bl702")]
