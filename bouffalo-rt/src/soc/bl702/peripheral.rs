@@ -1,11 +1,11 @@
 pub use bouffalo_hal::clocks::Clocks;
 
 /// Peripherals available on ROM start.
-pub struct Peripherals<'a> {
+pub struct Peripherals {
     /// Global configuration peripheral.
     pub glb: GLBv1,
     /// General Purpose Input/Output pads.
-    pub gpio: bouffalo_hal::gpio::Pads<'a>,
+    pub gpio: Pads,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
     pub uart0: UART0,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
@@ -54,21 +54,32 @@ spi! { SPI, }
 
 pwm! { PWM, }
 
+/// BL702 GPIO pad.
+pub struct Pad<const N: usize> {
+    _private: (),
+}
+
+/// Available GPIO pads for BL702.
+pub struct Pads {}
+
+// Internal function, do not use.
+impl Pads {
+    #[inline]
+    fn __new() -> Self {
+        Pads {}
+    }
+}
+
 // TODO: BL702 clock tree configuration.
 // Used by macros only.
 #[allow(unused)]
 #[doc(hidden)]
 #[inline(always)]
-pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
+pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals, Clocks) {
     use embedded_time::rate::Hertz;
     let peripherals = Peripherals {
         glb: GLBv1 { _private: () },
-        gpio: match () {
-            #[cfg(feature = "bl702")]
-            () => bouffalo_hal::gpio::Pads::__pads_from_glb(&GLBv1 { _private: () }),
-            #[cfg(not(feature = "bl702"))]
-            () => unimplemented!(),
-        },
+        gpio: Pads::__new(),
         uart0: UART0 { _private: () },
         uart1: UART1 { _private: () },
         spi: SPI { _private: () },

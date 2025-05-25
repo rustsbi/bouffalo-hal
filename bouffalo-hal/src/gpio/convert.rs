@@ -1,24 +1,19 @@
-use super::{
-    alternate::Alternate,
-    input::Input,
-    output::Output,
-    typestate::{self, Floating, PullDown, PullUp},
-};
+use super::{alternate::Alternate, input::Input, output::Output, typestate};
 
 /// Trait for pad mode conversations.
-pub trait IntoPad<'a, const N: usize> {
+pub trait IntoPad<'a> {
     /// Configures the pad to operate as a pull up output pad.
-    fn into_pull_up_output(self) -> Output<'a, N, PullUp>;
+    fn into_pull_up_output(self) -> Output<'a>;
     /// Configures the pad to operate as a pull down output pad.
-    fn into_pull_down_output(self) -> Output<'a, N, PullDown>;
+    fn into_pull_down_output(self) -> Output<'a>;
     /// Configures the pad to operate as a floating output pad.
-    fn into_floating_output(self) -> Output<'a, N, Floating>;
+    fn into_floating_output(self) -> Output<'a>;
     /// Configures the pad to operate as a pull up input pad.
-    fn into_pull_up_input(self) -> Input<'a, N, PullUp>;
+    fn into_pull_up_input(self) -> Input<'a>;
     /// Configures the pad to operate as a pull down input pad.
-    fn into_pull_down_input(self) -> Input<'a, N, PullDown>;
+    fn into_pull_down_input(self) -> Input<'a>;
     /// Configures the pad to operate as a floating input pad.
-    fn into_floating_input(self) -> Input<'a, N, Floating>;
+    fn into_floating_input(self) -> Input<'a>;
 }
 
 /// Trait for GLBv2 pad mode conversations.

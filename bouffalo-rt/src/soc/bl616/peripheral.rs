@@ -3,7 +3,7 @@ pub struct Peripherals<'a> {
     /// Global configuration peripheral.
     pub glb: GLBv2,
     /// General Purpose Input/Output pads.
-    pub gpio: bouffalo_hal::gpio::Pads<'a>,
+    pub gpio: Pads,
     /// UART signal multiplexers.
     pub uart_muxes: bouffalo_hal::uart::UartMuxes<'a>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
@@ -45,6 +45,22 @@ soc! {
     pub struct EMAC => 0x20070000, bouffalo_hal::emac::RegisterBlock;
 }
 
+/// BL616 GPIO pad.
+pub struct Pad<const N: usize> {
+    _private: (),
+}
+
+/// Available GPIO pads for BL616.
+pub struct Pads {}
+
+// Internal function, do not use.
+impl Pads {
+    #[inline]
+    fn __new() -> Self {
+        Pads {}
+    }
+}
+
 pub use bouffalo_hal::clocks::Clocks;
 
 // Used by macros only.
@@ -55,12 +71,7 @@ pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
     use embedded_time::rate::Hertz;
     let peripherals = Peripherals {
         glb: GLBv2 { _private: () },
-        gpio: match () {
-            #[cfg(feature = "bl616")]
-            () => bouffalo_hal::gpio::Pads::__pads_from_glb(&GLBv2 { _private: () }),
-            #[cfg(not(feature = "bl616"))]
-            () => unimplemented!(),
-        },
+        gpio: Pads::__new(),
         uart_muxes: bouffalo_hal::uart::UartMuxes::__uart_muxes_from_glb(&GLBv2 { _private: () }),
         uart0: UART0 { _private: () },
         uart1: UART1 { _private: () },

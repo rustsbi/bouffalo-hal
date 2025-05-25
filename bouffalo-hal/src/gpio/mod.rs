@@ -118,27 +118,74 @@
 
 mod alternate;
 mod convert;
-mod disabled;
-mod gpio_group;
 mod input;
 mod output;
-mod pad_dummy;
-mod pad_v1;
-mod pad_v2;
+pub mod pad_v1;
+pub mod pad_v2;
 mod typestate;
 
+use crate::glb::Version;
 pub use convert::{IntoPad, IntoPadv2};
-pub use gpio_group::Pads;
 pub use typestate::*;
-pub use {alternate::Alternate, disabled::Disabled, input::Input, output::Output};
-pub use {pad_v1::Padv1, pad_v2::Padv2};
 
-cfg_if::cfg_if! {
-    if #[cfg(feature = "glb-v1")] {
-        pub(crate) use pad_v1::Padv1 as Inner;
-    } else if #[cfg(feature = "glb-v2")] {
-        pub(crate) use pad_v2::Padv2 as Inner;
-    } else {
-        pub(crate) use pad_dummy::PadDummy as Inner;
+pub use {alternate::Alternate, input::Input, output::Output};
+
+/// Peripheral instance of a GPIO pad.
+pub trait Instance<'a> {
+    /// Retrieve register block for this instance.
+    fn register_block(self) -> &'a AnyRegisterBlock;
+    /// Get the version of the corresponding register block.
+    fn version(&self) -> Version;
+}
+
+/// GPIO pad instance with a number.
+pub trait Numbered<'a, const N: usize>: Instance<'a> {}
+
+// -- Any register block.
+pub struct AnyRegisterBlock;
+
+impl<'a> From<&'a crate::glb::v1::RegisterBlock> for &'a AnyRegisterBlock {
+    #[inline]
+    fn from(value: &'a crate::glb::v1::RegisterBlock) -> Self {
+        unsafe { &*(value as *const _ as *const AnyRegisterBlock) }
     }
 }
+
+impl<'a> From<&'a crate::glb::v2::RegisterBlock> for &'a AnyRegisterBlock {
+    #[inline]
+    fn from(value: &'a crate::glb::v2::RegisterBlock) -> Self {
+        unsafe { &*(value as *const _ as *const AnyRegisterBlock) }
+    }
+}
+
+// -- Internal structures for pad structure with versions.
+
+struct UnnumberedPad<'a>(&'a AnyRegisterBlock);
+impl<'a> pad_v1::Instance<'a> for UnnumberedPad<'a> {
+    #[inline]
+    fn register_block(self) -> &'a crate::glb::v1::RegisterBlock {
+        unsafe { &*(self.0 as *const _ as *const crate::glb::v1::RegisterBlock) }
+    }
+}
+impl<'a> pad_v2::Instance<'a> for UnnumberedPad<'a> {
+    #[inline]
+    fn register_block(self) -> &'a crate::glb::v2::RegisterBlock {
+        unsafe { &*(self.0 as *const _ as *const crate::glb::v2::RegisterBlock) }
+    }
+}
+
+struct NumberedPad<'a, const N: usize>(&'a AnyRegisterBlock);
+impl<'a, const N: usize> pad_v1::Instance<'a> for NumberedPad<'a, N> {
+    #[inline]
+    fn register_block(self) -> &'a crate::glb::v1::RegisterBlock {
+        unsafe { &*(self.0 as *const _ as *const crate::glb::v1::RegisterBlock) }
+    }
+}
+impl<'a, const N: usize> pad_v1::Numbered<'a, N> for NumberedPad<'a, N> {}
+impl<'a, const N: usize> pad_v2::Instance<'a> for NumberedPad<'a, N> {
+    #[inline]
+    fn register_block(self) -> &'a crate::glb::v2::RegisterBlock {
+        unsafe { &*(self.0 as *const _ as *const crate::glb::v2::RegisterBlock) }
+    }
+}
+impl<'a, const N: usize> pad_v2::Numbered<'a, N> for NumberedPad<'a, N> {}

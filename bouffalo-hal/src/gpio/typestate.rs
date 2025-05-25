@@ -1,27 +1,4 @@
 use crate::glb::v2;
-use core::marker::PhantomData;
-
-/// Input mode (type state).
-pub struct Input<MODE> {
-    _mode: PhantomData<MODE>,
-}
-
-/// Output mode (type state).
-pub struct Output<MODE> {
-    _mode: PhantomData<MODE>,
-}
-
-/// Disabled (type state).
-pub struct Disabled;
-
-/// Pulled down (type state).
-pub struct PullDown;
-
-/// Pulled up (type state).
-pub struct PullUp;
-
-/// Floating (type state).
-pub struct Floating;
 
 /// UART alternate (type state).
 pub struct Uart;
