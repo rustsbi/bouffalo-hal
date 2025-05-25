@@ -189,3 +189,243 @@ impl<'a> bouffalo_hal::pwm::Instance<'a> for &'a mut $PWMx {
     )+
     };
 }
+
+macro_rules! impl_pad_v2 {
+    ($Pad: ident: $GLBv2: ident) => {
+        impl<'a, const N: usize> bouffalo_hal::gpio::Instance<'a> for &'a mut $Pad<N> {
+            #[inline]
+            fn register_block(self) -> &'a bouffalo_hal::gpio::AnyRegisterBlock {
+                <&bouffalo_hal::gpio::AnyRegisterBlock as From<
+                    &bouffalo_hal::glb::v2::RegisterBlock,
+                >>::from(&$GLBv2 { _private: () })
+            }
+            #[inline]
+            fn version(&self) -> bouffalo_hal::glb::Version {
+                bouffalo_hal::glb::Version::V2
+            }
+        }
+
+        impl<'a, const N: usize> bouffalo_hal::gpio::Numbered<'a, N> for &'a mut $Pad<N> {}
+
+        impl<const N: usize> bouffalo_hal::gpio::Instance<'static> for $Pad<N> {
+            #[inline]
+            fn register_block(self) -> &'static bouffalo_hal::gpio::AnyRegisterBlock {
+                <&bouffalo_hal::gpio::AnyRegisterBlock as From<
+                    &bouffalo_hal::glb::v2::RegisterBlock,
+                >>::from(&$GLBv2 { _private: () })
+            }
+            #[inline]
+            fn version(&self) -> bouffalo_hal::glb::Version {
+                bouffalo_hal::glb::Version::V2
+            }
+        }
+
+        impl<const N: usize> bouffalo_hal::gpio::Numbered<'static, N> for $Pad<N> {}
+
+        impl<'a, const N: usize> bouffalo_hal::gpio::pad_v2::Instance<'a> for &'a mut $Pad<N> {
+            #[inline]
+            fn register_block(self) -> &'a bouffalo_hal::glb::v2::RegisterBlock {
+                &$GLBv2 { _private: () }
+            }
+        }
+
+        impl<'a, const N: usize> bouffalo_hal::gpio::pad_v2::Numbered<'a, N> for &'a mut $Pad<N> {}
+
+        impl<const N: usize> bouffalo_hal::gpio::pad_v2::Instance<'static> for $Pad<N> {
+            #[inline]
+            fn register_block(self) -> &'static bouffalo_hal::glb::v2::RegisterBlock {
+                &$GLBv2 { _private: () }
+            }
+        }
+
+        impl<const N: usize> bouffalo_hal::gpio::pad_v2::Numbered<'static, N> for $Pad<N> {}
+
+        impl<'a, const N: usize> bouffalo_hal::gpio::IntoPad<'a> for &'a mut $Pad<N> {
+            #[inline]
+            fn into_pull_up_output(self) -> bouffalo_hal::gpio::Output<'a> {
+                bouffalo_hal::gpio::Output::new(self, N, bouffalo_hal::glb::Pull::Up)
+            }
+            #[inline]
+            fn into_pull_down_output(self) -> bouffalo_hal::gpio::Output<'a> {
+                bouffalo_hal::gpio::Output::new(self, N, bouffalo_hal::glb::Pull::Down)
+            }
+            #[inline]
+            fn into_floating_output(self) -> bouffalo_hal::gpio::Output<'a> {
+                bouffalo_hal::gpio::Output::new(self, N, bouffalo_hal::glb::Pull::None)
+            }
+            #[inline]
+            fn into_pull_up_input(self) -> bouffalo_hal::gpio::Input<'a> {
+                bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::Up)
+            }
+            #[inline]
+            fn into_pull_down_input(self) -> bouffalo_hal::gpio::Input<'a> {
+                bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::Down)
+            }
+            #[inline]
+            fn into_floating_input(self) -> bouffalo_hal::gpio::Input<'a> {
+                bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::None)
+            }
+        }
+
+        impl<const N: usize> bouffalo_hal::gpio::IntoPad<'static> for $Pad<N> {
+            #[inline]
+            fn into_pull_up_output(self) -> bouffalo_hal::gpio::Output<'static> {
+                bouffalo_hal::gpio::Output::new(self, N, bouffalo_hal::glb::Pull::Up)
+            }
+            #[inline]
+            fn into_pull_down_output(self) -> bouffalo_hal::gpio::Output<'static> {
+                bouffalo_hal::gpio::Output::new(self, N, bouffalo_hal::glb::Pull::Down)
+            }
+            #[inline]
+            fn into_floating_output(self) -> bouffalo_hal::gpio::Output<'static> {
+                bouffalo_hal::gpio::Output::new(self, N, bouffalo_hal::glb::Pull::None)
+            }
+            #[inline]
+            fn into_pull_up_input(self) -> bouffalo_hal::gpio::Input<'static> {
+                bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::Up)
+            }
+            #[inline]
+            fn into_pull_down_input(self) -> bouffalo_hal::gpio::Input<'static> {
+                bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::Down)
+            }
+            #[inline]
+            fn into_floating_input(self) -> bouffalo_hal::gpio::Input<'static> {
+                bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::None)
+            }
+        }
+
+        impl<'a, const N: usize> bouffalo_hal::gpio::IntoPadv2<'a, N> for &'a mut $Pad<N> {
+            #[inline]
+            fn into_spi<const I: usize>(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'a, N, bouffalo_hal::gpio::Spi<I>> {
+                bouffalo_hal::gpio::Alternate::new_spi::<I>(self)
+            }
+            #[inline]
+            fn into_sdh(self) -> bouffalo_hal::gpio::Alternate<'a, N, bouffalo_hal::gpio::Sdh> {
+                bouffalo_hal::gpio::Alternate::new_sdh(self)
+            }
+            #[inline]
+            fn into_uart(self) -> bouffalo_hal::gpio::Alternate<'a, N, bouffalo_hal::gpio::Uart> {
+                bouffalo_hal::gpio::Alternate::new_uart(self)
+            }
+            #[inline]
+            fn into_mm_uart(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'a, N, bouffalo_hal::gpio::MmUart> {
+                bouffalo_hal::gpio::Alternate::new_mm_uart(self)
+            }
+            #[inline]
+            fn into_pull_up_pwm<const I: usize>(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'a, N, bouffalo_hal::gpio::Pwm<I>> {
+                bouffalo_hal::gpio::Alternate::new_pwm(self, bouffalo_hal::glb::Pull::Up)
+            }
+            #[inline]
+            fn into_pull_down_pwm<const I: usize>(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'a, N, bouffalo_hal::gpio::Pwm<I>> {
+                bouffalo_hal::gpio::Alternate::new_pwm(self, bouffalo_hal::glb::Pull::Down)
+            }
+            #[inline]
+            fn into_floating_pwm<const I: usize>(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'a, N, bouffalo_hal::gpio::Pwm<I>> {
+                bouffalo_hal::gpio::Alternate::new_pwm(self, bouffalo_hal::glb::Pull::None)
+            }
+            #[inline]
+            fn into_i2c<const I: usize>(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'a, N, bouffalo_hal::gpio::I2c<I>> {
+                bouffalo_hal::gpio::Alternate::new_i2c(self)
+            }
+            #[inline]
+            fn into_jtag_d0(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'a, N, bouffalo_hal::gpio::JtagD0> {
+                bouffalo_hal::gpio::Alternate::new_jtag_d0(self)
+            }
+            #[inline]
+            fn into_jtag_m0(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'a, N, bouffalo_hal::gpio::JtagM0> {
+                bouffalo_hal::gpio::Alternate::new_jtag_m0(self)
+            }
+            #[inline]
+            fn into_jtag_lp(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'a, N, bouffalo_hal::gpio::JtagLp> {
+                bouffalo_hal::gpio::Alternate::new_jtag_lp(self)
+            }
+        }
+
+        impl<const N: usize> bouffalo_hal::gpio::IntoPadv2<'static, N> for $Pad<N> {
+            #[inline]
+            fn into_spi<const I: usize>(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'static, N, bouffalo_hal::gpio::Spi<I>> {
+                bouffalo_hal::gpio::Alternate::new_spi::<I>(self)
+            }
+            #[inline]
+            fn into_sdh(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'static, N, bouffalo_hal::gpio::Sdh> {
+                bouffalo_hal::gpio::Alternate::new_sdh(self)
+            }
+            #[inline]
+            fn into_uart(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'static, N, bouffalo_hal::gpio::Uart> {
+                bouffalo_hal::gpio::Alternate::new_uart(self)
+            }
+            #[inline]
+            fn into_mm_uart(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'static, N, bouffalo_hal::gpio::MmUart> {
+                bouffalo_hal::gpio::Alternate::new_mm_uart(self)
+            }
+            #[inline]
+            fn into_pull_up_pwm<const I: usize>(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'static, N, bouffalo_hal::gpio::Pwm<I>> {
+                bouffalo_hal::gpio::Alternate::new_pwm(self, bouffalo_hal::glb::Pull::Up)
+            }
+            #[inline]
+            fn into_pull_down_pwm<const I: usize>(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'static, N, bouffalo_hal::gpio::Pwm<I>> {
+                bouffalo_hal::gpio::Alternate::new_pwm(self, bouffalo_hal::glb::Pull::Down)
+            }
+            #[inline]
+            fn into_floating_pwm<const I: usize>(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'static, N, bouffalo_hal::gpio::Pwm<I>> {
+                bouffalo_hal::gpio::Alternate::new_pwm(self, bouffalo_hal::glb::Pull::None)
+            }
+            #[inline]
+            fn into_i2c<const I: usize>(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'static, N, bouffalo_hal::gpio::I2c<I>> {
+                bouffalo_hal::gpio::Alternate::new_i2c(self)
+            }
+            #[inline]
+            fn into_jtag_d0(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'static, N, bouffalo_hal::gpio::JtagD0> {
+                bouffalo_hal::gpio::Alternate::new_jtag_d0(self)
+            }
+            #[inline]
+            fn into_jtag_m0(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'static, N, bouffalo_hal::gpio::JtagM0> {
+                bouffalo_hal::gpio::Alternate::new_jtag_m0(self)
+            }
+            #[inline]
+            fn into_jtag_lp(
+                self,
+            ) -> bouffalo_hal::gpio::Alternate<'static, N, bouffalo_hal::gpio::JtagLp> {
+                bouffalo_hal::gpio::Alternate::new_jtag_lp(self)
+            }
+        }
+    };
+}
