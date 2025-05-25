@@ -1,8 +1,5 @@
 pub use bouffalo_hal::clocks::Clocks;
-use bouffalo_hal::{
-    dma::{EightChannels, FourChannels, Periph4Dma01, Periph4Dma2},
-    glb, gpio,
-};
+use bouffalo_hal::dma::{EightChannels, FourChannels, Periph4Dma01, Periph4Dma2};
 
 /// Peripherals available on ROM start.
 pub struct Peripherals<'a> {

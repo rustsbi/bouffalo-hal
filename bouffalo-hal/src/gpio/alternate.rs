@@ -1,11 +1,10 @@
-use core::marker::PhantomData;
-
 use super::{
-    Numbered,
+    IntoPadv2, Numbered,
     pad_v2::{self, Alternatev2},
     typestate::*,
 };
 use crate::glb::{Pull, Version};
+use core::marker::PhantomData;
 
 /// GPIO pad with alternate mode.
 pub struct Alternate<'a, const N: usize, M> {
@@ -139,4 +138,146 @@ impl<'a, const N: usize> Alternate<'a, N, ()> {
     }
 }
 
-// TODO into_xxx
+impl<'a, const N: usize, M> IntoPadv2<'a, N> for Alternate<'a, N, M> {
+    #[inline]
+    fn into_spi<const I: usize>(self) -> Alternate<'a, N, super::typestate::Spi<I>> {
+        match self.version {
+            Version::V1 => fail_only_version_2(),
+            Version::V2 => Alternatev2::new_spi::<I>(super::NumberedPad::<N>(self.base)),
+        };
+        Alternate {
+            version: self.version,
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    #[inline]
+    fn into_sdh(self) -> Alternate<'a, N, super::typestate::Sdh> {
+        match self.version {
+            Version::V1 => fail_only_version_2(),
+            Version::V2 => Alternatev2::new_sdh(super::NumberedPad::<N>(self.base)),
+        };
+        Alternate {
+            version: self.version,
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    #[inline]
+    fn into_uart(self) -> Alternate<'a, N, super::typestate::Uart> {
+        match self.version {
+            Version::V1 => fail_only_version_2(),
+            Version::V2 => Alternatev2::new_uart(super::NumberedPad::<N>(self.base)),
+        };
+        Alternate {
+            version: self.version,
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    #[inline]
+    fn into_mm_uart(self) -> Alternate<'a, N, super::typestate::MmUart> {
+        match self.version {
+            Version::V1 => fail_only_version_2(),
+            Version::V2 => Alternatev2::new_mm_uart(super::NumberedPad::<N>(self.base)),
+        };
+        Alternate {
+            version: self.version,
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    #[inline]
+    fn into_pull_up_pwm<const I: usize>(self) -> Alternate<'a, N, super::typestate::Pwm<I>> {
+        match self.version {
+            Version::V1 => fail_only_version_2(),
+            Version::V2 => Alternatev2::new_pwm::<I>(super::NumberedPad::<N>(self.base), Pull::Up),
+        };
+        Alternate {
+            version: self.version,
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    #[inline]
+    fn into_pull_down_pwm<const I: usize>(self) -> Alternate<'a, N, super::typestate::Pwm<I>> {
+        match self.version {
+            Version::V1 => fail_only_version_2(),
+            Version::V2 => {
+                Alternatev2::new_pwm::<I>(super::NumberedPad::<N>(self.base), Pull::Down)
+            }
+        };
+        Alternate {
+            version: self.version,
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    #[inline]
+    fn into_floating_pwm<const I: usize>(self) -> Alternate<'a, N, super::typestate::Pwm<I>> {
+        match self.version {
+            Version::V1 => fail_only_version_2(),
+            Version::V2 => {
+                Alternatev2::new_pwm::<I>(super::NumberedPad::<N>(self.base), Pull::None)
+            }
+        };
+        Alternate {
+            version: self.version,
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    #[inline]
+    fn into_i2c<const I: usize>(self) -> Alternate<'a, N, super::typestate::I2c<I>> {
+        match self.version {
+            Version::V1 => fail_only_version_2(),
+            Version::V2 => Alternatev2::new_i2c::<I>(super::NumberedPad::<N>(self.base)),
+        };
+        Alternate {
+            version: self.version,
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    #[inline]
+    fn into_jtag_d0(self) -> Alternate<'a, N, super::typestate::JtagD0> {
+        match self.version {
+            Version::V1 => fail_only_version_2(),
+            Version::V2 => Alternatev2::new_jtag_d0(super::NumberedPad::<N>(self.base)),
+        };
+        Alternate {
+            version: self.version,
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    #[inline]
+    fn into_jtag_m0(self) -> Alternate<'a, N, super::typestate::JtagM0> {
+        match self.version {
+            Version::V1 => fail_only_version_2(),
+            Version::V2 => Alternatev2::new_jtag_m0(super::NumberedPad::<N>(self.base)),
+        };
+        Alternate {
+            version: self.version,
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+    #[inline]
+    fn into_jtag_lp(self) -> Alternate<'a, N, super::typestate::JtagLp> {
+        match self.version {
+            Version::V1 => fail_only_version_2(),
+            Version::V2 => Alternatev2::new_jtag_lp(super::NumberedPad::<N>(self.base)),
+        };
+        Alternate {
+            version: self.version,
+            base: self.base,
+            _mode: PhantomData,
+        }
+    }
+}
+
+#[cold]
+fn fail_only_version_2() -> ! {
+    unimplemented!("only version 2 alternate supports IntoPadv2 conversation")
+}
