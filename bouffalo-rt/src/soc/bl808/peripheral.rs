@@ -1,9 +1,15 @@
+pub use bouffalo_hal::clocks::Clocks;
+use bouffalo_hal::{
+    dma::{EightChannels, FourChannels, Periph4Dma01, Periph4Dma2},
+    glb, gpio,
+};
+
 /// Peripherals available on ROM start.
 pub struct Peripherals<'a> {
     /// Global configuration peripheral.
     pub glb: GLBv2,
     /// General Purpose Input/Output pads.
-    pub gpio: bouffalo_hal::gpio::Pads<'a>,
+    pub gpio: Pads,
     /// UART signal multiplexers.
     pub uart_muxes: bouffalo_hal::uart::UartMuxes<'a>,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
@@ -97,9 +103,6 @@ soc! {
     pub struct PLIC => 0xE0000000, xuantie_riscv::peripheral::plic::Plic;
 }
 
-pub use bouffalo_hal::clocks::Clocks;
-use bouffalo_hal::dma::{EightChannels, FourChannels, Periph4Dma01, Periph4Dma2};
-
 dma! {
     DMA0: (0, EightChannels, Periph4Dma01),
     DMA1: (1, FourChannels, Periph4Dma01),
@@ -125,12 +128,7 @@ pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
     use embedded_time::rate::Hertz;
     let peripherals = Peripherals {
         glb: GLBv2 { _private: () },
-        gpio: match () {
-            #[cfg(any(feature = "bl808-dsp", feature = "bl808-mcu", feature = "bl808-lp"))]
-            () => bouffalo_hal::gpio::Pads::__pads_from_glb(&GLBv2 { _private: () }),
-            #[cfg(not(any(feature = "bl808-dsp", feature = "bl808-mcu", feature = "bl808-lp")))]
-            () => unimplemented!(),
-        },
+        gpio: Pads::__new(),
         uart_muxes: bouffalo_hal::uart::UartMuxes::__uart_muxes_from_glb(&GLBv2 { _private: () }),
         uart0: UART0 { _private: () },
         uart1: UART1 { _private: () },
@@ -158,4 +156,352 @@ pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
         xtal: Hertz(xtal_hz),
     };
     (peripherals, clocks)
+}
+
+/// BL808 GPIO pad.
+pub struct Pad<const N: usize> {
+    _private: (),
+}
+
+impl<'a, const N: usize> gpio::Instance<'a> for &'a mut Pad<N> {
+    #[inline]
+    fn register_block(self) -> &'a gpio::AnyRegisterBlock {
+        <&gpio::AnyRegisterBlock as From<&glb::v2::RegisterBlock>>::from(&GLBv2 { _private: () })
+    }
+    #[inline]
+    fn version(&self) -> bouffalo_hal::glb::Version {
+        bouffalo_hal::glb::Version::V2
+    }
+}
+
+impl<'a, const N: usize> gpio::Numbered<'a, N> for &'a mut Pad<N> {}
+
+impl<const N: usize> gpio::Instance<'static> for Pad<N> {
+    #[inline]
+    fn register_block(self) -> &'static gpio::AnyRegisterBlock {
+        <&gpio::AnyRegisterBlock as From<&glb::v2::RegisterBlock>>::from(&GLBv2 { _private: () })
+    }
+    #[inline]
+    fn version(&self) -> bouffalo_hal::glb::Version {
+        bouffalo_hal::glb::Version::V2
+    }
+}
+
+impl<const N: usize> gpio::Numbered<'static, N> for Pad<N> {}
+
+impl<'a, const N: usize> gpio::pad_v2::Instance<'a> for &'a mut Pad<N> {
+    #[inline]
+    fn register_block(self) -> &'a bouffalo_hal::glb::v2::RegisterBlock {
+        &GLBv2 { _private: () }
+    }
+}
+
+impl<'a, const N: usize> gpio::pad_v2::Numbered<'a, N> for &'a mut Pad<N> {}
+
+impl<const N: usize> gpio::pad_v2::Instance<'static> for Pad<N> {
+    #[inline]
+    fn register_block(self) -> &'static bouffalo_hal::glb::v2::RegisterBlock {
+        &GLBv2 { _private: () }
+    }
+}
+
+impl<const N: usize> gpio::pad_v2::Numbered<'static, N> for Pad<N> {}
+
+impl<'a, const N: usize> gpio::IntoPad<'a> for &'a mut Pad<N> {
+    #[inline]
+    fn into_pull_up_output(self) -> gpio::Output<'a> {
+        gpio::Output::new(self, N, glb::Pull::Up)
+    }
+    #[inline]
+    fn into_pull_down_output(self) -> gpio::Output<'a> {
+        gpio::Output::new(self, N, glb::Pull::Down)
+    }
+    #[inline]
+    fn into_floating_output(self) -> gpio::Output<'a> {
+        gpio::Output::new(self, N, glb::Pull::None)
+    }
+    #[inline]
+    fn into_pull_up_input(self) -> gpio::Input<'a> {
+        gpio::Input::new(self, N, glb::Pull::Up)
+    }
+    #[inline]
+    fn into_pull_down_input(self) -> gpio::Input<'a> {
+        gpio::Input::new(self, N, glb::Pull::Down)
+    }
+    #[inline]
+    fn into_floating_input(self) -> gpio::Input<'a> {
+        gpio::Input::new(self, N, glb::Pull::None)
+    }
+}
+
+impl<const N: usize> gpio::IntoPad<'static> for Pad<N> {
+    #[inline]
+    fn into_pull_up_output(self) -> gpio::Output<'static> {
+        gpio::Output::new(self, N, glb::Pull::Up)
+    }
+    #[inline]
+    fn into_pull_down_output(self) -> gpio::Output<'static> {
+        gpio::Output::new(self, N, glb::Pull::Down)
+    }
+    #[inline]
+    fn into_floating_output(self) -> gpio::Output<'static> {
+        gpio::Output::new(self, N, glb::Pull::None)
+    }
+    #[inline]
+    fn into_pull_up_input(self) -> gpio::Input<'static> {
+        gpio::Input::new(self, N, glb::Pull::Up)
+    }
+    #[inline]
+    fn into_pull_down_input(self) -> gpio::Input<'static> {
+        gpio::Input::new(self, N, glb::Pull::Down)
+    }
+    #[inline]
+    fn into_floating_input(self) -> gpio::Input<'static> {
+        gpio::Input::new(self, N, glb::Pull::None)
+    }
+}
+
+impl<'a, const N: usize> gpio::IntoPadv2<'a, N> for &'a mut Pad<N> {
+    #[inline]
+    fn into_spi<const I: usize>(self) -> gpio::Alternate<'a, N, gpio::Spi<I>> {
+        gpio::Alternate::new_spi::<I>(self)
+    }
+    #[inline]
+    fn into_sdh(self) -> gpio::Alternate<'a, N, gpio::Sdh> {
+        gpio::Alternate::new_sdh(self)
+    }
+    #[inline]
+    fn into_uart(self) -> gpio::Alternate<'a, N, gpio::Uart> {
+        gpio::Alternate::new_uart(self)
+    }
+    #[inline]
+    fn into_mm_uart(self) -> gpio::Alternate<'a, N, gpio::MmUart> {
+        gpio::Alternate::new_mm_uart(self)
+    }
+    #[inline]
+    fn into_pull_up_pwm<const I: usize>(self) -> gpio::Alternate<'a, N, gpio::Pwm<I>> {
+        gpio::Alternate::new_pwm(self, glb::Pull::Up)
+    }
+    #[inline]
+    fn into_pull_down_pwm<const I: usize>(self) -> gpio::Alternate<'a, N, gpio::Pwm<I>> {
+        gpio::Alternate::new_pwm(self, glb::Pull::Down)
+    }
+    #[inline]
+    fn into_floating_pwm<const I: usize>(self) -> gpio::Alternate<'a, N, gpio::Pwm<I>> {
+        gpio::Alternate::new_pwm(self, glb::Pull::None)
+    }
+    #[inline]
+    fn into_i2c<const I: usize>(self) -> gpio::Alternate<'a, N, gpio::I2c<I>> {
+        gpio::Alternate::new_i2c(self)
+    }
+    #[inline]
+    fn into_jtag_d0(self) -> gpio::Alternate<'a, N, gpio::JtagD0> {
+        gpio::Alternate::new_jtag_d0(self)
+    }
+    #[inline]
+    fn into_jtag_m0(self) -> gpio::Alternate<'a, N, gpio::JtagM0> {
+        gpio::Alternate::new_jtag_m0(self)
+    }
+    #[inline]
+    fn into_jtag_lp(self) -> gpio::Alternate<'a, N, gpio::JtagLp> {
+        gpio::Alternate::new_jtag_lp(self)
+    }
+}
+
+impl<const N: usize> gpio::IntoPadv2<'static, N> for Pad<N> {
+    #[inline]
+    fn into_spi<const I: usize>(self) -> gpio::Alternate<'static, N, gpio::Spi<I>> {
+        gpio::Alternate::new_spi::<I>(self)
+    }
+    #[inline]
+    fn into_sdh(self) -> gpio::Alternate<'static, N, gpio::Sdh> {
+        gpio::Alternate::new_sdh(self)
+    }
+    #[inline]
+    fn into_uart(self) -> gpio::Alternate<'static, N, gpio::Uart> {
+        gpio::Alternate::new_uart(self)
+    }
+    #[inline]
+    fn into_mm_uart(self) -> gpio::Alternate<'static, N, gpio::MmUart> {
+        gpio::Alternate::new_mm_uart(self)
+    }
+    #[inline]
+    fn into_pull_up_pwm<const I: usize>(self) -> gpio::Alternate<'static, N, gpio::Pwm<I>> {
+        gpio::Alternate::new_pwm(self, glb::Pull::Up)
+    }
+    #[inline]
+    fn into_pull_down_pwm<const I: usize>(self) -> gpio::Alternate<'static, N, gpio::Pwm<I>> {
+        gpio::Alternate::new_pwm(self, glb::Pull::Down)
+    }
+    #[inline]
+    fn into_floating_pwm<const I: usize>(self) -> gpio::Alternate<'static, N, gpio::Pwm<I>> {
+        gpio::Alternate::new_pwm(self, glb::Pull::None)
+    }
+    #[inline]
+    fn into_i2c<const I: usize>(self) -> gpio::Alternate<'static, N, gpio::I2c<I>> {
+        gpio::Alternate::new_i2c(self)
+    }
+    #[inline]
+    fn into_jtag_d0(self) -> gpio::Alternate<'static, N, gpio::JtagD0> {
+        gpio::Alternate::new_jtag_d0(self)
+    }
+    #[inline]
+    fn into_jtag_m0(self) -> gpio::Alternate<'static, N, gpio::JtagM0> {
+        gpio::Alternate::new_jtag_m0(self)
+    }
+    #[inline]
+    fn into_jtag_lp(self) -> gpio::Alternate<'static, N, gpio::JtagLp> {
+        gpio::Alternate::new_jtag_lp(self)
+    }
+}
+
+/// Available GPIO pads for BL808.
+pub struct Pads {
+    /// GPIO I/O 0.
+    pub io0: Pad<0>,
+    /// GPIO I/O 1.
+    pub io1: Pad<1>,
+    /// GPIO I/O 2.
+    pub io2: Pad<2>,
+    /// GPIO I/O 3.
+    pub io3: Pad<3>,
+    /// GPIO I/O 4.
+    pub io4: Pad<4>,
+    /// GPIO I/O 5.
+    pub io5: Pad<5>,
+    /// GPIO I/O 6.
+    pub io6: Pad<6>,
+    /// GPIO I/O 7.
+    pub io7: Pad<7>,
+    /// GPIO I/O 8.
+    pub io8: Pad<8>,
+    /// GPIO I/O 9.
+    pub io9: Pad<9>,
+    /// GPIO I/O 10.
+    pub io10: Pad<10>,
+    /// GPIO I/O 11.
+    pub io11: Pad<11>,
+    /// GPIO I/O 12.
+    pub io12: Pad<12>,
+    /// GPIO I/O 13.
+    pub io13: Pad<13>,
+    /// GPIO I/O 14.
+    pub io14: Pad<14>,
+    /// GPIO I/O 15.
+    pub io15: Pad<15>,
+    /// GPIO I/O 16.
+    pub io16: Pad<16>,
+    /// GPIO I/O 17.
+    pub io17: Pad<17>,
+    /// GPIO I/O 18.
+    pub io18: Pad<18>,
+    /// GPIO I/O 19.
+    pub io19: Pad<19>,
+    /// GPIO I/O 20.
+    pub io20: Pad<20>,
+    /// GPIO I/O 21.
+    pub io21: Pad<21>,
+    /// GPIO I/O 22.
+    pub io22: Pad<22>,
+    /// GPIO I/O 23.
+    pub io23: Pad<23>,
+    /// GPIO I/O 24.
+    pub io24: Pad<24>,
+    /// GPIO I/O 25.
+    pub io25: Pad<25>,
+    /// GPIO I/O 26.
+    pub io26: Pad<26>,
+    /// GPIO I/O 27.
+    pub io27: Pad<27>,
+    /// GPIO I/O 28.
+    pub io28: Pad<28>,
+    /// GPIO I/O 29.
+    pub io29: Pad<29>,
+    /// GPIO I/O 30.
+    pub io30: Pad<30>,
+    /// GPIO I/O 31.
+    pub io31: Pad<31>,
+    /// GPIO I/O 32.
+    pub io32: Pad<32>,
+    /// GPIO I/O 33.
+    pub io33: Pad<33>,
+    /// GPIO I/O 34.
+    pub io34: Pad<34>,
+    /// GPIO I/O 35.
+    pub io35: Pad<35>,
+    /// GPIO I/O 36.
+    pub io36: Pad<36>,
+    /// GPIO I/O 37.
+    pub io37: Pad<37>,
+    /// GPIO I/O 38.
+    pub io38: Pad<38>,
+    /// GPIO I/O 39.
+    pub io39: Pad<39>,
+    /// GPIO I/O 40.
+    pub io40: Pad<40>,
+    /// GPIO I/O 41.
+    pub io41: Pad<41>,
+    /// GPIO I/O 42.
+    pub io42: Pad<42>,
+    /// GPIO I/O 43.
+    pub io43: Pad<43>,
+    /// GPIO I/O 44.
+    pub io44: Pad<44>,
+    /// GPIO I/O 45.
+    pub io45: Pad<45>,
+}
+
+// Internal function, do not use.
+impl Pads {
+    #[inline]
+    fn __new() -> Self {
+        Pads {
+            io0: Pad { _private: () },
+            io1: Pad { _private: () },
+            io2: Pad { _private: () },
+            io3: Pad { _private: () },
+            io4: Pad { _private: () },
+            io5: Pad { _private: () },
+            io6: Pad { _private: () },
+            io7: Pad { _private: () },
+            io8: Pad { _private: () },
+            io9: Pad { _private: () },
+            io10: Pad { _private: () },
+            io11: Pad { _private: () },
+            io12: Pad { _private: () },
+            io13: Pad { _private: () },
+            io14: Pad { _private: () },
+            io15: Pad { _private: () },
+            io16: Pad { _private: () },
+            io17: Pad { _private: () },
+            io18: Pad { _private: () },
+            io19: Pad { _private: () },
+            io20: Pad { _private: () },
+            io21: Pad { _private: () },
+            io22: Pad { _private: () },
+            io23: Pad { _private: () },
+            io24: Pad { _private: () },
+            io25: Pad { _private: () },
+            io26: Pad { _private: () },
+            io27: Pad { _private: () },
+            io28: Pad { _private: () },
+            io29: Pad { _private: () },
+            io30: Pad { _private: () },
+            io31: Pad { _private: () },
+            io32: Pad { _private: () },
+            io33: Pad { _private: () },
+            io34: Pad { _private: () },
+            io35: Pad { _private: () },
+            io36: Pad { _private: () },
+            io37: Pad { _private: () },
+            io38: Pad { _private: () },
+            io39: Pad { _private: () },
+            io40: Pad { _private: () },
+            io41: Pad { _private: () },
+            io42: Pad { _private: () },
+            io43: Pad { _private: () },
+            io44: Pad { _private: () },
+            io45: Pad { _private: () },
+        }
+    }
 }

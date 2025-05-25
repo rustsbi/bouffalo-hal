@@ -1,95 +1,142 @@
+use core::marker::PhantomData;
+
 use super::{
-    convert::IntoPad,
-    input::Input,
-    output::Output,
-    typestate::{Floating, PullDown, PullUp},
+    Numbered,
+    pad_v2::{self, Alternatev2},
+    typestate::*,
 };
-#[cfg(any(doc, feature = "glb-v2"))]
-use super::{convert::IntoPadv2, typestate};
+use crate::glb::{Pull, Version};
 
 /// GPIO pad with alternate mode.
 pub struct Alternate<'a, const N: usize, M> {
-    inner: super::Inner<'a, N, M>,
+    version: Version,
+    // Register block pointer.
+    base: &'a super::AnyRegisterBlock,
+    _mode: PhantomData<M>,
 }
 
-impl<'a, const N: usize, M> IntoPad<'a, N> for Alternate<'a, N, M> {
+impl<'a, const N: usize> Alternate<'a, N, ()> {
+    /// Create a UART signal driver from a GPIO pad instance.
     #[inline]
-    fn into_pull_up_output(self) -> Output<'a, N, PullUp> {
-        self.inner.into_pull_up_output().into()
+    pub fn new_uart(gpio: impl Numbered<'a, N>) -> Alternate<'a, N, Uart> {
+        let version = gpio.version();
+        let pad = super::NumberedPad::<N>(gpio.register_block());
+        let base = match version {
+            Version::V1 => todo!(),
+            Version::V2 => Alternatev2::new_uart(pad).into_inner(),
+        };
+        Alternate {
+            version,
+            base,
+            _mode: PhantomData,
+        }
     }
+    /// Create a Pulse Width Modulation signal driver from a GPIO pad instance.
     #[inline]
-    fn into_pull_down_output(self) -> Output<'a, N, PullDown> {
-        self.inner.into_pull_down_output().into()
+    pub fn new_pwm<const I: usize>(
+        gpio: impl Numbered<'a, N>,
+        pull: Pull,
+    ) -> Alternate<'a, N, Pwm<I>> {
+        let version = gpio.version();
+        let pad = super::NumberedPad::<N>(gpio.register_block());
+        let base = match version {
+            Version::V1 => todo!(),
+            Version::V2 => Alternatev2::new_pwm::<I>(pad, pull).into_inner(),
+        };
+        Alternate {
+            version,
+            base,
+            _mode: PhantomData,
+        }
     }
+    /// Create an I2C signal driver from a GPIO pad instance.
     #[inline]
-    fn into_floating_output(self) -> Output<'a, N, Floating> {
-        self.inner.into_floating_output().into()
+    pub fn new_i2c<const I: usize>(gpio: impl Numbered<'a, N>) -> Alternate<'a, N, I2c<I>> {
+        let version = gpio.version();
+        let pad = super::NumberedPad::<N>(gpio.register_block());
+        let base = match version {
+            Version::V1 => todo!(),
+            Version::V2 => Alternatev2::new_i2c::<I>(pad).into_inner(),
+        };
+        Alternate {
+            version,
+            base,
+            _mode: PhantomData,
+        }
     }
+    /// Create an SPI signal driver from a GPIO pad instance.
     #[inline]
-    fn into_pull_up_input(self) -> Input<'a, N, PullUp> {
-        self.inner.into_pull_up_input().into()
+    pub fn new_spi<const I: usize>(gpio: impl Numbered<'a, N>) -> Alternate<'a, N, Spi<I>> {
+        let version = gpio.version();
+        let pad = super::NumberedPad::<N>(gpio.register_block());
+        let base = match version {
+            Version::V1 => todo!(),
+            Version::V2 => Alternatev2::new_spi::<I>(pad).into_inner(),
+        };
+        Alternate {
+            version,
+            base,
+            _mode: PhantomData,
+        }
     }
+    /// Create an SPI signal driver from a GPIO pad instance.
     #[inline]
-    fn into_pull_down_input(self) -> Input<'a, N, PullDown> {
-        self.inner.into_pull_down_input().into()
-    }
-    #[inline]
-    fn into_floating_input(self) -> Input<'a, N, Floating> {
-        self.inner.into_floating_input().into()
+    pub fn new_sdh(gpio: impl Numbered<'a, N>) -> Alternate<'a, N, Sdh> {
+        let version = gpio.version();
+        let pad = super::NumberedPad::<N>(gpio.register_block());
+        let base = match version {
+            Version::V1 => todo!(),
+            Version::V2 => Alternatev2::new_sdh(pad).into_inner(),
+        };
+        Alternate {
+            version,
+            base,
+            _mode: PhantomData,
+        }
     }
 }
 
-#[cfg(any(doc, feature = "glb-v2"))]
-impl<'a, const N: usize, M> IntoPadv2<'a, N> for Alternate<'a, N, M> {
+impl<'a, const N: usize> Alternate<'a, N, ()> {
+    /// Create an input driver for the GPIO pad.
     #[inline]
-    fn into_spi<const I: usize>(self) -> Alternate<'a, N, typestate::Spi<I>> {
-        self.inner.into_spi().into()
+    pub fn new_mm_uart(gpio: impl pad_v2::Numbered<'a, N>) -> Alternate<'a, N, MmUart> {
+        let base = Alternatev2::new_mm_uart(gpio).into_inner();
+        Alternate {
+            version: Version::V2,
+            base,
+            _mode: PhantomData,
+        }
     }
+    /// Create a D0 core JTAG pad driver from a GPIO pad instance.
     #[inline]
-    fn into_sdh(self) -> Alternate<'a, N, typestate::Sdh> {
-        self.inner.into_sdh().into()
+    pub fn new_jtag_d0(gpio: impl pad_v2::Numbered<'a, N>) -> Alternate<'a, N, JtagD0> {
+        let base = Alternatev2::new_jtag_d0(gpio).into_inner();
+        Alternate {
+            version: Version::V2,
+            base,
+            _mode: PhantomData,
+        }
     }
+    /// Create a M0 core JTAG pad driver from a GPIO pad instance.
     #[inline]
-    fn into_uart(self) -> Alternate<'a, N, typestate::Uart> {
-        self.inner.into_uart().into()
+    pub fn new_jtag_m0(gpio: impl pad_v2::Numbered<'a, N>) -> Alternate<'a, N, JtagM0> {
+        let base = Alternatev2::new_jtag_m0(gpio).into_inner();
+        Alternate {
+            version: Version::V2,
+            base,
+            _mode: PhantomData,
+        }
     }
+    /// Create a LP core JTAG pad driver from a GPIO pad instance.
     #[inline]
-    fn into_mm_uart(self) -> Alternate<'a, N, typestate::MmUart> {
-        self.inner.into_mm_uart().into()
-    }
-    #[inline]
-    fn into_pull_up_pwm<const I: usize>(self) -> Alternate<'a, N, typestate::Pwm<I>> {
-        self.inner.into_pull_up_pwm().into()
-    }
-    #[inline]
-    fn into_pull_down_pwm<const I: usize>(self) -> Alternate<'a, N, typestate::Pwm<I>> {
-        self.inner.into_pull_down_pwm().into()
-    }
-    #[inline]
-    fn into_floating_pwm<const I: usize>(self) -> Alternate<'a, N, typestate::Pwm<I>> {
-        self.inner.into_floating_pwm().into()
-    }
-    #[inline]
-    fn into_i2c<const I: usize>(self) -> Alternate<'a, N, typestate::I2c<I>> {
-        self.inner.into_i2c().into()
-    }
-    #[inline]
-    fn into_jtag_d0(self) -> Alternate<'a, N, typestate::JtagD0> {
-        self.inner.into_jtag_d0().into()
-    }
-    #[inline]
-    fn into_jtag_m0(self) -> Alternate<'a, N, typestate::JtagM0> {
-        self.inner.into_jtag_m0().into()
-    }
-    #[inline]
-    fn into_jtag_lp(self) -> Alternate<'a, N, typestate::JtagLp> {
-        self.inner.into_jtag_lp().into()
+    pub fn new_jtag_lp(gpio: impl pad_v2::Numbered<'a, N>) -> Alternate<'a, N, JtagLp> {
+        let base = Alternatev2::new_jtag_lp(gpio).into_inner();
+        Alternate {
+            version: Version::V2,
+            base,
+            _mode: PhantomData,
+        }
     }
 }
 
-impl<'a, const N: usize, M> From<super::Inner<'a, N, M>> for Alternate<'a, N, M> {
-    #[inline]
-    fn from(inner: super::Inner<'a, N, M>) -> Self {
-        Self { inner }
-    }
-}
+// TODO into_xxx

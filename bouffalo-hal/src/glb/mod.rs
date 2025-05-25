@@ -40,3 +40,12 @@ cfg_if::cfg_if! {
         pub struct RegisterBlock {}
     }
 }
+
+/// GLB peripheral version.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Version {
+    /// BL602 and BL702.
+    V1,
+    /// BL808 and BL616.
+    V2,
+}
