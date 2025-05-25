@@ -60,13 +60,111 @@ pub struct Pad<const N: usize> {
 }
 
 /// Available GPIO pads for BL702.
-pub struct Pads {}
+pub struct Pads {
+    /// GPIO I/O 0.
+    pub io0: Pad<0>,
+    /// GPIO I/O 1.
+    pub io1: Pad<1>,
+    /// GPIO I/O 2.
+    pub io2: Pad<2>,
+    /// GPIO I/O 3.
+    pub io3: Pad<3>,
+    /// GPIO I/O 4.
+    pub io4: Pad<4>,
+    /// GPIO I/O 5.
+    pub io5: Pad<5>,
+    /// GPIO I/O 6.
+    pub io6: Pad<6>,
+    /// GPIO I/O 7.
+    pub io7: Pad<7>,
+    /// GPIO I/O 8.
+    pub io8: Pad<8>,
+    /// GPIO I/O 9.
+    pub io9: Pad<9>,
+    /// GPIO I/O 10.
+    pub io10: Pad<10>,
+    /// GPIO I/O 11.
+    pub io11: Pad<11>,
+    /// GPIO I/O 12.
+    pub io12: Pad<12>,
+    /// GPIO I/O 13.
+    pub io13: Pad<13>,
+    /// GPIO I/O 14.
+    pub io14: Pad<14>,
+    /// GPIO I/O 15.
+    pub io15: Pad<15>,
+    /// GPIO I/O 16.
+    pub io16: Pad<16>,
+    /// GPIO I/O 17.
+    pub io17: Pad<17>,
+    /// GPIO I/O 18.
+    pub io18: Pad<18>,
+    /// GPIO I/O 19.
+    pub io19: Pad<19>,
+    /// GPIO I/O 20.
+    pub io20: Pad<20>,
+    /// GPIO I/O 21.
+    pub io21: Pad<21>,
+    /// GPIO I/O 22.
+    pub io22: Pad<22>,
+    /// GPIO I/O 23.
+    pub io23: Pad<23>,
+    /// GPIO I/O 24.
+    pub io24: Pad<24>,
+    /// GPIO I/O 25.
+    pub io25: Pad<25>,
+    /// GPIO I/O 26.
+    pub io26: Pad<26>,
+    /// GPIO I/O 27.
+    pub io27: Pad<27>,
+    /// GPIO I/O 28.
+    pub io28: Pad<28>,
+    /// GPIO I/O 29.
+    pub io29: Pad<29>,
+    /// GPIO I/O 30.
+    pub io30: Pad<30>,
+    /// GPIO I/O 31.
+    pub io31: Pad<31>,
+}
 
 // Internal function, do not use.
 impl Pads {
     #[inline]
     fn __new() -> Self {
-        Pads {}
+        Pads {
+            io0: Pad { _private: () },
+            io1: Pad { _private: () },
+            io2: Pad { _private: () },
+            io3: Pad { _private: () },
+            io4: Pad { _private: () },
+            io5: Pad { _private: () },
+            io6: Pad { _private: () },
+            io7: Pad { _private: () },
+            io8: Pad { _private: () },
+            io9: Pad { _private: () },
+            io10: Pad { _private: () },
+            io11: Pad { _private: () },
+            io12: Pad { _private: () },
+            io13: Pad { _private: () },
+            io14: Pad { _private: () },
+            io15: Pad { _private: () },
+            io16: Pad { _private: () },
+            io17: Pad { _private: () },
+            io18: Pad { _private: () },
+            io19: Pad { _private: () },
+            io20: Pad { _private: () },
+            io21: Pad { _private: () },
+            io22: Pad { _private: () },
+            io23: Pad { _private: () },
+            io24: Pad { _private: () },
+            io25: Pad { _private: () },
+            io26: Pad { _private: () },
+            io27: Pad { _private: () },
+            io28: Pad { _private: () },
+            io29: Pad { _private: () },
+            io30: Pad { _private: () },
+            io31: Pad { _private: () },
+        }
     }
 }
 
