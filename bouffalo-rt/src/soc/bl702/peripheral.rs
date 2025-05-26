@@ -59,6 +59,8 @@ pub struct Pad<const N: usize> {
     _private: (),
 }
 
+impl_pad_v1! { Pad: GLBv1 }
+
 /// Available GPIO pads for BL702.
 pub struct Pads {
     /// GPIO I/O 0.
