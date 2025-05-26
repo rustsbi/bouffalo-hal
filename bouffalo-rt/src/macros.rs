@@ -429,3 +429,109 @@ macro_rules! impl_pad_v2 {
         }
     };
 }
+
+macro_rules! impl_pad_v1 {
+    ($Pad: ident: $GLBv1: ident) => {
+        impl<'a, const N: usize> bouffalo_hal::gpio::Instance<'a> for &'a mut $Pad<N> {
+            #[inline]
+            fn register_block(self) -> &'a bouffalo_hal::gpio::AnyRegisterBlock {
+                <&bouffalo_hal::gpio::AnyRegisterBlock as From<
+                    &bouffalo_hal::glb::v1::RegisterBlock,
+                >>::from(&$GLBv1 { _private: () })
+            }
+            #[inline]
+            fn version(&self) -> bouffalo_hal::glb::Version {
+                bouffalo_hal::glb::Version::V1
+            }
+        }
+
+        impl<'a, const N: usize> bouffalo_hal::gpio::Numbered<'a, N> for &'a mut $Pad<N> {}
+
+        impl<const N: usize> bouffalo_hal::gpio::Instance<'static> for $Pad<N> {
+            #[inline]
+            fn register_block(self) -> &'static bouffalo_hal::gpio::AnyRegisterBlock {
+                <&bouffalo_hal::gpio::AnyRegisterBlock as From<
+                    &bouffalo_hal::glb::v1::RegisterBlock,
+                >>::from(&$GLBv1 { _private: () })
+            }
+            #[inline]
+            fn version(&self) -> bouffalo_hal::glb::Version {
+                bouffalo_hal::glb::Version::V1
+            }
+        }
+
+        impl<const N: usize> bouffalo_hal::gpio::Numbered<'static, N> for $Pad<N> {}
+
+        impl<'a, const N: usize> bouffalo_hal::gpio::pad_v1::Instance<'a> for &'a mut $Pad<N> {
+            #[inline]
+            fn register_block(self) -> &'a bouffalo_hal::glb::v1::RegisterBlock {
+                &$GLBv1 { _private: () }
+            }
+        }
+
+        impl<'a, const N: usize> bouffalo_hal::gpio::pad_v1::Numbered<'a, N> for &'a mut $Pad<N> {}
+
+        impl<const N: usize> bouffalo_hal::gpio::pad_v1::Instance<'static> for $Pad<N> {
+            #[inline]
+            fn register_block(self) -> &'static bouffalo_hal::glb::v1::RegisterBlock {
+                &$GLBv1 { _private: () }
+            }
+        }
+
+        impl<const N: usize> bouffalo_hal::gpio::pad_v1::Numbered<'static, N> for $Pad<N> {}
+
+        impl<'a, const N: usize> bouffalo_hal::gpio::IntoPad<'a> for &'a mut $Pad<N> {
+            #[inline]
+            fn into_pull_up_output(self) -> bouffalo_hal::gpio::Output<'a> {
+                bouffalo_hal::gpio::Output::new(self, N, bouffalo_hal::glb::Pull::Up)
+            }
+            #[inline]
+            fn into_pull_down_output(self) -> bouffalo_hal::gpio::Output<'a> {
+                bouffalo_hal::gpio::Output::new(self, N, bouffalo_hal::glb::Pull::Down)
+            }
+            #[inline]
+            fn into_floating_output(self) -> bouffalo_hal::gpio::Output<'a> {
+                bouffalo_hal::gpio::Output::new(self, N, bouffalo_hal::glb::Pull::None)
+            }
+            #[inline]
+            fn into_pull_up_input(self) -> bouffalo_hal::gpio::Input<'a> {
+                bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::Up)
+            }
+            #[inline]
+            fn into_pull_down_input(self) -> bouffalo_hal::gpio::Input<'a> {
+                bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::Down)
+            }
+            #[inline]
+            fn into_floating_input(self) -> bouffalo_hal::gpio::Input<'a> {
+                bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::None)
+            }
+        }
+
+        impl<const N: usize> bouffalo_hal::gpio::IntoPad<'static> for $Pad<N> {
+            #[inline]
+            fn into_pull_up_output(self) -> bouffalo_hal::gpio::Output<'static> {
+                bouffalo_hal::gpio::Output::new(self, N, bouffalo_hal::glb::Pull::Up)
+            }
+            #[inline]
+            fn into_pull_down_output(self) -> bouffalo_hal::gpio::Output<'static> {
+                bouffalo_hal::gpio::Output::new(self, N, bouffalo_hal::glb::Pull::Down)
+            }
+            #[inline]
+            fn into_floating_output(self) -> bouffalo_hal::gpio::Output<'static> {
+                bouffalo_hal::gpio::Output::new(self, N, bouffalo_hal::glb::Pull::None)
+            }
+            #[inline]
+            fn into_pull_up_input(self) -> bouffalo_hal::gpio::Input<'static> {
+                bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::Up)
+            }
+            #[inline]
+            fn into_pull_down_input(self) -> bouffalo_hal::gpio::Input<'static> {
+                bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::Down)
+            }
+            #[inline]
+            fn into_floating_input(self) -> bouffalo_hal::gpio::Input<'static> {
+                bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::None)
+            }
+        }
+    };
+}
