@@ -929,13 +929,10 @@ impl Ldo12uhsConfig {
 
 #[cfg(test)]
 mod tests {
-    use crate::glb::v2::SpiClockSource;
-    use crate::glb::v2::SpiMode;
-
     use super::{
         ClockConfig1, Drive, Function, GpioConfig, I2cClockSource, I2cConfig, InterruptMode, Mode,
-        ParamConfig, Pull, PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, SdhConfig, SpiConfig,
-        UartConfig, UartMuxGroup, UartSignal,
+        ParamConfig, Pull, PwmConfig, PwmSignal0, PwmSignal1, RegisterBlock, SdhConfig,
+        SpiClockSource, SpiConfig, SpiMode, UartConfig, UartMuxGroup, UartSignal,
     };
     use core::mem::offset_of;
 
