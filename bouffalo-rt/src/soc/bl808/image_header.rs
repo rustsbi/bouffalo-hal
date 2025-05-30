@@ -576,7 +576,7 @@ mod tests {
 
     #[test]
     fn test_image_from_bytes() {
-        let bytes = include_bytes!("./test_data/multicore-demo-mcu.bin");
+        let bytes = include_bytes!("../../../tests/multicore-demo-mcu.bin");
         let header = HalBootheader::from_bytes(bytes).expect("Failed to parse boot header");
 
         assert_eq!(header.magic, crate::BFLB_BOOT2_HEADER_MAGIC);
