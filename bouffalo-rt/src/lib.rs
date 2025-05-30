@@ -13,6 +13,11 @@ pub mod prelude {
     pub use bouffalo_hal::prelude::*;
 }
 
+// Magic constants
+pub const BFLB_BOOT2_HEADER_MAGIC: u32 = 0x504e4642; // "BFNP" in little endian
+pub const BFLB_FLASH_CONFIG_MAGIC: u32 = 0x47464346; // "FCFG" in little endian
+pub const BFLB_PLL_CONFIG_MAGIC: u32 = 0x47464350; // "PCFG" in little endian
+
 cfg_if::cfg_if! {
     if #[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp", feature = "bl808-lp"))] {
         pub use soc::bl808::{Peripherals, Clocks};
@@ -134,6 +139,41 @@ impl HalFlashConfig {
             cfg,
             crc32,
         }
+    }
+
+    /// Deserialize from bytes
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
+        if bytes.len() < size_of::<Self>() {
+            return Err("Buffer too small for HalFlashConfig");
+        }
+
+        let magic = u32::from_le_bytes(bytes[0..4].try_into().unwrap());
+        if magic != BFLB_FLASH_CONFIG_MAGIC {
+            return Err("Invalid flash config magic");
+        }
+
+        let cfg = SpiFlashCfgType::from_bytes(&bytes[4..])?;
+        let crc32 = u32::from_le_bytes(
+            bytes[size_of::<Self>() - 4..size_of::<Self>()]
+                .try_into()
+                .unwrap(),
+        );
+
+        let hal_flash_cfg = Self { magic, cfg, crc32 };
+
+        // Verify CRC32
+        let data = unsafe {
+            core::slice::from_raw_parts(
+                (&hal_flash_cfg.cfg as *const SpiFlashCfgType) as *const u8,
+                size_of::<SpiFlashCfgType>(),
+            )
+        };
+        let calculated_crc = crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(data);
+        if calculated_crc != crc32 {
+            return Err("[HalFlashConfig::from_bytes] Flash config CRC32 verification failed");
+        }
+
+        Ok(hal_flash_cfg)
     }
 }
 
@@ -285,6 +325,19 @@ struct SpiFlashCfgType {
     qe_data: u8,
 }
 
+impl SpiFlashCfgType {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
+        if bytes.len() < size_of::<Self>() {
+            return Err("Buffer too small for SpiFlashCfgType");
+        }
+
+        //TODO: Use safe rust
+        let spi_flash_cfg_type =
+            unsafe { core::ptr::read_unaligned(bytes.as_ptr() as *const Self) };
+
+        Ok(spi_flash_cfg_type)
+    }
+}
 #[repr(C)]
 struct HalBasicConfig {
     /// Flags 4bytes
@@ -320,6 +373,116 @@ struct HalBasicConfig {
     hash: [u32; 8],
 }
 
+impl HalBasicConfig {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
+        if bytes.len() < size_of::<Self>() {
+            return Err("Buffer too small for HalBasicConfig");
+        }
+
+        let flag = u32::from_le_bytes(bytes[0..4].try_into().unwrap());
+        let group_image_offset = u32::from_le_bytes(bytes[4..8].try_into().unwrap());
+        let aes_region_len = u32::from_le_bytes(bytes[8..12].try_into().unwrap());
+        let img_len_cnt = u32::from_le_bytes(bytes[12..16].try_into().unwrap());
+
+        let mut hash = [0u32; 8];
+        for i in 0..8 {
+            let start = 16 + i * 4;
+            hash[i] = u32::from_le_bytes(bytes[start..start + 4].try_into().unwrap());
+        }
+
+        let hal_basic_cfg = Self {
+            flag,
+            group_image_offset,
+            aes_region_len,
+            img_len_cnt,
+            hash,
+        };
+
+        Ok(hal_basic_cfg)
+    }
+}
+
+#[repr(C)]
+#[cfg(any(test, debug_assertions))]
+/// Bit flags for HalBasicConfig.flag, only for debug purposes
+// Note that the definition is different from the comments in HalBasicConfig,
+// this is derived from the 010 Editor bt file.
+pub struct BasicConfigFlags {
+    /// Raw flag value
+    pub raw: u32,
+    /// 2 bits for sign (bits 0-1)
+    pub sign_type: u8,
+    /// 2 bits for encrypt (bits 2-3)
+    pub encrypt_type: u8,
+    /// 2 bits for key slot (bits 4-5)
+    pub key_sel: u8,
+    /// 1 bit for xts mode (bit 6)
+    pub xts_mode: bool,
+    /// 1 bit for aes region lock/reserved (bit 7)
+    pub aes_region_lock: bool,
+    /// 1 bit for no segment info (bit 8)
+    pub no_segment: bool,
+    /// 1 bit for boot2 enable (bit 9)
+    pub boot2_enable: bool,
+    /// 1 bit for boot2 rollback (bit 10)
+    pub boot2_rollback: bool,
+    /// 4 bits for master id (bits 11-14), different from the comments in HalBasicConfig
+    pub cpu_master_id: u8,
+    /// 1 bit for notload in bootrom (bit 15)
+    pub notload_in_bootrom: bool,
+    /// 1 bit for ignore crc (bit 16)
+    pub crc_ignore: bool,
+    /// 1 bit for hash ignore (bit 17)
+    pub hash_ignore: bool,
+    /// 1 bit for power on mm (bit 18)
+    pub power_on_mm: bool,
+    /// 3 bits for em_sel (bits 19-21)
+    pub em_sel: u8,
+    /// 1 bit for command splitter enable (bit 22)
+    pub cmds_en: bool,
+    /// 2 bits for cmds wrap mode (bits 23-24)
+    pub cmds_wrap_mode: u8,
+    /// 4 bits for cmds wrap len (bits 25-28)
+    pub cmds_wrap_len: u8,
+    /// 1 bit for icache invalid (bit 29)
+    pub icache_invalid: bool,
+    /// 1 bit for dcache invalid (bit 30)
+    pub dcache_invalid: bool,
+    /// 1 bit for FPGA halt release function (bit 31)
+    pub fpga_halt_release: bool,
+}
+
+#[cfg(any(test, debug_assertions))]
+impl BasicConfigFlags {
+    /// Parse from raw u32 value
+    pub fn from_u32(raw: u32) -> Self {
+        let structured_flag = Self {
+            raw,
+            sign_type: (raw & 0x3) as u8,               // bits 0-1
+            encrypt_type: ((raw >> 2) & 0x3) as u8,     // bits 2-3
+            key_sel: ((raw >> 4) & 0x3) as u8,          // bits 4-5
+            xts_mode: (raw >> 6) & 0x1 != 0,            // bit 6
+            aes_region_lock: (raw >> 7) & 0x1 != 0,     // bit 7
+            no_segment: (raw >> 8) & 0x1 != 0,          // bit 8
+            boot2_enable: (raw >> 9) & 0x1 != 0,        // bit 9
+            boot2_rollback: (raw >> 10) & 0x1 != 0,     // bit 10
+            cpu_master_id: ((raw >> 11) & 0xF) as u8,   // bits 11-14 (4 bits)
+            notload_in_bootrom: (raw >> 15) & 0x1 != 0, // bit 15
+            crc_ignore: (raw >> 16) & 0x1 != 0,         // bit 16
+            hash_ignore: (raw >> 17) & 0x1 != 0,        // bit 17
+            power_on_mm: (raw >> 18) & 0x1 != 0,        // bit 18
+            em_sel: ((raw >> 19) & 0x7) as u8,          // bits 19-21 (3 bits)
+            cmds_en: (raw >> 22) & 0x1 != 0,            // bit 22
+            cmds_wrap_mode: ((raw >> 23) & 0x3) as u8,  // bits 23-24 (2 bits)
+            cmds_wrap_len: ((raw >> 25) & 0xF) as u8,   // bits 25-28 (4 bits)
+            icache_invalid: (raw >> 29) & 0x1 != 0,     // bit 29
+            dcache_invalid: (raw >> 30) & 0x1 != 0,     // bit 30
+            fpga_halt_release: (raw >> 31) & 0x1 != 0,  // bit 31
+        };
+        structured_flag
+    }
+}
+
 /// Program or ROM code patches.
 #[repr(C)]
 pub struct HalPatchCfg {
@@ -327,6 +490,24 @@ pub struct HalPatchCfg {
     value: u32,
 }
 
+impl Default for HalPatchCfg {
+    fn default() -> Self {
+        Self { addr: 0, value: 0 }
+    }
+}
+
+impl HalPatchCfg {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
+        if bytes.len() < 8 {
+            return Err("Buffer too small for HalPatchCfg");
+        }
+        let hal_patch_cfg = Self {
+            addr: u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
+            value: u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
+        };
+        Ok(hal_patch_cfg)
+    }
+}
 /// Flash configuration at boot-time.
 #[cfg_attr(target_os = "none", unsafe(link_section = ".head.flash"))]
 #[used]

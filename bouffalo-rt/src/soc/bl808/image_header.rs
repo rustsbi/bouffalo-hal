@@ -1,4 +1,6 @@
-use crate::{HalBasicConfig, HalFlashConfig, HalPatchCfg};
+#[cfg(any(test, debug_assertions))]
+use crate::BasicConfigFlags;
+use crate::{BFLB_BOOT2_HEADER_MAGIC, HalBasicConfig, HalFlashConfig, HalPatchCfg};
 
 /// Clock configuration at boot-time.
 #[cfg(any(doc, feature = "bl808-mcu", feature = "bl808-dsp"))]
@@ -144,6 +146,141 @@ pub struct HalBootheader {
     crc32: u32,
 }
 
+impl HalBootheader {
+    /// Deserialize the boot header from bytes (little endian)
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
+        if bytes.len() < size_of::<Self>() {
+            return Err("Buffer too small for HalBootheader");
+        }
+
+        let mut offset = 0;
+
+        // Magic and revision
+        let magic = u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap());
+        offset += 4;
+
+        if magic != BFLB_BOOT2_HEADER_MAGIC {
+            return Err("Invalid magic number");
+        }
+
+        let revision = u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap());
+        offset += 4;
+
+        // Flash config
+        let flash_cfg = HalFlashConfig::from_bytes(&bytes[offset..])?;
+        offset += size_of::<HalFlashConfig>();
+
+        // Clock config
+        let clk_cfg = HalPllConfig::from_bytes(&bytes[offset..])?;
+        offset += size_of::<HalPllConfig>();
+
+        // Basic config
+        let basic_cfg = HalBasicConfig::from_bytes(&bytes[offset..])?;
+        offset += size_of::<HalBasicConfig>();
+
+        #[allow(dead_code, unused)]
+        #[cfg(any(test, debug_assertions))]
+        let structured_flag = BasicConfigFlags::from_u32(basic_cfg.flag);
+
+        // CPU configs, 3 cores
+        // not using the simplified `[HalCpuCfg::disabled();]` here since it needs `Copy` trait.
+        let mut cpu_cfg = [
+            HalCpuCfg::disabled(),
+            HalCpuCfg::disabled(),
+            HalCpuCfg::disabled(),
+        ];
+        for i in 0..3 {
+            cpu_cfg[i] = HalCpuCfg::from_bytes(&bytes[offset..])?;
+            offset += size_of::<HalCpuCfg>();
+        }
+
+        // Boot tables
+        let boot2_pt_table_0 = u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap());
+        offset += 4;
+        let boot2_pt_table_1 = u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap());
+        offset += 4;
+        let flash_cfg_table_addr =
+            u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap());
+        offset += 4;
+        let flash_cfg_table_len = u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap());
+        offset += 4;
+
+        // Patches
+        // Still, not using the simplified `[HalPatchCfg::default();4]` here since it needs `Copy` trait.
+        let mut patch_on_read = [
+            HalPatchCfg::default(),
+            HalPatchCfg::default(),
+            HalPatchCfg::default(),
+            HalPatchCfg::default(),
+        ];
+        for i in 0..4 {
+            patch_on_read[i] = HalPatchCfg::from_bytes(&bytes[offset..])?;
+            offset += size_of::<HalPatchCfg>();
+        }
+
+        let mut patch_on_jump = [
+            HalPatchCfg::default(),
+            HalPatchCfg::default(),
+            HalPatchCfg::default(),
+            HalPatchCfg::default(),
+        ];
+        for i in 0..4 {
+            patch_on_jump[i] = HalPatchCfg::from_bytes(&bytes[offset..])?;
+            offset += size_of::<HalPatchCfg>();
+        }
+
+        // Reserved
+        let mut _reserved = [0u32; 5];
+        for i in 0..5 {
+            _reserved[i] = u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap());
+            offset += 4;
+        }
+
+        // CRC32
+        let crc32: u32 = u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap());
+
+        let header = Self {
+            magic,
+            revision,
+            flash_cfg,
+            clk_cfg,
+            basic_cfg,
+            cpu_cfg,
+            boot2_pt_table_0,
+            boot2_pt_table_1,
+            flash_cfg_table_addr,
+            flash_cfg_table_len,
+            patch_on_read,
+            patch_on_jump,
+            _reserved,
+            crc32,
+        };
+
+        // There is some special cases where the crc32 is set to `deadbeef`
+        if header.crc32 == 0xdeadbeef {
+            return Ok(header);
+        }
+
+        // If it's not `deadbeef`, verify CRC32
+        if !header.verify_crc32() {
+            return Err("CRC32 verification failed");
+        }
+
+        Ok(header)
+    }
+
+    /// Verify the CRC32 of this header
+    pub fn verify_crc32(&self) -> bool {
+        let data = unsafe {
+            core::slice::from_raw_parts(
+                (self as *const Self) as *const u8,
+                size_of::<Self>() - 4, // exclude CRC32 field
+            )
+        };
+        let calculated_crc = crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(data);
+        calculated_crc == self.crc32
+    }
+}
 /// Hardware system clock configuration.
 #[repr(C)]
 pub struct HalSysClkConfig {
@@ -205,6 +342,17 @@ impl HalSysClkConfig {
 
         crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(&buf)
     }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
+        if bytes.len() < size_of::<Self>() {
+            return Err("Buffer too small for HalSysClkConfig");
+        }
+        // TODO: use safe rust
+        let hal_sys_clk_config =
+            unsafe { core::ptr::read_unaligned(bytes.as_ptr() as *const Self) };
+
+        Ok(hal_sys_clk_config)
+    }
 }
 
 /// Clock configuration in ROM header.
@@ -225,6 +373,41 @@ impl HalPllConfig {
             cfg,
             crc32,
         }
+    }
+
+    /// Deserialize from bytes
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
+        if bytes.len() < size_of::<Self>() {
+            return Err("Buffer too small for HalPllConfig");
+        }
+
+        let magic = u32::from_le_bytes(bytes[0..4].try_into().unwrap());
+        if magic != crate::BFLB_PLL_CONFIG_MAGIC {
+            return Err("Invalid PLL config magic");
+        }
+
+        let cfg = HalSysClkConfig::from_bytes(&bytes[4..])?;
+        let crc32 = u32::from_le_bytes(
+            bytes[size_of::<Self>() - 4..size_of::<Self>()]
+                .try_into()
+                .unwrap(),
+        );
+
+        let pll_cfg = Self { magic, cfg, crc32 };
+
+        // Verify CRC32
+        let data = unsafe {
+            core::slice::from_raw_parts(
+                (&pll_cfg.cfg as *const HalSysClkConfig) as *const u8,
+                size_of::<HalSysClkConfig>(),
+            )
+        };
+        let calculated_crc = crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(data);
+        if calculated_crc != crc32 {
+            return Err("PLL config CRC32 verification failed");
+        }
+
+        Ok(pll_cfg)
     }
 }
 
@@ -265,6 +448,24 @@ impl HalCpuCfg {
             boot_entry: 0x58000000,
             msp_val: 0,
         }
+    }
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
+        if bytes.len() < size_of::<Self>() {
+            return Err("Buffer too small for HalCpuCfg");
+        }
+
+        let hal_cpu_config = Self {
+            config_enable: bytes[0],
+            halt_cpu: bytes[1],
+            cache_flags: bytes[2],
+            _rsvd: bytes[3],
+            cache_range_h: u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
+            cache_range_l: u32::from_le_bytes(bytes[8..12].try_into().unwrap()),
+            image_address_offset: u32::from_le_bytes(bytes[12..16].try_into().unwrap()),
+            boot_entry: u32::from_le_bytes(bytes[16..20].try_into().unwrap()),
+            msp_val: u32::from_le_bytes(bytes[20..24].try_into().unwrap()),
+        };
+        Ok(hal_cpu_config)
     }
 }
 
@@ -371,5 +572,15 @@ mod tests {
         let test_config = HalPllConfig::new(test_sys_clk_config);
         assert_eq!(test_config.magic, 0x47464350);
         assert_eq!(test_config.crc32, 0x864b890a);
+    }
+
+    #[test]
+    fn test_image_from_bytes() {
+        let bytes = include_bytes!("../../../tests/multicore-demo-mcu.bin");
+        let header = HalBootheader::from_bytes(bytes).expect("Failed to parse boot header");
+
+        assert_eq!(header.magic, crate::BFLB_BOOT2_HEADER_MAGIC);
+        // There are some special cases where the crc32 is set to `deadbeef`
+        assert!(header.verify_crc32() || header.crc32 == 0xdeadbeef);
     }
 }
