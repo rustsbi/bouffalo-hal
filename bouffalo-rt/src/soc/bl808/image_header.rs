@@ -1,6 +1,6 @@
-use crate::{
-    BFLB_BOOT2_HEADER_MAGIC, BasicConfigFlags, HalBasicConfig, HalFlashConfig, HalPatchCfg,
-};
+#[cfg(any(test, debug_assertions))]
+use crate::BasicConfigFlags;
+use crate::{BFLB_BOOT2_HEADER_MAGIC, HalBasicConfig, HalFlashConfig, HalPatchCfg};
 
 /// Clock configuration at boot-time.
 #[cfg(any(doc, feature = "bl808-mcu", feature = "bl808-dsp"))]
