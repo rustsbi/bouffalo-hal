@@ -1,4 +1,4 @@
-use super::{Config, ConfigError, Error, Instance, Pads, RegisterBlock, uart_config};
+use super::{Config, ConfigError, Error, Numbered, Pads, RegisterBlock, uart_config};
 use crate::clocks::Clocks;
 
 /// Managed blocking serial peripheral.
@@ -11,7 +11,7 @@ impl<'a, PADS> BlockingSerial<'a, PADS> {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
     #[inline]
     pub fn new_freerun<const I: usize>(
-        uart: impl Instance<'a>,
+        uart: impl Numbered<'a, I>,
         config: Config,
         pads: PADS,
         clocks: &Clocks,
