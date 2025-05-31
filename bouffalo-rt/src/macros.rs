@@ -83,6 +83,7 @@ $(
             unsafe { &*Self::ptr() }
         }
     }
+    impl bouffalo_hal::uart::Numbered<'static, $i> for $UARTx {}
 
     impl<'a> bouffalo_hal::uart::Instance<'a> for &'a mut $UARTx {
         #[inline]
@@ -90,6 +91,7 @@ $(
             &*self
         }
     }
+    impl<'a> bouffalo_hal::uart::Numbered<'a, $i> for &'a mut $UARTx {}
 
     impl<'a, PADS> bouffalo_hal::uart::UartExt<'a, PADS, $i> for &'a mut $UARTx {
         #[inline]

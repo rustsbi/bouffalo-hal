@@ -44,3 +44,6 @@ pub trait Instance<'a> {
     /// Retrieve register block from this instance.
     fn register_block(self) -> &'a RegisterBlock;
 }
+
+/// UART instance with a peripheral number.
+pub trait Numbered<'a, const I: usize>: Instance<'a> {}

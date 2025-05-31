@@ -9,6 +9,7 @@ pub use bouffalo_rt_macros::{entry, exception, interrupt};
 pub mod arch;
 pub mod soc;
 
+/// Bouffalo runtime library prelude.
 pub mod prelude {
     pub use bouffalo_hal::prelude::*;
 }

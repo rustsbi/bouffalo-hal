@@ -1,5 +1,5 @@
 use super::{
-    Config, ConfigError, Error, Instance, Interrupt, InterruptClear, Pads, RegisterBlock,
+    Config, ConfigError, Error, Interrupt, InterruptClear, Numbered, Pads, RegisterBlock,
     uart_config,
 };
 use crate::clocks::Clocks;
@@ -22,7 +22,7 @@ impl<'a, PADS> AsyncSerial<'a, PADS> {
     /// and a waker registry.
     #[inline]
     pub fn new<const I: usize>(
-        uart: impl Instance<'a>,
+        uart: impl Numbered<'a, I>,
         config: Config,
         pads: PADS,
         clocks: &Clocks,

@@ -211,3 +211,5 @@ pub enum InterruptMode {
     AsyncLowLevel = 6,
     AsyncHighLevel = 7,
 }
+
+// TODO unit tests
