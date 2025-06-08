@@ -1,21 +1,25 @@
-use super::{Error, SclPin, SdaPin, register::*};
-use crate::glb::{self, v2::I2cClockSource};
-use core::ops::Deref;
+use super::{Error, Numbered, pads::IntoPads, register::*};
+use crate::{
+    glb::{self, v2::I2cClockSource},
+    gpio::FlexPad,
+};
+use core::marker::PhantomData;
 
 /// Managed Inter-Integrated Circuit peripheral.
-pub struct I2c<I2C, PADS> {
-    i2c: I2C,
-    pads: PADS,
+pub struct I2c<'a> {
+    i2c: &'a super::RegisterBlock,
+    _pads: PhantomData<FlexPad<'a>>,
 }
 
-impl<I2C: Deref<Target = RegisterBlock>, SCL, SDA> I2c<I2C, (SCL, SDA)> {
+impl<'a> I2c<'a> {
     /// Create a new Inter-Integrated Circuit instance.
     #[inline]
-    pub fn new<const I: usize>(i2c: I2C, pads: (SCL, SDA), glb: &glb::v2::RegisterBlock) -> Self
-    where
-        SCL: SclPin<I>,
-        SDA: SdaPin<I>,
-    {
+    pub fn new<const I: usize>(
+        i2c: impl Numbered<'a, I>,
+        pads: impl IntoPads<'a, I>,
+        glb: &glb::v2::RegisterBlock,
+    ) -> Self {
+        let i2c = i2c.register_block();
         // TODO: support custom clock and frequency
         // Enable clock
         unsafe {
@@ -55,17 +59,21 @@ impl<I2C: Deref<Target = RegisterBlock>, SCL, SDA> I2c<I2C, (SCL, SDA)> {
             );
         }
 
-        Self { i2c, pads }
+        let pads = pads.into_i2c_pads();
+        core::mem::forget(pads);
+        Self {
+            i2c,
+            _pads: PhantomData,
+        }
     }
 
-    /// Release the I2C instance and return the pads.
+    /// Release the I2C instance.
     #[inline]
-    pub fn free(self, glb: &glb::v2::RegisterBlock) -> (I2C, (SCL, SDA)) {
+    pub fn free(self, glb: &glb::v2::RegisterBlock) {
         unsafe {
             glb.i2c_config.modify(|config| config.disable_clock());
             glb.clock_config_1.modify(|config| config.disable_i2c());
         }
-        (self.i2c, self.pads)
     }
 
     /// Enable sub-address.
@@ -93,11 +101,11 @@ impl<I2C: Deref<Target = RegisterBlock>, SCL, SDA> I2c<I2C, (SCL, SDA)> {
     }
 }
 
-impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::ErrorType for I2c<I2C, PADS> {
+impl<'a> embedded_hal::i2c::ErrorType for I2c<'a> {
     type Error = Error;
 }
 
-impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2C, PADS> {
+impl<'a> embedded_hal::i2c::I2c for I2c<'a> {
     #[inline]
     fn transaction(
         &mut self,

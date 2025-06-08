@@ -1,43 +1,32 @@
-pub trait SclPin<const I: usize> {}
+use crate::gpio::FlexPad;
 
-pub trait SdaPin<const I: usize> {}
+/// Pad that can be configured into I2C SCL alternate function.
+pub trait IntoI2cScl<'a, const I: usize> {
+    /// Configure this pad into I2C SCL signal.
+    fn into_i2c_scl(self) -> FlexPad<'a>;
+}
 
-#[rustfmt::skip]
-mod i2c_impls {
-    use crate::gpio::{self, Alternate};
-    use super::{SclPin, SdaPin};
+/// Pad that can be configured into I2C SDA alternate function.
+pub trait IntoI2cSda<'a, const I: usize> {
+    /// Configure this pad into I2C SDA signal.
+    fn into_i2c_sda(self) -> FlexPad<'a>;
+}
 
-    // 0, 2, 4, ..., 2n: SCL
-    // 1, 3, 5, ..., 2n+1: SDA
-    // TODO: support other pads if needed
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 0, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 1, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 2, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 3, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 4, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 5, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 6, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 7, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 8, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 9, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 10, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 11, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 12, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 13, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 14, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 15, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 16, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 17, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 18, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 19, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 20, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 21, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 22, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 23, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 24, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 25, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 26, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 27, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 28, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 29, gpio::I2c<I>> {}
+/// Pads that can be converted into valid I2C pads.
+pub trait IntoPads<'a, const I: usize> {
+    /// Convert this set of pad into I2C alternate function.
+    fn into_i2c_pads(self) -> (FlexPad<'a>, FlexPad<'a>);
+}
+
+impl<'a, A, B, const I: usize> IntoPads<'a, I> for (A, B)
+where
+    A: IntoI2cScl<'a, I>,
+    B: IntoI2cSda<'a, I>,
+{
+    #[inline]
+    fn into_i2c_pads(self) -> (FlexPad<'a>, FlexPad<'a>) {
+        let a = self.0.into_i2c_scl();
+        let b = self.1.into_i2c_sda();
+        (a, b)
+    }
 }

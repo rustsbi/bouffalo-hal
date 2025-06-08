@@ -4,7 +4,7 @@ mod blocking;
 mod pads;
 mod register;
 pub use blocking::I2c;
-pub use pads::{SclPin, SdaPin};
+pub use pads::{IntoI2cScl, IntoI2cSda, IntoPads};
 pub use register::*;
 
 /// I2C error.
@@ -23,3 +23,12 @@ impl embedded_hal::i2c::Error for Error {
         }
     }
 }
+
+/// Peripheral instance for I2C.
+pub trait Instance<'a> {
+    /// Retrieve register block from this instance.
+    fn register_block(self) -> &'a RegisterBlock;
+}
+
+/// I2C peripheral instance with a number.
+pub trait Numbered<'a, const N: usize>: Instance<'a> {}

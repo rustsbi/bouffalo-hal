@@ -5,7 +5,7 @@ mod pads;
 mod register;
 
 pub use master::Spi;
-pub use pads::{IntoPads, IntoSpiClkSignal, IntoSpiCsSignal, IntoSpiMisoSignal, IntoSpiMosiSignal};
+pub use pads::{IntoPads, IntoSpiClk, IntoSpiCs, IntoSpiMiso, IntoSpiMosi, IntoTransmitOnly};
 pub use register::*;
 
 /// SPI error.
