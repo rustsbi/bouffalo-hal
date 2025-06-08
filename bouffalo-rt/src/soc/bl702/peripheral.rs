@@ -50,7 +50,7 @@ uart! {
     UART1: 1,
 }
 
-spi! { SPI, }
+spi! { SPI: 0, }
 
 pwm! { PWM, }
 

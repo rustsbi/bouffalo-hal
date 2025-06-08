@@ -153,7 +153,7 @@ $(
 }
 
 macro_rules! spi {
-    ($($SPIx: ty,)+) => {
+    ($($SPIx: ty: $i: expr,)+) => {
     $(
 impl bouffalo_hal::spi::Instance<'static> for $SPIx {
     #[inline]
@@ -161,6 +161,7 @@ impl bouffalo_hal::spi::Instance<'static> for $SPIx {
         unsafe { &*Self::ptr() }
     }
 }
+impl bouffalo_hal::spi::Numbered<'static, $i> for $SPIx {}
 
 impl<'a> bouffalo_hal::spi::Instance<'a> for &'a mut $SPIx {
     #[inline]
@@ -168,6 +169,7 @@ impl<'a> bouffalo_hal::spi::Instance<'a> for &'a mut $SPIx {
         &*self
     }
 }
+impl<'a> bouffalo_hal::spi::Numbered<'a, $i> for &'a mut $SPIx {}
     )+
     };
 }
@@ -535,5 +537,30 @@ macro_rules! impl_pad_v1 {
                 bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::None)
             }
         }
+    };
+}
+
+macro_rules! pad_spi {
+    (
+        $Pad: ident;
+        $(
+            ($($N_pad: expr,)+): $Trait: ident<$I_spi: literal>, $into_spi_signal: ident;
+        )+
+    ) => {
+$($(
+impl $Trait<'static, $I_spi> for $Pad<$N_pad> {
+    #[inline]
+    fn $into_spi_signal(self) -> FlexPad<'static> {
+        FlexPad::from_spi(Alternate::new_spi::<$I_spi>(self))
+    }
+}
+
+impl<'a> $Trait<'a, $I_spi> for &'a mut $Pad<$N_pad> {
+    #[inline]
+    fn $into_spi_signal(self) -> FlexPad<'a> {
+        FlexPad::from_spi(Alternate::new_spi::<$I_spi>(self))
+    }
+}
+)+)+
     };
 }

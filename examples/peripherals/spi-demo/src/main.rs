@@ -21,13 +21,13 @@ fn main(p: Peripherals, _c: Clocks) -> ! {
     let mut led = p.gpio.io8.into_floating_output();
     let mut led_state = PinState::Low;
 
-    let spi_cs = p.gpio.io12.into_spi::<1>();
-    let spi_mosi = p.gpio.io25.into_spi::<1>();
-    let spi_clk = p.gpio.io19.into_spi::<1>();
+    let spi_cs = p.gpio.io12;
+    let spi_mosi = p.gpio.io25;
+    let spi_clk = p.gpio.io19;
     let lcd_dc = p.gpio.io13.into_floating_output();
     let mut lcd_bl = p.gpio.io11.into_floating_output();
     let lcd_rst = p.gpio.io24.into_floating_output();
-    let spi_lcd = Spi::new(p.spi1, (spi_clk, spi_mosi, spi_cs), MODE_0, &p.glb);
+    let spi_lcd = Spi::transmit_only(p.spi1, (spi_clk, spi_mosi, spi_cs), MODE_0, &p.glb);
 
     let mut delay = riscv::delay::McycleDelay::new(40_000_000);
     let di = display_interface_spi::SPIInterface::new(spi_lcd, lcd_dc);

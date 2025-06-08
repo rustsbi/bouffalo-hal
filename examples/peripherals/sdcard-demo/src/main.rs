@@ -32,16 +32,12 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let mut led = p.gpio.io8.into_floating_output();
     let mut led_state = PinState::High;
 
-    let spi_clk = p.gpio.io3.into_spi::<1>();
-    let spi_mosi = p.gpio.io1.into_spi::<1>();
-    let spi_miso = p.gpio.io2.into_spi::<1>();
-    let spi_cs = p.gpio.io0.into_spi::<1>();
-    let spi_sd = Spi::new(
-        p.spi1,
-        (spi_clk, spi_mosi, spi_miso, spi_cs),
-        MODE_3,
-        &p.glb,
-    );
+    let spi_clk = p.gpio.io3;
+    let spi_mosi = p.gpio.io1;
+    let spi_miso = p.gpio.io2;
+    let spi_cs = p.gpio.io0;
+    let pads = (spi_clk, spi_mosi, spi_miso, spi_cs);
+    let spi_sd = Spi::new(p.spi1, pads, MODE_3, &p.glb);
 
     let delay = riscv::delay::McycleDelay::new(40_000_000);
     let sdcard = SdCard::new(spi_sd, delay);

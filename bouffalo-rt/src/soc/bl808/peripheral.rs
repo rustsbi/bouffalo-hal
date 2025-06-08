@@ -1,5 +1,9 @@
 pub use bouffalo_hal::clocks::Clocks;
-use bouffalo_hal::dma::{EightChannels, FourChannels, Periph4Dma01, Periph4Dma2};
+use bouffalo_hal::{
+    dma::{EightChannels, FourChannels, Periph4Dma01, Periph4Dma2},
+    gpio::{Alternate, FlexPad},
+    spi::{IntoSpiClkSignal, IntoSpiCsSignal, IntoSpiMisoSignal, IntoSpiMosiSignal},
+};
 
 /// Peripherals available on ROM start.
 pub struct Peripherals<'a> {
@@ -113,7 +117,7 @@ uart! {
     UART3: 3,
 }
 
-spi! { SPI0, SPI1, }
+spi! { SPI0: 0, SPI1: 1, }
 
 pwm! { PWM, }
 
@@ -123,6 +127,14 @@ pub struct Pad<const N: usize> {
 }
 
 impl_pad_v2! { Pad: GLBv2 }
+
+pad_spi! {
+    Pad;
+    (3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43,     ): IntoSpiClkSignal<1>, into_spi_clk_signal;
+    (1, 5, 9,  13, 17, 21, 25, 29, 33, 37, 41, 45, ): IntoSpiMosiSignal<1>, into_spi_mosi_signal;
+    (2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 42,     ): IntoSpiMisoSignal<1>, into_spi_miso_signal;
+    (0, 4, 8,  12, 16, 20, 24, 28, 32, 36, 40, 44, ): IntoSpiCsSignal<1>, into_spi_cs_signal;
+}
 
 // Used by macros only.
 #[allow(unused)]

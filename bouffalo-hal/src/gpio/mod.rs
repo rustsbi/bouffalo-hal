@@ -125,6 +125,7 @@
 
 mod alternate;
 mod convert;
+mod flex_pad;
 mod input;
 mod output;
 pub mod pad_v1;
@@ -135,7 +136,7 @@ use crate::glb::Version;
 pub use convert::{IntoPad, IntoPadv2};
 pub use typestate::*;
 
-pub use {alternate::Alternate, input::Input, output::Output};
+pub use {alternate::Alternate, flex_pad::FlexPad, input::Input, output::Output};
 
 /// Peripheral instance of a GPIO pad.
 pub trait Instance<'a> {

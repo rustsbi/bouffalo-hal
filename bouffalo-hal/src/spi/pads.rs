@@ -1,94 +1,69 @@
-use crate::gpio::{self, Alternate};
+use crate::gpio::FlexPad;
 
-/// Valid SPI pads.
-pub trait Pads<const I: usize> {}
-
-impl<'a, 'b, 'c, const N1: usize, const N2: usize, const N3: usize> Pads<1>
-    for (
-        Alternate<'a, N1, gpio::Spi<1>>,
-        Alternate<'b, N2, gpio::Spi<1>>,
-        Alternate<'c, N3, gpio::Spi<1>>,
-    )
-where
-    Alternate<'a, N1, gpio::Spi<1>>: HasClkSignal,
-    Alternate<'b, N2, gpio::Spi<1>>: HasMosiSignal,
-    Alternate<'c, N3, gpio::Spi<1>>: HasCsSignal,
-{
+/// Pads that can be converted into valid full-duplex SPI pads.
+pub trait IntoPads<'a, const I: usize> {
+    /// Convert this set of pad into SPI alternate function with full-duplex signal support.
+    fn into_full_duplex_pads(self) -> (FlexPad<'a>, FlexPad<'a>, FlexPad<'a>, FlexPad<'a>);
 }
 
-impl<'a, 'b, 'c, 'd, const N1: usize, const N2: usize, const N3: usize, const N4: usize> Pads<1>
-    for (
-        Alternate<'a, N1, gpio::Spi<1>>,
-        Alternate<'b, N2, gpio::Spi<1>>,
-        Alternate<'c, N3, gpio::Spi<1>>,
-        Alternate<'d, N4, gpio::Spi<1>>,
-    )
+impl<'a, A, B, C, D, const I: usize> IntoPads<'a, I> for (A, B, C, D)
 where
-    Alternate<'a, N1, gpio::Spi<1>>: HasClkSignal,
-    Alternate<'b, N2, gpio::Spi<1>>: HasMosiSignal,
-    Alternate<'c, N3, gpio::Spi<1>>: HasMisoSignal,
-    Alternate<'d, N4, gpio::Spi<1>>: HasCsSignal,
+    A: IntoSpiClkSignal<'a, I>,
+    B: IntoSpiMosiSignal<'a, I>,
+    C: IntoSpiMisoSignal<'a, I>,
+    D: IntoSpiCsSignal<'a, I>,
 {
+    #[inline]
+    fn into_full_duplex_pads(self) -> (FlexPad<'a>, FlexPad<'a>, FlexPad<'a>, FlexPad<'a>) {
+        let a = self.0.into_spi_clk_signal();
+        let b = self.1.into_spi_mosi_signal();
+        let c = self.2.into_spi_miso_signal();
+        let d = self.3.into_spi_cs_signal();
+        (a, b, c, d)
+    }
 }
 
-/// Check if target gpio `Pin` is internally connected to SPI clock signal.
-pub trait HasClkSignal {}
+/// Pads that can be converted into valid SPI pads with transmit feature only.
+pub trait IntoTransmitOnly<'a, const I: usize> {
+    /// Convert this set of pad into SPI alternate function with transmit-only signal support.
+    fn into_transmit_only_pads(self) -> (FlexPad<'a>, FlexPad<'a>, FlexPad<'a>);
+}
 
-impl<'a> HasClkSignal for Alternate<'a, 3, gpio::Spi<1>> {}
-impl<'a> HasClkSignal for Alternate<'a, 7, gpio::Spi<1>> {}
-impl<'a> HasClkSignal for Alternate<'a, 11, gpio::Spi<1>> {}
-impl<'a> HasClkSignal for Alternate<'a, 15, gpio::Spi<1>> {}
-impl<'a> HasClkSignal for Alternate<'a, 19, gpio::Spi<1>> {}
-impl<'a> HasClkSignal for Alternate<'a, 23, gpio::Spi<1>> {}
-impl<'a> HasClkSignal for Alternate<'a, 27, gpio::Spi<1>> {}
-impl<'a> HasClkSignal for Alternate<'a, 31, gpio::Spi<1>> {}
-impl<'a> HasClkSignal for Alternate<'a, 35, gpio::Spi<1>> {}
-impl<'a> HasClkSignal for Alternate<'a, 39, gpio::Spi<1>> {}
-impl<'a> HasClkSignal for Alternate<'a, 43, gpio::Spi<1>> {}
+impl<'a, A, B, C, const I: usize> IntoTransmitOnly<'a, I> for (A, B, C)
+where
+    A: IntoSpiClkSignal<'a, I>,
+    B: IntoSpiMosiSignal<'a, I>,
+    C: IntoSpiCsSignal<'a, I>,
+{
+    #[inline]
+    fn into_transmit_only_pads(self) -> (FlexPad<'a>, FlexPad<'a>, FlexPad<'a>) {
+        let a = self.0.into_spi_clk_signal();
+        let b = self.1.into_spi_mosi_signal();
+        let c = self.2.into_spi_cs_signal();
+        (a, b, c)
+    }
+}
 
-/// Check if target gpio `Pin` is internally connected to SPI MISO signal.
-pub trait HasMisoSignal {}
+/// Pad that can be configured into SPI clock alternate function.
+pub trait IntoSpiClkSignal<'a, const I: usize> {
+    /// Configure this pad into SPI clock signal.
+    fn into_spi_clk_signal(self) -> FlexPad<'a>;
+}
 
-impl<'a> HasMisoSignal for Alternate<'a, 2, gpio::Spi<1>> {}
-impl<'a> HasMisoSignal for Alternate<'a, 6, gpio::Spi<1>> {}
-impl<'a> HasMisoSignal for Alternate<'a, 10, gpio::Spi<1>> {}
-impl<'a> HasMisoSignal for Alternate<'a, 14, gpio::Spi<1>> {}
-impl<'a> HasMisoSignal for Alternate<'a, 18, gpio::Spi<1>> {}
-impl<'a> HasMisoSignal for Alternate<'a, 22, gpio::Spi<1>> {}
-impl<'a> HasMisoSignal for Alternate<'a, 26, gpio::Spi<1>> {}
-impl<'a> HasMisoSignal for Alternate<'a, 30, gpio::Spi<1>> {}
-impl<'a> HasMisoSignal for Alternate<'a, 34, gpio::Spi<1>> {}
-impl<'a> HasMisoSignal for Alternate<'a, 38, gpio::Spi<1>> {}
-impl<'a> HasMisoSignal for Alternate<'a, 42, gpio::Spi<1>> {}
+/// Pad that can be configured into SPI MOSI alternate function.
+pub trait IntoSpiMosiSignal<'a, const I: usize> {
+    /// Configure this pad into SPI MOSI signal.
+    fn into_spi_mosi_signal(self) -> FlexPad<'a>;
+}
 
-/// Check if target gpio `Pin` is internally connected to SPI MOSI signal.
-pub trait HasMosiSignal {}
+/// Pad that can be configured into SPI MISO alternate function.
+pub trait IntoSpiMisoSignal<'a, const I: usize> {
+    /// Configure this pad into SPI MISO signal.
+    fn into_spi_miso_signal(self) -> FlexPad<'a>;
+}
 
-impl<'a> HasMosiSignal for Alternate<'a, 1, gpio::Spi<1>> {}
-impl<'a> HasMosiSignal for Alternate<'a, 5, gpio::Spi<1>> {}
-impl<'a> HasMosiSignal for Alternate<'a, 9, gpio::Spi<1>> {}
-impl<'a> HasMosiSignal for Alternate<'a, 13, gpio::Spi<1>> {}
-impl<'a> HasMosiSignal for Alternate<'a, 17, gpio::Spi<1>> {}
-impl<'a> HasMosiSignal for Alternate<'a, 21, gpio::Spi<1>> {}
-impl<'a> HasMosiSignal for Alternate<'a, 25, gpio::Spi<1>> {}
-impl<'a> HasMosiSignal for Alternate<'a, 29, gpio::Spi<1>> {}
-impl<'a> HasMosiSignal for Alternate<'a, 33, gpio::Spi<1>> {}
-impl<'a> HasMosiSignal for Alternate<'a, 37, gpio::Spi<1>> {}
-impl<'a> HasMosiSignal for Alternate<'a, 41, gpio::Spi<1>> {}
-impl<'a> HasMosiSignal for Alternate<'a, 45, gpio::Spi<1>> {}
-
-/// Check if target gpio `Pin` is internally connected to SPI CS signal.
-pub trait HasCsSignal {}
-
-impl<'a> HasCsSignal for Alternate<'a, 0, gpio::Spi<1>> {}
-impl<'a> HasCsSignal for Alternate<'a, 4, gpio::Spi<1>> {}
-impl<'a> HasCsSignal for Alternate<'a, 8, gpio::Spi<1>> {}
-impl<'a> HasCsSignal for Alternate<'a, 12, gpio::Spi<1>> {}
-impl<'a> HasCsSignal for Alternate<'a, 16, gpio::Spi<1>> {}
-impl<'a> HasCsSignal for Alternate<'a, 20, gpio::Spi<1>> {}
-impl<'a> HasCsSignal for Alternate<'a, 24, gpio::Spi<1>> {}
-impl<'a> HasCsSignal for Alternate<'a, 28, gpio::Spi<1>> {}
-impl<'a> HasCsSignal for Alternate<'a, 32, gpio::Spi<1>> {}
-impl<'a> HasCsSignal for Alternate<'a, 36, gpio::Spi<1>> {}
-impl<'a> HasCsSignal for Alternate<'a, 40, gpio::Spi<1>> {}
-impl<'a> HasCsSignal for Alternate<'a, 44, gpio::Spi<1>> {}
+/// Pad that can be configured into SPI chip select alternate function.
+pub trait IntoSpiCsSignal<'a, const I: usize> {
+    /// Configure this pad into SPI chip select signal.
+    fn into_spi_cs_signal(self) -> FlexPad<'a>;
+}
