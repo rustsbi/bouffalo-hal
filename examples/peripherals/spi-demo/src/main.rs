@@ -12,8 +12,7 @@ use embedded_graphics::{
     text::Text,
 };
 use embedded_hal::spi::MODE_0;
-use mipidsi::Builder;
-use mipidsi::{models::ST7789, options::ColorInversion};
+use mipidsi::{Builder, interface::SpiInterface, models::ST7789, options::ColorInversion};
 use panic_halt as _;
 
 #[entry]
@@ -30,7 +29,8 @@ fn main(p: Peripherals, _c: Clocks) -> ! {
     let spi_lcd = Spi::transmit_only(p.spi1, (spi_clk, spi_mosi, spi_cs), MODE_0, &p.glb);
 
     let mut delay = riscv::delay::McycleDelay::new(40_000_000);
-    let di = display_interface_spi::SPIInterface::new(spi_lcd, lcd_dc);
+    let mut buffer = [0u8; 512];
+    let di = SpiInterface::new(spi_lcd, lcd_dc, &mut buffer);
 
     let mut display = Builder::new(ST7789, di)
         .invert_colors(ColorInversion::Inverted)
