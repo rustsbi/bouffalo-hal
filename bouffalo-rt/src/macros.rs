@@ -153,7 +153,7 @@ $(
 }
 
 macro_rules! spi {
-    ($($SPIx: ty,)+) => {
+    ($($SPIx: ty: $i: expr,)+) => {
     $(
 impl bouffalo_hal::spi::Instance<'static> for $SPIx {
     #[inline]
@@ -161,6 +161,7 @@ impl bouffalo_hal::spi::Instance<'static> for $SPIx {
         unsafe { &*Self::ptr() }
     }
 }
+impl bouffalo_hal::spi::Numbered<'static, $i> for $SPIx {}
 
 impl<'a> bouffalo_hal::spi::Instance<'a> for &'a mut $SPIx {
     #[inline]
@@ -168,6 +169,29 @@ impl<'a> bouffalo_hal::spi::Instance<'a> for &'a mut $SPIx {
         &*self
     }
 }
+impl<'a> bouffalo_hal::spi::Numbered<'a, $i> for &'a mut $SPIx {}
+    )+
+    };
+}
+
+macro_rules! i2c {
+    ($($I2Ci: ty: $i: expr,)+) => {
+    $(
+impl bouffalo_hal::i2c::Instance<'static> for $I2Ci {
+    #[inline]
+    fn register_block(self) -> &'static bouffalo_hal::i2c::RegisterBlock {
+        unsafe { &*Self::ptr() }
+    }
+}
+impl bouffalo_hal::i2c::Numbered<'static, $i> for $I2Ci {}
+
+impl<'a> bouffalo_hal::i2c::Instance<'a> for &'a mut $I2Ci {
+    #[inline]
+    fn register_block(self) -> &'a bouffalo_hal::i2c::RegisterBlock {
+        &*self
+    }
+}
+impl<'a> bouffalo_hal::i2c::Numbered<'a, $i> for &'a mut $I2Ci {}
     )+
     };
 }
@@ -535,5 +559,55 @@ macro_rules! impl_pad_v1 {
                 bouffalo_hal::gpio::Input::new(self, N, bouffalo_hal::glb::Pull::None)
             }
         }
+    };
+}
+
+macro_rules! pad_spi {
+    (
+        $Pad: ident;
+        $(
+            ($($N_pad: expr,)+): $Trait: ident<$I_spi: literal>, $into_spi_signal: ident;
+        )+
+    ) => {
+$($(
+impl $Trait<'static, $I_spi> for $Pad<$N_pad> {
+    #[inline]
+    fn $into_spi_signal(self) -> FlexPad<'static> {
+        FlexPad::from_spi(Alternate::new_spi::<$I_spi>(self))
+    }
+}
+
+impl<'a> $Trait<'a, $I_spi> for &'a mut $Pad<$N_pad> {
+    #[inline]
+    fn $into_spi_signal(self) -> FlexPad<'a> {
+        FlexPad::from_spi(Alternate::new_spi::<$I_spi>(self))
+    }
+}
+)+)+
+    };
+}
+
+macro_rules! pad_i2c {
+    (
+        $Pad: ident;
+        $(
+            ($($N_pad: expr,)+): $Trait: ident<$I_i2c: literal>, $into_i2c_signal: ident;
+        )+
+    ) => {
+$($(
+impl $Trait<'static, $I_i2c> for $Pad<$N_pad> {
+    #[inline]
+    fn $into_i2c_signal(self) -> FlexPad<'static> {
+        FlexPad::from_i2c(Alternate::new_i2c::<$I_i2c>(self))
+    }
+}
+
+impl<'a> $Trait<'a, $I_i2c> for &'a mut $Pad<$N_pad> {
+    #[inline]
+    fn $into_i2c_signal(self) -> FlexPad<'a> {
+        FlexPad::from_i2c(Alternate::new_i2c::<$I_i2c>(self))
+    }
+}
+)+)+
     };
 }

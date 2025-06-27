@@ -1,10 +1,3 @@
-//! Inter-Integrated Circuit bus.
-use core::ops::Deref;
-
-use crate::{
-    glb::{self, v2::I2cClockSource},
-    gpio::{self, Alternate},
-};
 use volatile_register::{RO, RW, WO};
 
 /// Inter-integrated circuit registers.
@@ -44,7 +37,7 @@ pub struct RegisterBlock {
 /// Function configuration register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct Config(u32);
+pub struct Config(pub(crate) u32);
 
 impl Config {
     const MASTER_ENABLE: u32 = 1 << 0;
@@ -317,7 +310,7 @@ impl BusBusy {
 /// Duration of start phase.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct PeriodStart(u32);
+pub struct PeriodStart(pub(crate) u32);
 
 impl PeriodStart {
     const START_PHASE: u32 = 0xff;
@@ -337,7 +330,7 @@ impl PeriodStart {
 /// Duration of stop phase.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct PeriodStop(u32);
+pub struct PeriodStop(pub(crate) u32);
 
 impl PeriodStop {
     const STOP_PHASE: u32 = 0xff;
@@ -357,7 +350,7 @@ impl PeriodStop {
 /// Duration of data phase.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct PeriodData(u32);
+pub struct PeriodData(pub(crate) u32);
 
 impl PeriodData {
     const DATA_PHASE: u32 = 0xff;
@@ -492,212 +485,6 @@ impl FifoConfig1 {
     pub const fn receive_threshold(self) -> u8 {
         ((self.0 & Self::RECEIVE_THRESHOLD) >> 24) as u8
     }
-}
-
-/// Managed Inter-Integrated Circuit peripheral.
-pub struct I2c<I2C, PADS> {
-    i2c: I2C,
-    pads: PADS,
-}
-
-impl<I2C: Deref<Target = RegisterBlock>, SCL, SDA> I2c<I2C, (SCL, SDA)> {
-    /// Create a new Inter-Integrated Circuit instance.
-    #[inline]
-    pub fn new<const I: usize>(i2c: I2C, pads: (SCL, SDA), glb: &glb::v2::RegisterBlock) -> Self
-    where
-        SCL: SclPin<I>,
-        SDA: SdaPin<I>,
-    {
-        // TODO: support custom clock and frequency
-        // Enable clock
-        unsafe {
-            glb.i2c_config.modify(|config| {
-                config
-                    .enable_clock()
-                    .set_clock_source(I2cClockSource::Xclk)
-                    .set_clock_divide(0xff)
-            });
-            glb.clock_config_1.modify(|config| config.enable_i2c());
-            i2c.period_start.write(
-                PeriodStart(0)
-                    .set_phase(0, 0xff)
-                    .set_phase(1, 0xff)
-                    .set_phase(2, 0xff)
-                    .set_phase(3, 0xff),
-            );
-            i2c.period_stop.write(
-                PeriodStop(0)
-                    .set_phase(0, 0xff)
-                    .set_phase(1, 0xff)
-                    .set_phase(2, 0xff)
-                    .set_phase(3, 0xff),
-            );
-            i2c.period_data.write(
-                PeriodData(0)
-                    .set_phase(0, 0xff)
-                    .set_phase(1, 0xff)
-                    .set_phase(2, 0xff)
-                    .set_phase(3, 0xff),
-            );
-            i2c.config.write(
-                Config(0)
-                    .disable_ten_bit_address()
-                    .disable_scl_sync()
-                    .disable_sub_address(),
-            );
-        }
-
-        Self { i2c, pads }
-    }
-
-    /// Release the I2C instance and return the pads.
-    #[inline]
-    pub fn free(self, glb: &glb::v2::RegisterBlock) -> (I2C, (SCL, SDA)) {
-        unsafe {
-            glb.i2c_config.modify(|config| config.disable_clock());
-            glb.clock_config_1.modify(|config| config.disable_i2c());
-        }
-        (self.i2c, self.pads)
-    }
-
-    /// Enable sub-address.
-    #[inline]
-    pub fn enable_sub_address(&mut self, sub_address: u8) {
-        // TODO: support sub-address with more than one byte
-        unsafe {
-            self.i2c.config.modify(|config| {
-                config
-                    .enable_sub_address()
-                    .set_sub_address_byte_count(SubAddressByteCount::One)
-            });
-            self.i2c.sub_address.write(sub_address as u32);
-        }
-    }
-
-    /// Disable sub-address.
-    #[inline]
-    pub fn disable_sub_address(&mut self) {
-        unsafe {
-            self.i2c
-                .config
-                .modify(|config| config.disable_sub_address());
-        }
-    }
-}
-
-/// I2C error.
-#[derive(Debug)]
-#[non_exhaustive]
-pub enum Error {
-    Other,
-}
-
-impl embedded_hal::i2c::Error for Error {
-    #[inline(always)]
-    fn kind(&self) -> embedded_hal::i2c::ErrorKind {
-        use embedded_hal::i2c::ErrorKind;
-        match self {
-            Error::Other => ErrorKind::Other,
-        }
-    }
-}
-
-impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::ErrorType for I2c<I2C, PADS> {
-    type Error = Error;
-}
-
-impl<I2C: Deref<Target = RegisterBlock>, PADS> embedded_hal::i2c::I2c for I2c<I2C, PADS> {
-    #[inline]
-    fn transaction(
-        &mut self,
-        address: u8,
-        operations: &mut [embedded_hal::i2c::Operation<'_>],
-    ) -> Result<(), Self::Error> {
-        for op in operations {
-            match op {
-                embedded_hal::i2c::Operation::Write(_bytes) => {
-                    todo!()
-                }
-                embedded_hal::i2c::Operation::Read(bytes) => {
-                    let len = bytes.len() as u8;
-                    unsafe {
-                        self.i2c.config.modify(|config| {
-                            config
-                                .set_read_direction()
-                                .set_slave_address(address as u16)
-                                .set_packet_length(len - 1)
-                                .enable_master()
-                        })
-                    };
-
-                    let mut i = 0;
-                    let max_retry = len * 100;
-                    let mut retry = 0;
-                    while i < len {
-                        while self.i2c.fifo_config_1.read().receive_available_bytes() == 0 {
-                            retry += 1;
-                            if retry >= max_retry {
-                                unsafe { self.i2c.config.modify(|config| config.disable_master()) };
-                                return Err(Error::Other);
-                            }
-                        }
-                        let word = self.i2c.fifo_read.read();
-                        let bytes_to_read = core::cmp::min(len - i, 4);
-                        for j in 0..bytes_to_read {
-                            bytes[i as usize] = (word >> (j * 8)) as u8;
-                            i += 1;
-                        }
-                    }
-
-                    unsafe { self.i2c.config.modify(|config| config.disable_master()) };
-                }
-            }
-        }
-        Ok(())
-    }
-}
-
-pub trait SclPin<const I: usize> {}
-
-pub trait SdaPin<const I: usize> {}
-
-#[rustfmt::skip]
-mod i2c_impls {
-    use super::*;
-
-    // 0, 2, 4, ..., 2n: SCL
-    // 1, 3, 5, ..., 2n+1: SDA
-    // TODO: support other pads if needed
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 0, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 1, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 2, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 3, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 4, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 5, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 6, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 7, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 8, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 9, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 10, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 11, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 12, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 13, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 14, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 15, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 16, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 17, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 18, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 19, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 20, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 21, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 22, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 23, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 24, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 25, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 26, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 27, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SclPin<I> for Alternate<'a, 28, gpio::I2c<I>> {}
-    impl<'a, const I: usize> SdaPin<I> for Alternate<'a, 29, gpio::I2c<I>> {}
 }
 
 #[cfg(test)]

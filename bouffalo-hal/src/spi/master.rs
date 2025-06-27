@@ -1,22 +1,27 @@
-use crate::glb::{self, v2::SpiMode};
-use core::cmp::max;
+use super::{Error, Numbered, register::*};
+use crate::{
+    glb::{self, v2::SpiMode},
+    gpio::FlexPad,
+    spi::pads::{IntoPads, IntoTransmitOnly},
+};
+use core::{cmp::max, marker::PhantomData};
 use embedded_hal::spi::Mode;
 
-use super::{Error, Instance, pads::Pads, register::*};
-
 /// Managed Serial Peripheral Interface peripheral.
-pub struct Spi<'a, PADS, const I: usize> {
+pub struct Spi<'a> {
     spi: &'a RegisterBlock,
-    pads: PADS,
+    _pads: PhantomData<FlexPad<'a>>,
 }
 
-impl<'a, PADS, const I: usize> Spi<'a, PADS, I> {
-    /// Create a new Serial Peripheral Interface instance.
+impl<'a> Spi<'a> {
+    /// Create a new Serial Peripheral Interface instance with full duplex function.
     #[inline]
-    pub fn new(spi: impl Instance<'a>, pads: PADS, mode: Mode, glb: &glb::v2::RegisterBlock) -> Self
-    where
-        PADS: Pads<I>,
-    {
+    pub fn new<const I: usize>(
+        spi: impl Numbered<'a, I>,
+        pads: impl IntoPads<'a, I>,
+        mode: Mode,
+        glb: &glb::v2::RegisterBlock,
+    ) -> Self {
         let config = Config::default()
             .disable_deglitch()
             .disable_slave_three_pin()
@@ -54,21 +59,76 @@ impl<'a, PADS, const I: usize> Spi<'a, PADS, I> {
             spi.period_interval
                 .write(PeriodInterval::default().set_frame_interval(4));
         }
-        Spi { spi, pads }
+
+        let pads = pads.into_full_duplex_pads();
+        core::mem::forget(pads);
+        Spi {
+            spi,
+            _pads: PhantomData,
+        }
     }
 
-    /// Release the SPI instance and return the pads.
+    /// Create a new Serial Peripheral Interface instance with only transmit pads.
+    // TODO simplify device register initialization, reuse with `new`
     #[inline]
-    pub fn free(self) -> PADS {
-        self.pads
+    pub fn transmit_only<const I: usize>(
+        spi: impl Numbered<'a, I>,
+        pads: impl IntoTransmitOnly<'a, I>,
+        mode: Mode,
+        glb: &glb::v2::RegisterBlock,
+    ) -> Self {
+        let config = Config::default()
+            .disable_deglitch()
+            .disable_slave_three_pin()
+            .enable_master_continuous()
+            .disable_byte_inverse()
+            .disable_bit_inverse()
+            .set_frame_size(FrameSize::Eight)
+            .disable_master()
+            .set_clock_phase(mode.phase)
+            .set_clock_polarity(mode.polarity);
+
+        let spi = spi.register_block();
+        unsafe {
+            glb.param_config
+                .modify(|c| c.set_spi_mode::<I>(SpiMode::Master));
+
+            spi.config.write(config);
+            spi.fifo_config_0.write(
+                FifoConfig0::default()
+                    .disable_dma_receive()
+                    .disable_dma_transmit(),
+            );
+            spi.fifo_config_1.write(
+                FifoConfig1::default()
+                    .set_receive_threshold(0)
+                    .set_transmit_threshold(0),
+            );
+            spi.period_signal.write(
+                PeriodSignal::default()
+                    .set_data_phase_0(4)
+                    .set_data_phase_1(4)
+                    .set_start_condition(4)
+                    .set_stop_condition(4),
+            );
+            spi.period_interval
+                .write(PeriodInterval::default().set_frame_interval(4));
+        }
+
+        let pads = pads.into_transmit_only_pads();
+        core::mem::forget(pads);
+        Spi {
+            spi,
+            _pads: PhantomData,
+        }
     }
 }
 
-impl<'a, PADS, const I: usize> embedded_hal::spi::ErrorType for Spi<'a, PADS, I> {
+impl<'a> embedded_hal::spi::ErrorType for Spi<'a> {
     type Error = Error;
 }
 
-impl<'a, PADS, const I: usize> embedded_hal::spi::SpiBus for Spi<'a, PADS, I> {
+impl<'a> embedded_hal::spi::SpiBus for Spi<'a> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<(), Self::Error> {
         unsafe { self.spi.config.modify(|config| config.enable_master()) };
@@ -176,7 +236,7 @@ impl<'a, PADS, const I: usize> embedded_hal::spi::SpiBus for Spi<'a, PADS, I> {
     }
 }
 
-impl<'a, PADS, const I: usize> embedded_hal::spi::SpiDevice for Spi<'a, PADS, I> {
+impl<'a> embedded_hal::spi::SpiDevice for Spi<'a> {
     fn transaction(
         &mut self,
         operations: &mut [embedded_hal::spi::Operation<'_, u8>],
@@ -211,7 +271,7 @@ impl<'a, PADS, const I: usize> embedded_hal::spi::SpiDevice for Spi<'a, PADS, I>
 // ecosystem crates, as some of them depends on embedded-hal v0.2.7 traits.
 // We encourage ecosystem developers to use embedded-hal v1.0.0 traits; after that, this part of code
 // would be removed in the future.
-impl<'a, PADS, const I: usize> embedded_hal_027::blocking::spi::Write<u8> for Spi<'a, PADS, I> {
+impl<'a> embedded_hal_027::blocking::spi::Write<u8> for Spi<'a> {
     type Error = Error;
     #[inline]
     fn write(&mut self, words: &[u8]) -> Result<(), Self::Error> {
@@ -220,7 +280,7 @@ impl<'a, PADS, const I: usize> embedded_hal_027::blocking::spi::Write<u8> for Sp
     }
 }
 
-impl<'a, PADS, const I: usize> embedded_hal_027::blocking::spi::Transfer<u8> for Spi<'a, PADS, I> {
+impl<'a> embedded_hal_027::blocking::spi::Transfer<u8> for Spi<'a> {
     type Error = Error;
     #[inline]
     fn transfer<'w>(&mut self, words: &'w mut [u8]) -> Result<&'w [u8], Self::Error> {

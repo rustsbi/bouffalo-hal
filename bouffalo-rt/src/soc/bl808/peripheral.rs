@@ -1,5 +1,10 @@
 pub use bouffalo_hal::clocks::Clocks;
-use bouffalo_hal::dma::{EightChannels, FourChannels, Periph4Dma01, Periph4Dma2};
+use bouffalo_hal::{
+    dma::{EightChannels, FourChannels, Periph4Dma01, Periph4Dma2},
+    gpio::{Alternate, FlexPad},
+    i2c::{IntoI2cScl, IntoI2cSda},
+    spi::{IntoSpiClk, IntoSpiCs, IntoSpiMiso, IntoSpiMosi},
+};
 
 /// Peripherals available on ROM start.
 pub struct Peripherals<'a> {
@@ -106,14 +111,11 @@ dma! {
     DMA2: (2, EightChannels, Periph4Dma2),
 }
 
-uart! {
-    UART0: 0,
-    UART1: 1,
-    UART2: 2,
-    UART3: 3,
-}
+uart! { UART0: 0, UART1: 1, UART2: 2, UART3: 3, }
 
-spi! { SPI0, SPI1, }
+spi! { SPI0: 0, SPI1: 1, }
+
+i2c! { I2C0: 0, I2C1: 1, I2C2: 2, I2C3: 3, }
 
 pwm! { PWM, }
 
@@ -123,6 +125,38 @@ pub struct Pad<const N: usize> {
 }
 
 impl_pad_v2! { Pad: GLBv2 }
+
+pad_spi! {
+    Pad;
+    (3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43,     ): IntoSpiClk<1>, into_spi_clk;
+    (1, 5, 9,  13, 17, 21, 25, 29, 33, 37, 41, 45, ): IntoSpiMosi<1>, into_spi_mosi;
+    (2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 42,     ): IntoSpiMiso<1>, into_spi_miso;
+    (0, 4, 8,  12, 16, 20, 24, 28, 32, 36, 40, 44, ): IntoSpiCs<1>, into_spi_cs;
+    (3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43,     ): IntoSpiClk<0>, into_spi_clk;
+    (1, 5, 9,  13, 17, 21, 25, 29, 33, 37, 41, 45, ): IntoSpiMosi<0>, into_spi_mosi;
+    (2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 42,     ): IntoSpiMiso<0>, into_spi_miso;
+    (0, 4, 8,  12, 16, 20, 24, 28, 32, 36, 40, 44, ): IntoSpiCs<0>, into_spi_cs;
+}
+
+pad_i2c! {
+    Pad;
+    (0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22,
+        24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44,): IntoI2cScl<0>, into_i2c_scl;
+    (1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23,
+        25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45,): IntoI2cSda<0>, into_i2c_sda;
+    (0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22,
+        24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44,): IntoI2cScl<1>, into_i2c_scl;
+    (1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23,
+        25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45,): IntoI2cSda<1>, into_i2c_sda;
+    (0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22,
+        24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44,): IntoI2cScl<2>, into_i2c_scl;
+    (1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23,
+        25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45,): IntoI2cSda<2>, into_i2c_sda;
+    (0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22,
+        24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44,): IntoI2cScl<3>, into_i2c_scl;
+    (1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23,
+        25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45,): IntoI2cSda<3>, into_i2c_sda;
+}
 
 // Used by macros only.
 #[allow(unused)]

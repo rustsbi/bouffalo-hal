@@ -21,8 +21,8 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let mut serial = p.uart0.freerun(config, pads, &c).unwrap();
     let mut led = p.gpio.io8.into_floating_output();
 
-    let scl = p.gpio.io6.into_i2c::<0>();
-    let sda = p.gpio.io7.into_i2c::<0>();
+    let scl = p.gpio.io6;
+    let sda = p.gpio.io7;
     let mut i2c = I2c::new(p.i2c0, (scl, sda), &p.glb);
     i2c.enable_sub_address(SCREEN_TOUCH_SUB_ADDRESS);
 

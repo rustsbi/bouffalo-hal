@@ -5,7 +5,7 @@ mod pads;
 mod register;
 
 pub use master::Spi;
-pub use pads::Pads;
+pub use pads::{IntoPads, IntoSpiClk, IntoSpiCs, IntoSpiMiso, IntoSpiMosi, IntoTransmitOnly};
 pub use register::*;
 
 /// SPI error.
@@ -30,3 +30,6 @@ pub trait Instance<'a> {
     /// Retrieve register block from this instance.
     fn register_block(self) -> &'a RegisterBlock;
 }
+
+/// SPI peripheral instance with a number.
+pub trait Numbered<'a, const N: usize>: Instance<'a> {}
