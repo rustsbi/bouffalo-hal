@@ -1,0 +1,698 @@
+iter: Iter(
+        [
+            Unchanged(
+                [
+                    String(
+                        "_reserved",
+                    ),
+                ],
+                Array [
+                    Number(0),
+                    Number(0),
+                    Number(0),
+                    Number(0),
+                    Number(0),
+                ],
+            ),
+            Unchanged(
+                [
+                    String(
+                        "basic_cfg",
+                    ),
+                    String(
+                        "aes_region_len",
+                    ),
+                ],
+                Number(0),
+            ),
+            Modified(
+                [
+                    String(
+                        "basic_cfg",
+                    ),
+                    String(
+                        "flag",
+                    ),
+                ],
+                Number(1699479808),
+                Number(1925972224),
+            ),
+            Modified(
+                [
+                    String(
+                        "basic_cfg",
+                    ),
+                    String(
+                        "group_image_offset",
+                    ),
+                ],
+                Number(4096),
+                Number(8192),
+            ),
+            Modified(
+                [
+                    String(
+                        "basic_cfg",
+                    ),
+                    String(
+                        "hash",
+                    ),
+                    Index(
+                        0,
+                    ),
+                ],
+                Number(3735928559),
+                Number(4064821906),
+            ),
+            Modified(
+                [
+                    String(
+                        "basic_cfg",
+                    ),
+                    String(
+                        "hash",
+                    ),
+                    Index(
+                        1,
+                    ),
+                ],
+                Number(3735928559),
+                Number(4113438589),
+            ),
+            Modified(
+                [
+                    String(
+                        "basic_cfg",
+                    ),
+                    String(
+                        "hash",
+                    ),
+                    Index(
+                        2,
+                    ),
+                ],
+                Number(3735928559),
+                Number(1143136070),
+            ),
+            Modified(
+                [
+                    String(
+                        "basic_cfg",
+                    ),
+                    String(
+                        "hash",
+                    ),
+                    Index(
+                        3,
+                    ),
+                ],
+                Number(3735928559),
+                Number(1124575262),
+            ),
+            Modified(
+                [
+                    String(
+                        "basic_cfg",
+                    ),
+                    String(
+                        "hash",
+                    ),
+                    Index(
+                        4,
+                    ),
+                ],
+                Number(3735928559),
+                Number(3731578631),
+            ),
+            Modified(
+                [
+                    String(
+                        "basic_cfg",
+                    ),
+                    String(
+                        "hash",
+                    ),
+                    Index(
+                        5,
+                    ),
+                ],
+                Number(3735928559),
+                Number(4018360252),
+            ),
+            Modified(
+                [
+                    String(
+                        "basic_cfg",
+                    ),
+                    String(
+                        "hash",
+                    ),
+                    Index(
+                        6,
+                    ),
+                ],
+                Number(3735928559),
+                Number(1619438107),
+            ),
+            Modified(
+                [
+                    String(
+                        "basic_cfg",
+                    ),
+                    String(
+                        "hash",
+                    ),
+                    Index(
+                        7,
+                    ),
+                ],
+                Number(3735928559),
+                Number(1494117691),
+            ),
+            Modified(
+                [
+                    String(
+                        "basic_cfg",
+                    ),
+                    String(
+                        "img_len_cnt",
+                    ),
+                ],
+                Number(216),
+                Number(4384),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "boot2_pt_table_0",
+                    ),
+                ],
+                Number(0),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "boot2_pt_table_1",
+                    ),
+                ],
+                Number(0),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "clk_cfg",
+                    ),
+                ],
+                Object {
+                    "cfg": Object {
+                        "aupll_pu": Number(1),
+                        "cpupll_pu": Number(1),
+                        "dsp_bclk_div": Number(1),
+                        "dsp_clk": Number(3),
+                        "dsp_clk_div": Number(0),
+                        "dsp_pbclk": Number(2),
+                        "dsp_pbclk_div": Number(0),
+                        "emi_clk": Number(2),
+                        "emi_clk_div": Number(1),
+                        "flash_clk_div": Number(0),
+                        "flash_clk_type": Number(1),
+                        "lp_div": Number(1),
+                        "mcu_bclk_div": Number(0),
+                        "mcu_clk": Number(4),
+                        "mcu_clk_div": Number(0),
+                        "mcu_pbclk_div": Number(3),
+                        "mipipll_pu": Number(1),
+                        "uhspll_pu": Number(1),
+                        "wifipll_pu": Number(1),
+                        "xtal_type": Number(7),
+                    },
+                    "crc32": Number(2253097226),
+                    "magic": Number(1195787088),
+                },
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        0,
+                    ),
+                    String(
+                        "_rsvd",
+                    ),
+                ],
+                Number(0),
+            ),
+            Modified(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        0,
+                    ),
+                    String(
+                        "boot_entry",
+                    ),
+                ],
+                Number(1476395008),
+                Number(1476399104),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        0,
+                    ),
+                    String(
+                        "cache_flags",
+                    ),
+                ],
+                Number(0),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        0,
+                    ),
+                    String(
+                        "cache_range_h",
+                    ),
+                ],
+                Number(0),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        0,
+                    ),
+                    String(
+                        "cache_range_l",
+                    ),
+                ],
+                Number(0),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        0,
+                    ),
+                    String(
+                        "config_enable",
+                    ),
+                ],
+                Number(1),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        0,
+                    ),
+                    String(
+                        "halt_cpu",
+                    ),
+                ],
+                Number(0),
+            ),
+            Modified(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        0,
+                    ),
+                    String(
+                        "image_address_offset",
+                    ),
+                ],
+                Number(0),
+                Number(4096),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        0,
+                    ),
+                    String(
+                        "msp_val",
+                    ),
+                ],
+                Number(0),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        1,
+                    ),
+                    String(
+                        "_rsvd",
+                    ),
+                ],
+                Number(0),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        1,
+                    ),
+                    String(
+                        "boot_entry",
+                    ),
+                ],
+                Number(1476395008),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        1,
+                    ),
+                    String(
+                        "cache_flags",
+                    ),
+                ],
+                Number(0),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        1,
+                    ),
+                    String(
+                        "cache_range_h",
+                    ),
+                ],
+                Number(0),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        1,
+                    ),
+                    String(
+                        "cache_range_l",
+                    ),
+                ],
+                Number(0),
+            ),
+            Modified(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        1,
+                    ),
+                    String(
+                        "config_enable",
+                    ),
+                ],
+                Number(0),
+                Number(1),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        1,
+                    ),
+                    String(
+                        "halt_cpu",
+                    ),
+                ],
+                Number(0),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        1,
+                    ),
+                    String(
+                        "image_address_offset",
+                    ),
+                ],
+                Number(0),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        1,
+                    ),
+                    String(
+                        "msp_val",
+                    ),
+                ],
+                Number(0),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "cpu_cfg",
+                    ),
+                    Index(
+                        2,
+                    ),
+                ],
+                Object {
+                    "_rsvd": Number(0),
+                    "boot_entry": Number(1476657152),
+                    "cache_flags": Number(0),
+                    "cache_range_h": Number(1476722688),
+                    "cache_range_l": Number(1476657152),
+                    "config_enable": Number(0),
+                    "halt_cpu": Number(0),
+                    "image_address_offset": Number(270336),
+                    "msp_val": Number(0),
+                },
+            ),
+            Modified(
+                [
+                    String(
+                        "crc32",
+                    ),
+                ],
+                Number(3735928559),
+                Number(491590107),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "flash_cfg",
+                    ),
+                ],
+                Object {
+                    "cfg": Object {
+                        "blk32_erase_cmd": Number(82),
+                        "blk64_erase_cmd": Number(216),
+                        "burst_wrap_cmd": Number(119),
+                        "burst_wrap_cmd_dmy_clk": Number(3),
+                        "burst_wrap_data": Number(64),
+                        "burst_wrap_data_mode": Number(2),
+                        "busy_bit": Number(0),
+                        "busy_index": Number(0),
+                        "busy_read_reg_len": Number(1),
+                        "c_read_mode": Number(32),
+                        "c_read_support": Number(0),
+                        "chip_erase_cmd": Number(199),
+                        "clk_delay": Number(1),
+                        "clk_invert": Number(1),
+                        "cr_exit": Number(240),
+                        "de_burst_wrap_cmd": Number(119),
+                        "de_burst_wrap_cmd_dmy_clk": Number(3),
+                        "de_burst_wrap_data": Number(240),
+                        "de_burst_wrap_data_mode": Number(2),
+                        "enter_32_bits_addr_cmd": Number(183),
+                        "enter_qpi": Number(56),
+                        "exit_32_bits_addr_cmd": Number(233),
+                        "exit_qpi": Number(255),
+                        "fast_read_cmd": Number(11),
+                        "fast_read_dio_cmd": Number(187),
+                        "fast_read_do_cmd": Number(59),
+                        "fast_read_qio_cmd": Number(235),
+                        "fast_read_qo_cmd": Number(107),
+                        "fr_dio_dmy_clk": Number(0),
+                        "fr_dmy_clk": Number(1),
+                        "fr_do_dmy_clk": Number(1),
+                        "fr_qio_dmy_clk": Number(2),
+                        "fr_qo_dmy_clk": Number(1),
+                        "io_mode": Number(17),
+                        "jedec_id_cmd": Number(159),
+                        "jedec_id_cmd_dmy_clk": Number(0),
+                        "mid": Number(0),
+                        "page_program_cmd": Number(2),
+                        "page_size": Number(256),
+                        "pd_delay": Number(20),
+                        "qe_bit": Number(1),
+                        "qe_data": Number(0),
+                        "qe_index": Number(1),
+                        "qe_read_reg_len": Number(1),
+                        "qe_write_reg_len": Number(2),
+                        "qpage_program_cmd": Number(50),
+                        "qpi_fast_read_cmd": Number(11),
+                        "qpi_fast_read_qio_cmd": Number(235),
+                        "qpi_fr_dmy_clk": Number(1),
+                        "qpi_fr_qio_dmy_clk": Number(2),
+                        "qpi_page_program_cmd": Number(2),
+                        "qpp_addr_mode": Number(0),
+                        "read_reg_cmd": Array [
+                            Number(5),
+                            Number(53),
+                            Number(0),
+                            Number(0),
+                        ],
+                        "release_power_down": Number(171),
+                        "reset_cmd": Number(153),
+                        "reset_cread_cmd": Number(255),
+                        "reset_cread_cmd_size": Number(3),
+                        "reset_en_cmd": Number(102),
+                        "sector_erase_cmd": Number(32),
+                        "sector_size": Number(4),
+                        "time_ce": Number(33000),
+                        "time_e_32k": Number(1200),
+                        "time_e_64k": Number(1200),
+                        "time_e_sector": Number(300),
+                        "time_page_pgm": Number(50),
+                        "wr_enable_bit": Number(1),
+                        "wr_enable_index": Number(0),
+                        "wr_enable_read_reg_len": Number(1),
+                        "wr_enable_write_reg_len": Number(2),
+                        "write_enable_cmd": Number(6),
+                        "write_reg_cmd": Array [
+                            Number(1),
+                            Number(1),
+                            Number(0),
+                            Number(0),
+                        ],
+                        "writev_reg_enable_cmd": Number(80),
+                    },
+                    "crc32": Number(1210769144),
+                    "magic": Number(1195787078),
+                },
+            ),
+            Modified(
+                [
+                    String(
+                        "flash_cfg_table_addr",
+                    ),
+                ],
+                Number(0),
+                Number(352),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "flash_cfg_table_len",
+                    ),
+                ],
+                Number(0),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "magic",
+                    ),
+                ],
+                Number(1347307074),
+            ),
+            Unchanged(
+                [
+                    String(
+                        "patch_on_jump",
+                    ),
+                ],
+                Array [
+                    Object {
+                        "addr": Number(536871712),
+                        "value": Number(0),
+                    },
+                    Object {
+                        "addr": Number(536932408),
+                        "value": Number(402653184),
+                    },
+                    Object {
+                        "addr": Number(0),
+                        "value": Number(0),
+                    },
+                    Object {
+                        "addr": Number(0),
+                        "value": Number(0),
+                    },
+                ],
+            ),
+            Unchanged(
+                [
+                    String(
+                        "patch_on_read",
+                    ),
+                ],
+                Array [
+                    Object {
+                        "addr": Number(0),
+                        "value": Number(0),
+                    },
+                    Object {
+                        "addr": Number(0),
+                        "value": Number(0),
+                    },
+                    Object {
+                        "addr": Number(0),
+                        "value": Number(0),
+                    },
+                    Object {
+                        "addr": Number(0),
+                        "value": Number(0),
+                    },
+                ],
+            ),
+            Unchanged(
+                [
+                    String(
+                        "revision",
+                    ),
+                ],
+                Number(1),
+            ),
+        ],
+    ),
+}
