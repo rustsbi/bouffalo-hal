@@ -1,6 +1,6 @@
 //! BL808 tri-core heterogeneous Wi-Fi 802.11b/g/n, Bluetooth 5, Zigbee AIoT system-on-chip.
 
-mod image_header;
+pub mod image_header;
 mod peripheral;
 pub use image_header::*;
 pub use peripheral::*;

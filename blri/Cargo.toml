@@ -15,6 +15,7 @@ inquire = "0.7.5"
 serialport = { version = "4.3", default-features = false }
 object = "0.36.7"
 same-file = "1.0.6"
+bouffalo-rt = { path = "../bouffalo-rt", features = ["image_fuse"] }
 
 [dev-dependencies]
 tempfile = "3.12.0"

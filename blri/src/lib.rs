@@ -1,12 +1,17 @@
 mod isp;
+use bouffalo_rt::soc::bl808::HalBootheader;
+use bouffalo_rt::{BFLB_BOOT2_HEADER_MAGIC, BasicConfigFlags};
+use clap::Args;
 pub use isp::{BootInfo, DeviceReset, EraseFlash, GetBootInfo, IspCommand, IspError, WriteFlash};
 
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt, WriteBytesExt};
 use object::{Object, ObjectSection, SectionFlags};
 use sha2::{Digest, Sha256};
+use std::cmp::max;
 use std::fs::{self, File};
 use std::io::{self, Read, Seek, SeekFrom, Write};
-use std::path::Path;
+use std::num::ParseIntError;
+use std::path::{Path, PathBuf};
 
 const HEAD_LENGTH: u64 = 0x160;
 const HEAD_MAGIC: u32 = 0x42464e50;
@@ -316,4 +321,294 @@ fn write_section_data(output: &mut Vec<u8>, section: &object::Section) -> Result
     }
 
     Ok(())
+}
+
+/// Parse a hexadecimal string into a u32 value.
+fn parse_hex_u32(s: &str) -> core::result::Result<u32, ParseIntError> {
+    let s = s.strip_prefix("0x").unwrap_or(s);
+    u32::from_str_radix(s, 16)
+}
+
+/// Represents an image to be flashed, including its path and load address (in hex).
+#[derive(Args, Debug, Clone)]
+pub struct ImageToFuse {
+    /// 镜像文件路径
+    #[arg(long, value_name = "FILE")]
+    pub path: PathBuf,
+
+    /// 镜像在闪存中的加载地址 (十六进制)
+    #[arg(long, value_name = "ADDRESS", value_parser = parse_hex_u32)]
+    pub addr: u32,
+}
+
+fn all_fields_equal<'a, T: 'a, F, V>(iter: impl Iterator<Item = &'a T>, f: F) -> bool
+where
+    F: Fn(&T) -> &V,
+    V: PartialEq + 'a,
+{
+    let mut iter = iter.map(f);
+    if let Some(first) = iter.next() {
+        iter.all(|v| v == first)
+    } else {
+        true // Empty iterator, consider all fields equal
+    }
+}
+
+/// Fuse multiple images into a single image.
+/// Currently only supports fusing a M0 image and a D0 image into a fused image.
+// todo: Figure out whether the parameters can be passed as a Vec
+pub fn fuse_image_header(
+    m0_image: Option<ImageToFuse>,
+    d0_image: Option<ImageToFuse>,
+    lp_image: Option<ImageToFuse>,
+) -> HalBootheader {
+    // todo: Validate the images before fusing
+
+    if lp_image.is_some() {
+        todo!("lp_image is not supported yet, please use m0_image and d0_image only.");
+    }
+    let images_to_fuse = vec![m0_image.clone(), d0_image.clone(), lp_image.clone()]
+        .iter()
+        .filter_map(|img| img.clone())
+        .collect::<Vec<_>>();
+    if images_to_fuse.len() < 2 {
+        panic!("error: at least two images are required to fuse.");
+    }
+    let loaded_image_m0 = m0_image.map(|img| {
+        let mut file = File::open(&img.path).expect("open M0 image file");
+        let mut data = Vec::new();
+        file.read_to_end(&mut data).expect("read M0 image file");
+
+        (HalBootheader::from_bytes(&data).unwrap(), img.addr)
+    });
+
+    let loaded_image_d0 = d0_image.map(|img| {
+        let mut file = File::open(&img.path).expect("open D0 image file");
+        let mut data = Vec::new();
+        file.read_to_end(&mut data).expect("read D0 image file");
+
+        (HalBootheader::from_bytes(&data).unwrap(), img.addr)
+    });
+
+    let loaded_image_lp = lp_image.map(|img| {
+        let mut file = File::open(&img.path).expect("open LP image file");
+        let mut data = Vec::new();
+        file.read_to_end(&mut data).expect("read LP image file");
+
+        (HalBootheader::from_bytes(&data).unwrap(), img.addr)
+    });
+
+    let loaded_images: Vec<_> = images_to_fuse
+        .iter()
+        .map(|img| {
+            let mut file = File::open(&img.path).expect("open image file");
+            let mut data = Vec::new();
+            file.read_to_end(&mut data).expect("read image file");
+
+            (HalBootheader::from_bytes(&data).unwrap(), img.addr)
+        })
+        .collect();
+
+    macro_rules! validate_all {
+    // Macro arguments: the collection to iterate, the field to check, the expected value,
+    // and a code block to execute on failure.
+    ($collection:expr, $field:ident, $expected_value:expr, on_fail: {$($fail_action:tt)*}) => {
+        // Use .iter().all() to check every element in the collection
+        let all_match = $collection.iter().all(|(header, _)| header.$field == $expected_value);
+
+        // If the validation fails (all_match is false)
+        if !all_match {
+            // Execute the code provided in the on_fail block
+            $($fail_action)*
+        }
+    };}
+
+    macro_rules! validate_all_same {
+    ($collection:expr, $field:ident, on_fail: {$($fail_action:tt)*}) => {
+        let all_same = if $collection.is_empty() {
+            // If the collection is empty, consider all fields equal
+            true
+        } else{
+            // Use .iter().map() to extract the field and check if all values are the same
+            all_fields_equal($collection.iter(), |(header, _)| &header.$field)
+        };
+        if !all_same {
+            $($fail_action)*
+        }
+    }}
+    // Example of checks, currently not enouth
+    // TODO: Add more checks for the images
+
+    // Check the 'magic' field
+    validate_all!(
+        loaded_images,
+        magic,
+        BFLB_BOOT2_HEADER_MAGIC,
+        on_fail: {
+            panic!("Not all images have the same magic number, cannot fuse.");
+        }
+    );
+
+    let fused_image_header_magic = BFLB_BOOT2_HEADER_MAGIC;
+
+    const DEFAULT_REVISION: u32 = 0x01;
+    // Check the 'revision' field
+    validate_all!(
+        loaded_images,
+        revision,
+        DEFAULT_REVISION, // Or use the DEFAULT_REVISION constant
+        on_fail: {
+            panic!("Not all images have the same revision, using default revision 0x01.");
+        }
+    );
+    let fused_image_header_revision = DEFAULT_REVISION;
+
+    // From current evidence, the flash configuration is the same for all three tested images.
+    validate_all_same!(
+        loaded_images,
+        flash_cfg,
+        on_fail: {
+            panic!("Not all images have the same flash ID, cannot fuse NOW.");
+        }
+    );
+    let fused_image_header_flash_cfg = loaded_images[0].0.flash_cfg.clone();
+
+    // From current evidence, the clock configuration is the same for all three
+    // tested images.
+    validate_all_same!(
+        loaded_images,
+        clk_cfg,
+        on_fail: {
+            panic!("Not all images have the same clock configuration, cannot fuse NOW.");
+        }
+    );
+
+    let fused_image_header_clk_cfg = loaded_images[0].0.clk_cfg.clone();
+
+    // For BasicConfig, it still follow's some default pattern, but some fields
+    // are overwritten after image fusion.
+
+    let fused_image_header_basic_cfg = {
+        let mut basic_cfg = loaded_images[0].0.basic_cfg.clone();
+        let mut basic_cfg_flags = BasicConfigFlags::from_u32(basic_cfg.flag);
+        // See `chips/bl808/img_create_iot/efuse_bootheader_cfg.ini` in BouffaloLabDevCube-v1.9.0
+        basic_cfg_flags.cmds_wrap_mode = 1;
+        basic_cfg_flags.cmds_wrap_len = 9;
+        basic_cfg_flags.update_raw();
+
+        // Set the magic number for the fused image
+        // Set the flags to 0, as we don't need any special flags for the fused image
+        basic_cfg.flag = basic_cfg_flags.raw;
+
+        // See `chips/bl808/img_create_iot/efuse_bootheader_cfg.ini` in BouffaloLabDevCube-v1.9.0
+        basic_cfg.group_image_offset = 0x2000;
+
+        // In `chips/bl808/img_create_iot/efuse_bootheader_cfg.ini` in
+        // BouffaloLabDevCube-v1.9.0, the `img_len_cnt` is set to 0x100.
+
+        // 216+2384 = 4384, just guess the minimum image length is 2000 in fused
+        // image.
+        // TODO: figure out the correct image length for the fused image.
+        basic_cfg.img_len_cnt = loaded_images
+            .iter()
+            .map(|(header, _)| max(2000, header.basic_cfg.img_len_cnt))
+            .sum();
+
+        //TODO: figure out the correct hash for the fused image in bosic_cfg
+        // The hash is realted to the whole image, not just the header, so we
+        // ignore it for now.
+
+        basic_cfg
+    };
+
+    let mut fused_image_cpu_configs = loaded_images[0].0.cpu_cfg.clone(); // Start with the first image's CPU configs
+
+    if let Some((ref m0_header, boot_entry)) = loaded_image_m0 {
+        if m0_header.cpu_cfg[0].config_enable != 0 {
+            fused_image_cpu_configs[0] = m0_header.cpu_cfg[0].clone();
+            fused_image_cpu_configs[0].boot_entry = boot_entry; // Set the boot entry for M0
+            // From current evidence, the M0 image address offset is directly
+            // set to 0x1000
+            // See `chips/bl808/img_create_iot/efuse_bootheader_cfg.ini` in
+            // BouffaloLabDevCube-v1.9.0
+            //TODO: figure out the correct image address offset for the M0 image
+            //CPU config.
+
+            fused_image_cpu_configs[0].image_address_offset = 0x1000;
+        }
+    }
+    if let Some((ref d0_header, boot_entry)) = loaded_image_d0 {
+        if d0_header.cpu_cfg[1].config_enable != 0 {
+            fused_image_cpu_configs[1] = d0_header.cpu_cfg[1].clone();
+            fused_image_cpu_configs[1].boot_entry = boot_entry; // Set the boot entry for D0
+        }
+    }
+    if let Some((ref lp_header, boot_entry)) = loaded_image_lp {
+        if lp_header.cpu_cfg[2].config_enable != 0 {
+            fused_image_cpu_configs[2] = lp_header.cpu_cfg[2].clone();
+            fused_image_cpu_configs[2].boot_entry = boot_entry; // Set the boot entry for LP
+        }
+    }
+
+    // All cpu config that are not enabled shoule be default value, so ingore
+    // for now
+    //TODO: figure out these default values and fill fused_image_cpu_configs
+    //with these default values.
+
+    // TODO: The following 4 fields have no obvious clues
+    validate_all!(
+        loaded_images,
+        boot2_pt_table_0,
+        0, // The partition table is not used in the fused image, so set it
+        on_fail: {
+            println!("Not all images have the same boot2_pt_table_0, using 0
+    as default.");}
+    );
+    let fused_image_header_boot2_pt_table_0 = 0;
+
+    validate_all!(
+        loaded_images,
+        boot2_pt_table_1,
+        0, // The partition table is not used in the fused image, so set it
+        on_fail: {
+            println!("Not all images have the same boot2_pt_table_1, using 0
+    as default.");}
+    );
+    let fused_image_header_boot2_pt_table_1 = 0;
+
+    // TODO: figure out why and how
+    let fused_image_header_basic_flash_cfg_table_addr = 0x160;
+
+    validate_all!(
+        loaded_images,
+        flash_cfg_table_len,
+        0, // The basic flash config table length is not used in the fused image, so set it
+        on_fail: {
+            println!("Not all images have the same basic_flash_cfg_table_len, using 0
+    as default.");}
+    );
+    let fused_image_header_basic_flash_cfg_table_len = 0;
+
+    // Seems all default values
+    let fused_image_header_patch_on_read = loaded_images[0].0.patch_on_read.clone();
+    let fused_image_header_patch_on_jump = loaded_images[0].0.patch_on_jump.clone();
+    let fused_image_header_reserved = loaded_images[0].0._reserved.clone();
+    let mut fused_image = HalBootheader {
+        magic: fused_image_header_magic,
+        revision: fused_image_header_revision,
+        flash_cfg: fused_image_header_flash_cfg,
+        clk_cfg: fused_image_header_clk_cfg,
+        basic_cfg: fused_image_header_basic_cfg,
+        cpu_cfg: fused_image_cpu_configs,
+        boot2_pt_table_0: fused_image_header_boot2_pt_table_0,
+        boot2_pt_table_1: fused_image_header_boot2_pt_table_1,
+        flash_cfg_table_addr: fused_image_header_basic_flash_cfg_table_addr,
+        flash_cfg_table_len: fused_image_header_basic_flash_cfg_table_len,
+        patch_on_read: fused_image_header_patch_on_read,
+        patch_on_jump: fused_image_header_patch_on_jump,
+        _reserved: fused_image_header_reserved,
+        crc32: 0,
+    };
+    fused_image.update_crc32();
+    fused_image
 }

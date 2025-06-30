@@ -49,6 +49,7 @@ pub extern "C" fn default_handler() {}
 
 /// Flash configuration in ROM header.
 #[repr(C)]
+#[cfg_attr(feature = "image_fuse", derive(Debug, Clone, PartialEq, Eq))]
 pub struct HalFlashConfig {
     magic: u32,
     cfg: SpiFlashCfgType,
@@ -179,6 +180,7 @@ impl HalFlashConfig {
 }
 
 #[repr(C)]
+#[cfg_attr(feature = "image_fuse", derive(Debug, Clone, PartialEq, Eq))]
 struct SpiFlashCfgType {
     /// Serail flash uint32erface mode,bit0-3:IF mode,bit4:unwrap,bit5:32-bits addr mode support.
     io_mode: u8,
@@ -340,7 +342,8 @@ impl SpiFlashCfgType {
     }
 }
 #[repr(C)]
-struct HalBasicConfig {
+#[cfg_attr(feature = "image_fuse", derive(Debug, Clone, PartialEq, Eq))]
+pub struct HalBasicConfig {
     /// Flags 4bytes
     ///
     /// 2bits for sign
@@ -363,13 +366,13 @@ struct HalBasicConfig {
     /// 1bit  for icache invalid
     /// 1bit  for dcache invalid
     /// 1bit  for FPGA halt release function
-    flag: u32,
+    pub flag: u32,
     /// Flash controller offset.
-    group_image_offset: u32,
+    pub group_image_offset: u32,
     /// Aes region length.
     aes_region_len: u32,
     /// Image length or segment count.
-    img_len_cnt: u32,
+    pub img_len_cnt: u32,
     /// Hash of the image.
     hash: [u32; 8],
 }
@@ -404,7 +407,7 @@ impl HalBasicConfig {
 }
 
 #[repr(C)]
-#[cfg(any(test, debug_assertions))]
+#[cfg(any(any(test, debug_assertions), feature = "image_fuse"))]
 /// Bit flags for HalBasicConfig.flag, only for debug purposes
 // Note that the definition is different from the comments in HalBasicConfig,
 // this is derived from the 010 Editor bt file.
@@ -482,10 +485,34 @@ impl BasicConfigFlags {
         };
         structured_flag
     }
+
+    pub fn update_raw(&mut self) {
+        self.raw = (self.sign_type as u32)
+            | ((self.encrypt_type as u32) << 2)
+            | ((self.key_sel as u32) << 4)
+            | ((self.xts_mode as u32) << 6)
+            | ((self.aes_region_lock as u32) << 7)
+            | ((self.no_segment as u32) << 8)
+            | ((self.boot2_enable as u32) << 9)
+            | ((self.boot2_rollback as u32) << 10)
+            | ((self.cpu_master_id as u32) << 11)
+            | ((self.notload_in_bootrom as u32) << 15)
+            | ((self.crc_ignore as u32) << 16)
+            | ((self.hash_ignore as u32) << 17)
+            | ((self.power_on_mm as u32) << 18)
+            | ((self.em_sel as u32) << 19)
+            | ((self.cmds_en as u32) << 22)
+            | ((self.cmds_wrap_mode as u32) << 23)
+            | ((self.cmds_wrap_len as u32) << 25)
+            | ((self.icache_invalid as u32) << 29)
+            | ((self.dcache_invalid as u32) << 30)
+            | ((self.fpga_halt_release as u32) << 31);
+    }
 }
 
 /// Program or ROM code patches.
 #[repr(C)]
+#[cfg_attr(feature = "image_fuse", derive(Debug, Clone, PartialEq, Eq))]
 pub struct HalPatchCfg {
     addr: u32,
     value: u32,

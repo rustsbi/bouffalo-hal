@@ -1,6 +1,6 @@
 use blri::{
-    BootInfo, DeviceReset, EraseFlash, Error, GetBootInfo, IspCommand, IspError, WriteFlash,
-    elf_to_bin,
+    BootInfo, DeviceReset, EraseFlash, Error, GetBootInfo, ImageToFuse, IspCommand, IspError,
+    WriteFlash, elf_to_bin,
 };
 use clap::{Args, Parser, Subcommand};
 use inquire::Select;
@@ -72,6 +72,20 @@ struct Run {
     port: Option<String>,
     #[arg(long, default_value_t = false)]
     reset: bool,
+}
+
+#[derive(Args)]
+/// Represents the command to fuse multiple images into a single image.
+/// Currently only supports fuse a M0 image and a D0 image into a fused image.
+struct Fuse {
+    #[command(flatten)]
+    m0_image: Option<ImageToFuse>,
+    #[command(flatten)]
+    d0_image: Option<ImageToFuse>,
+    // Note: `lp_image` is currently not supported!!!
+    #[command(flatten)]
+    lp_image: Option<ImageToFuse>,
+    fused_image: PathBuf,
 }
 
 fn main() {
