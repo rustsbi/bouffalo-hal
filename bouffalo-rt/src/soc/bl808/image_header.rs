@@ -2,6 +2,10 @@
 use crate::BasicConfigFlags;
 use crate::{BFLB_BOOT2_HEADER_MAGIC, HalBasicConfig, HalFlashConfig, HalPatchCfg};
 
+// c'w'w在测试或调试时引入 sercw或调试时引入 serde
+#[cfg(any(test, debug_assertions))]
+use serde::{Deserialize, Serialize};
+
 /// Clock configuration at boot-time.
 #[cfg(any(doc, feature = "bl808-mcu", feature = "bl808-dsp"))]
 #[unsafe(link_section = ".head.clock")]
@@ -122,8 +126,11 @@ pub static PATCH_ON_JUMP: [HalPatchCfg; 4] = [
 ];
 
 /// Full ROM bootloading header.
+#[cfg_attr(
+    any(any(test, debug_assertions), feature = "image_fuse"),
+    derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)
+)]
 #[repr(C)]
-#[cfg_attr(feature = "image_fuse", derive(Debug, Clone, PartialEq, Eq))]
 pub struct HalBootheader {
     pub magic: u32,
     pub revision: u32,
@@ -288,10 +295,18 @@ impl HalBootheader {
     pub fn update_crc32(&mut self) {
         self.crc32 = self.calculate_crc32();
     }
+
+    #[cfg(any(test, debug_assertions))]
+    pub fn structured_flag(&self) -> BasicConfigFlags {
+        BasicConfigFlags::from_u32(self.basic_cfg.flag)
+    }
 }
 /// Hardware system clock configuration.
+#[cfg_attr(
+    any(any(test, debug_assertions), feature = "image_fuse"),
+    derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)
+)]
 #[repr(C)]
-#[cfg_attr(feature = "image_fuse", derive(Debug, Clone, PartialEq, Eq))]
 pub struct HalSysClkConfig {
     xtal_type: u8,
     mcu_clk: u8,
@@ -365,8 +380,11 @@ impl HalSysClkConfig {
 }
 
 /// Clock configuration in ROM header.
+#[cfg_attr(
+    any(any(test, debug_assertions), feature = "image_fuse"),
+    derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)
+)]
 #[repr(C)]
-#[cfg_attr(feature = "image_fuse", derive(Debug, Clone, PartialEq, Eq))]
 pub struct HalPllConfig {
     magic: u32,
     cfg: HalSysClkConfig,
@@ -422,8 +440,11 @@ impl HalPllConfig {
 }
 
 /// Processor core configuration in ROM header.
+#[cfg_attr(
+    any(any(test, debug_assertions), feature = "image_fuse"),
+    derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)
+)]
 #[repr(C)]
-#[cfg_attr(feature = "image_fuse", derive(Debug, Clone, PartialEq, Eq))]
 pub struct HalCpuCfg {
     /// Config this cpu.
     pub config_enable: u8,
@@ -482,6 +503,9 @@ impl HalCpuCfg {
 
 #[cfg(test)]
 mod tests {
+    use serde_diff::{Apply, Diff};
+    use treediff::{diff, tools::ChangeType};
+
     use super::{HalBootheader, HalCpuCfg, HalPllConfig, HalSysClkConfig};
     use core::mem::offset_of;
 

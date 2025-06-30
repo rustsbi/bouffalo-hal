@@ -5,6 +5,7 @@
 mod macros;
 
 pub use bouffalo_rt_macros::{entry, exception, interrupt};
+use serde::{Deserialize, Serialize};
 
 pub mod arch;
 pub mod soc;
@@ -48,8 +49,11 @@ cfg_if::cfg_if! {
 pub extern "C" fn default_handler() {}
 
 /// Flash configuration in ROM header.
+#[cfg_attr(
+    any(any(test, debug_assertions), feature = "image_fuse"),
+    derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)
+)]
 #[repr(C)]
-#[cfg_attr(feature = "image_fuse", derive(Debug, Clone, PartialEq, Eq))]
 pub struct HalFlashConfig {
     magic: u32,
     cfg: SpiFlashCfgType,
@@ -179,8 +183,11 @@ impl HalFlashConfig {
     }
 }
 
+#[cfg_attr(
+    any(any(test, debug_assertions), feature = "image_fuse"),
+    derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)
+)]
 #[repr(C)]
-#[cfg_attr(feature = "image_fuse", derive(Debug, Clone, PartialEq, Eq))]
 struct SpiFlashCfgType {
     /// Serail flash uint32erface mode,bit0-3:IF mode,bit4:unwrap,bit5:32-bits addr mode support.
     io_mode: u8,
@@ -341,8 +348,11 @@ impl SpiFlashCfgType {
         Ok(spi_flash_cfg_type)
     }
 }
+#[cfg_attr(
+    any(any(test, debug_assertions), feature = "image_fuse"),
+    derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)
+)]
 #[repr(C)]
-#[cfg_attr(feature = "image_fuse", derive(Debug, Clone, PartialEq, Eq))]
 pub struct HalBasicConfig {
     /// Flags 4bytes
     ///
@@ -411,6 +421,7 @@ impl HalBasicConfig {
 /// Bit flags for HalBasicConfig.flag, only for debug purposes
 // Note that the definition is different from the comments in HalBasicConfig,
 // this is derived from the 010 Editor bt file.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct BasicConfigFlags {
     /// Raw flag value
     pub raw: u32,
@@ -509,19 +520,15 @@ impl BasicConfigFlags {
             | ((self.fpga_halt_release as u32) << 31);
     }
 }
-
 /// Program or ROM code patches.
+#[cfg_attr(
+    any(any(test, debug_assertions), feature = "image_fuse"),
+    derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq)
+)]
 #[repr(C)]
-#[cfg_attr(feature = "image_fuse", derive(Debug, Clone, PartialEq, Eq))]
 pub struct HalPatchCfg {
     addr: u32,
     value: u32,
-}
-
-impl Default for HalPatchCfg {
-    fn default() -> Self {
-        Self { addr: 0, value: 0 }
-    }
 }
 
 impl HalPatchCfg {
