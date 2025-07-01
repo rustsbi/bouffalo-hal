@@ -15,28 +15,26 @@ mod blocking;
 pub use blocking::*;
 mod asynch;
 pub use asynch::*;
+mod signal;
+pub use signal::*;
 
 /// Extend constructor to owned UART register blocks.
-pub trait UartExt<'a, PADS, const I: usize> {
+pub trait UartExt<'a, const I: usize> {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
     fn freerun(
         self,
         config: Config,
-        pads: PADS,
+        pads: impl IntoSignals<'a, I>,
         clocks: &Clocks,
-    ) -> Result<BlockingSerial<'a, PADS>, ConfigError>
-    where
-        PADS: Pads<I>;
+    ) -> Result<BlockingSerial<'a>, ConfigError>;
     /// Creates an interrupt driven async/await serial instance without DMA configurations.
     fn with_interrupt(
         self,
         config: Config,
-        pads: PADS,
+        pads: impl IntoSignals<'a, I>,
         clocks: &Clocks,
         state: &'static SerialState,
-    ) -> Result<AsyncSerial<'a, PADS>, ConfigError>
-    where
-        PADS: Pads<I>;
+    ) -> Result<AsyncSerial<'a>, ConfigError>;
 }
 
 /// Peripheral instance for UART.

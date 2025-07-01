@@ -4,16 +4,17 @@ use bouffalo_hal::{
     gpio::{Alternate, FlexPad},
     i2c::{IntoI2cScl, IntoI2cSda},
     spi::{IntoSpiClk, IntoSpiCs, IntoSpiMiso, IntoSpiMosi},
+    uart::IntoUartPad,
 };
 
 /// Peripherals available on ROM start.
-pub struct Peripherals<'a> {
+pub struct Peripherals {
     /// Global configuration peripheral.
     pub glb: GLBv2,
     /// General Purpose Input/Output pads.
     pub gpio: Pads,
     /// UART signal multiplexers.
-    pub uart_muxes: bouffalo_hal::uart::UartMuxes<'a>,
+    pub uart_muxes: UartMuxes,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
     pub uart0: UART0,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
@@ -126,6 +127,14 @@ pub struct Pad<const N: usize> {
 
 impl_pad_v2! { Pad: GLBv2 }
 
+pad_uart! {
+    Pad;
+    (0 => 0, 1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6, 7 => 7, 8 => 8, 9 => 9, 10 => 10, 11 => 11,
+    12 => 0, 13 => 1, 14 => 2, 15 => 3, 16 => 4, 17 => 5, 18 => 6, 19 => 7, 20 => 8, 21 => 9, 22 => 10, 23 => 11,
+    24 => 0, 25 => 1, 26 => 2, 27 => 3, 28 => 4, 29 => 5, 30 => 6, 31 => 7, 32 => 8, 33 => 9, 34 => 10, 35 => 11,
+    36 => 0, 37 => 1, 38 => 2, 39 => 3, 40 => 4, 41 => 5, 42 => 6, 43 => 7, 44 => 8, 45 => 9,): IntoUartPad;
+}
+
 pad_spi! {
     Pad;
     (3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43,     ): IntoSpiClk<1>, into_spi_clk;
@@ -162,12 +171,12 @@ pad_i2c! {
 #[allow(unused)]
 #[doc(hidden)]
 #[inline(always)]
-pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
+pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals, Clocks) {
     use embedded_time::rate::Hertz;
     let peripherals = Peripherals {
         glb: GLBv2 { _private: () },
         gpio: Pads::__new(),
-        uart_muxes: bouffalo_hal::uart::UartMuxes::__uart_muxes_from_glb(&GLBv2 { _private: () }),
+        uart_muxes: UartMuxes::__new(),
         uart0: UART0 { _private: () },
         uart1: UART1 { _private: () },
         spi0: SPI0 { _private: () },
@@ -194,6 +203,117 @@ pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
         xtal: Hertz(xtal_hz),
     };
     (peripherals, clocks)
+}
+
+/// Available UART signal multiplexers for BL808.
+pub struct UartMuxes {
+    /// Multiplexer of UART signal 0.
+    pub sig0: UartMux<0>,
+    /// Multiplexer of UART signal 1.
+    pub sig1: UartMux<1>,
+    /// Multiplexer of UART signal 2.
+    pub sig2: UartMux<2>,
+    /// Multiplexer of UART signal 3.
+    pub sig3: UartMux<3>,
+    /// Multiplexer of UART signal 4.
+    pub sig4: UartMux<4>,
+    /// Multiplexer of UART signal 5.
+    pub sig5: UartMux<5>,
+    /// Multiplexer of UART signal 6.
+    pub sig6: UartMux<6>,
+    /// Multiplexer of UART signal 7.
+    pub sig7: UartMux<7>,
+    /// Multiplexer of UART signal 8.
+    pub sig8: UartMux<8>,
+    /// Multiplexer of UART signal 9.
+    pub sig9: UartMux<9>,
+    /// Multiplexer of UART signal 10.
+    pub sig10: UartMux<10>,
+    /// Multiplexer of UART signal 11.
+    pub sig11: UartMux<11>,
+}
+
+// Internal function, do not use.
+impl UartMuxes {
+    #[inline]
+    fn __new() -> Self {
+        UartMuxes {
+            sig0: UartMux { _private: () },
+            sig1: UartMux { _private: () },
+            sig2: UartMux { _private: () },
+            sig3: UartMux { _private: () },
+            sig4: UartMux { _private: () },
+            sig5: UartMux { _private: () },
+            sig6: UartMux { _private: () },
+            sig7: UartMux { _private: () },
+            sig8: UartMux { _private: () },
+            sig9: UartMux { _private: () },
+            sig10: UartMux { _private: () },
+            sig11: UartMux { _private: () },
+        }
+    }
+}
+
+/// Global peripheral UART signal multiplexer.
+///
+/// This structure only owns the signal multiplexer for signal number `I`.
+pub struct UartMux<const I: usize> {
+    _private: (),
+}
+
+impl<const N: usize> bouffalo_hal::uart::IntoUartSignal<'static, N> for UartMux<N> {
+    #[inline]
+    fn into_transmit<const I: usize>(
+        self,
+        pad: impl bouffalo_hal::uart::IntoUartPad<'static, N>,
+    ) -> bouffalo_hal::uart::Transmit<'static, I> {
+        use bouffalo_hal::uart::MuxTxd;
+        let glb = &*GLBv2 { _private: () };
+        let config = glb.uart_mux_group[N >> 3]
+            .read()
+            .set_signal(N & 0x7, MuxTxd::<I>::signal());
+        unsafe { glb.uart_mux_group[N >> 3].write(config) };
+        bouffalo_hal::uart::Transmit::__new(glb, pad.into_uart_pad())
+    }
+    #[inline]
+    fn into_receive<const I: usize>(
+        self,
+        pad: impl bouffalo_hal::uart::IntoUartPad<'static, N>,
+    ) -> bouffalo_hal::uart::Receive<'static, I> {
+        use bouffalo_hal::uart::MuxRxd;
+        let glb = &*GLBv2 { _private: () };
+        let config = glb.uart_mux_group[N >> 3]
+            .read()
+            .set_signal(N & 0x7, MuxRxd::<I>::signal());
+        unsafe { glb.uart_mux_group[N >> 3].write(config) };
+        bouffalo_hal::uart::Receive::__new(glb, pad.into_uart_pad())
+    }
+    #[inline]
+    fn into_request_to_send<const I: usize>(
+        self,
+        pad: impl bouffalo_hal::uart::IntoUartPad<'static, N>,
+    ) -> bouffalo_hal::uart::RequestToSend<'static, I> {
+        use bouffalo_hal::uart::MuxRts;
+        let glb = &*GLBv2 { _private: () };
+        let config = glb.uart_mux_group[N >> 3]
+            .read()
+            .set_signal(N & 0x7, MuxRts::<I>::signal());
+        unsafe { glb.uart_mux_group[N >> 3].write(config) };
+        bouffalo_hal::uart::RequestToSend::__new(glb, pad.into_uart_pad())
+    }
+    #[inline]
+    fn into_clear_to_send<const I: usize>(
+        self,
+        pad: impl bouffalo_hal::uart::IntoUartPad<'static, N>,
+    ) -> bouffalo_hal::uart::ClearToSend<'static, I> {
+        use bouffalo_hal::uart::MuxCts;
+        let glb = &*GLBv2 { _private: () };
+        let config = glb.uart_mux_group[N >> 3]
+            .read()
+            .set_signal(N & 0x7, MuxCts::<I>::signal());
+        unsafe { glb.uart_mux_group[N >> 3].write(config) };
+        bouffalo_hal::uart::ClearToSend::__new(glb, pad.into_uart_pad())
+    }
 }
 
 /// Available GPIO pads for BL808.
