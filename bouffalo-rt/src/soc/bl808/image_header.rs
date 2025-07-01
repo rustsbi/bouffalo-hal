@@ -2,6 +2,10 @@
 use crate::BasicConfigFlags;
 use crate::{BFLB_BOOT2_HEADER_MAGIC, HalBasicConfig, HalFlashConfig, HalPatchCfg};
 
+// Only introduce serde in testing
+#[cfg(feature = "image_fuse")]
+use serde::{Deserialize, Serialize};
+
 /// Clock configuration at boot-time.
 #[cfg(any(doc, feature = "bl808-mcu", feature = "bl808-dsp"))]
 #[unsafe(link_section = ".head.clock")]
@@ -122,28 +126,30 @@ pub static PATCH_ON_JUMP: [HalPatchCfg; 4] = [
 ];
 
 /// Full ROM bootloading header.
+#[cfg_attr(feature = "image_fuse", derive(Serialize, Deserialize))]
+#[cfg_attr(any(test, debug_assertions), derive(Debug, Clone, PartialEq, Eq))]
 #[repr(C)]
 pub struct HalBootheader {
-    magic: u32,
-    revision: u32,
-    flash_cfg: HalFlashConfig,
-    clk_cfg: HalPllConfig,
-    basic_cfg: HalBasicConfig,
-    cpu_cfg: [HalCpuCfg; 3],
+    pub magic: u32,
+    pub revision: u32,
+    pub flash_cfg: HalFlashConfig,
+    pub clk_cfg: HalPllConfig,
+    pub basic_cfg: HalBasicConfig,
+    pub cpu_cfg: [HalCpuCfg; 3],
     /// Address of partition table 0.
-    boot2_pt_table_0: u32,
+    pub boot2_pt_table_0: u32,
     /// Address of partition table 1.
-    boot2_pt_table_1: u32,
+    pub boot2_pt_table_1: u32,
     /// Address of flashcfg table list.
-    flash_cfg_table_addr: u32,
+    pub flash_cfg_table_addr: u32,
     /// Flashcfg table list len.
-    flash_cfg_table_len: u32,
+    pub flash_cfg_table_len: u32,
     /// Do patch when read flash.
-    patch_on_read: [HalPatchCfg; 4],
+    pub patch_on_read: [HalPatchCfg; 4],
     /// Do patch when jump.
-    patch_on_jump: [HalPatchCfg; 4],
-    _reserved: [u32; 5],
-    crc32: u32,
+    pub patch_on_jump: [HalPatchCfg; 4],
+    pub _reserved: [u32; 5],
+    pub crc32: u32,
 }
 
 impl HalBootheader {
@@ -269,19 +275,33 @@ impl HalBootheader {
         Ok(header)
     }
 
-    /// Verify the CRC32 of this header
-    pub fn verify_crc32(&self) -> bool {
+    fn calculate_crc32(&self) -> u32 {
         let data = unsafe {
             core::slice::from_raw_parts(
                 (self as *const Self) as *const u8,
                 size_of::<Self>() - 4, // exclude CRC32 field
             )
         };
-        let calculated_crc = crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(data);
-        calculated_crc == self.crc32
+        crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC).checksum(data)
+    }
+
+    /// Verify the CRC32 of this header
+    pub fn verify_crc32(&self) -> bool {
+        self.calculate_crc32() == self.crc32
+    }
+
+    pub fn update_crc32(&mut self) {
+        self.crc32 = self.calculate_crc32();
+    }
+
+    #[cfg(any(test, debug_assertions))]
+    pub fn structured_flag(&self) -> BasicConfigFlags {
+        BasicConfigFlags::from_u32(self.basic_cfg.flag)
     }
 }
 /// Hardware system clock configuration.
+#[cfg_attr(feature = "image_fuse", derive(Serialize, Deserialize))]
+#[cfg_attr(any(test, debug_assertions), derive(Debug, Clone, PartialEq, Eq))]
 #[repr(C)]
 pub struct HalSysClkConfig {
     xtal_type: u8,
@@ -356,6 +376,8 @@ impl HalSysClkConfig {
 }
 
 /// Clock configuration in ROM header.
+#[cfg_attr(feature = "image_fuse", derive(Serialize, Deserialize))]
+#[cfg_attr(any(test, debug_assertions), derive(Debug, Clone, PartialEq, Eq))]
 #[repr(C)]
 pub struct HalPllConfig {
     magic: u32,
@@ -412,10 +434,12 @@ impl HalPllConfig {
 }
 
 /// Processor core configuration in ROM header.
+#[cfg_attr(feature = "image_fuse", derive(Serialize, Deserialize))]
+#[cfg_attr(any(test, debug_assertions), derive(Debug, Clone, PartialEq, Eq))]
 #[repr(C)]
 pub struct HalCpuCfg {
     /// Config this cpu.
-    config_enable: u8,
+    pub config_enable: u8,
     /// Halt this cpu.
     halt_cpu: u8,
     /// Cache setting.
@@ -426,9 +450,9 @@ pub struct HalCpuCfg {
     /// Cache range low.
     cache_range_l: u32,
     /// Image address on flash.
-    image_address_offset: u32,
+    pub image_address_offset: u32,
     /// Entry point of the m0 image.
-    boot_entry: u32,
+    pub boot_entry: u32,
     /// Msp value.
     msp_val: u32,
 }
