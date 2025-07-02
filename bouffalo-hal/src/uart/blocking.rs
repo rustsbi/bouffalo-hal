@@ -1,28 +1,28 @@
-use super::{Config, ConfigError, Error, Numbered, Pads, RegisterBlock, uart_config};
+use super::{
+    Config, ConfigError, Error, Numbered, RegisterBlock, signal::IntoSignals, uart_config,
+};
 use crate::clocks::Clocks;
+use core::marker::PhantomData;
 
 /// Managed blocking serial peripheral.
-pub struct BlockingSerial<'a, PADS> {
+pub struct BlockingSerial<'a> {
     uart: &'a RegisterBlock,
-    pads: PADS,
+    pads: PhantomData<()>,
 }
 
-impl<'a, PADS> BlockingSerial<'a, PADS> {
+impl<'a> BlockingSerial<'a> {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
     #[inline]
     pub fn new_freerun<const I: usize>(
         uart: impl Numbered<'a, I>,
         config: Config,
-        pads: PADS,
+        pads: impl IntoSignals<'a, I>,
         clocks: &Clocks,
-    ) -> Result<Self, ConfigError>
-    where
-        PADS: Pads<I>,
-    {
+    ) -> Result<Self, ConfigError> {
         let uart = uart.register_block();
         // Calculate transmit interval and register values from configuration.
         let (bit_period, data_config, transmit_config, receive_config) =
-            uart_config::<I, PADS>(config, &clocks)?;
+            uart_config(config, &clocks, &pads)?;
 
         // Write bit period.
         unsafe { uart.bit_period.write(bit_period) };
@@ -36,7 +36,10 @@ impl<'a, PADS> BlockingSerial<'a, PADS> {
         // Configure receive feature.
         unsafe { uart.receive_config.write(receive_config) };
 
-        Ok(Self { uart, pads })
+        Ok(Self {
+            uart,
+            pads: PhantomData,
+        })
     }
 
     /// Enable transmit DMA.
@@ -67,32 +70,32 @@ impl<'a, PADS> BlockingSerial<'a, PADS> {
         self
     }
 
-    /// Release serial instance and return its peripheral and pads.
-    #[inline]
-    pub fn free(self) -> PADS {
-        self.pads
-    }
-
     /// Split serial instance into transmit and receive halves.
+    // TODO if no transmit signal, no receive half shall return, vice versa
     #[inline]
-    pub fn split<const I: usize>(self) -> <PADS as Pads<I>>::Split<'a>
-    where
-        PADS: Pads<I>,
-    {
-        self.pads.split(self.uart)
+    pub fn split(self) -> (BlockingTransmitHalf<'a>, BlockingReceiveHalf<'a>) {
+        let tx = BlockingTransmitHalf {
+            uart: self.uart,
+            _pads: PhantomData,
+        };
+        let rx = BlockingReceiveHalf {
+            uart: self.uart,
+            _pads: PhantomData,
+        };
+        (tx, rx)
     }
 }
 
 /// Transmit half from splitted serial structure.
-pub struct BlockingTransmitHalf<'a, PADS> {
+pub struct BlockingTransmitHalf<'a> {
     pub(crate) uart: &'a RegisterBlock,
-    pub(crate) _pads: PADS,
+    pub(crate) _pads: PhantomData<()>,
 }
 
 /// Receive half from splitted serial structure.
-pub struct BlockingReceiveHalf<'a, PADS> {
+pub struct BlockingReceiveHalf<'a> {
     pub(crate) uart: &'a RegisterBlock,
-    pub(crate) _pads: PADS,
+    pub(crate) _pads: PhantomData<()>,
 }
 
 #[inline]
@@ -161,31 +164,31 @@ fn uart_read_nb(uart: &RegisterBlock) -> nb::Result<u8, Error> {
     Ok(ans)
 }
 
-impl<'a, PADS> embedded_io::ErrorType for BlockingSerial<'a, PADS> {
+impl<'a> embedded_io::ErrorType for BlockingSerial<'a> {
     type Error = Error;
 }
 
-impl<'a, PADS> embedded_hal_nb::serial::ErrorType for BlockingSerial<'a, PADS> {
+impl<'a> embedded_hal_nb::serial::ErrorType for BlockingSerial<'a> {
     type Error = Error;
 }
 
-impl<'a, PADS> embedded_io::ErrorType for BlockingTransmitHalf<'a, PADS> {
+impl<'a> embedded_io::ErrorType for BlockingTransmitHalf<'a> {
     type Error = Error;
 }
 
-impl<'a, PADS> embedded_hal_nb::serial::ErrorType for BlockingTransmitHalf<'a, PADS> {
+impl<'a> embedded_hal_nb::serial::ErrorType for BlockingTransmitHalf<'a> {
     type Error = Error;
 }
 
-impl<'a, PADS> embedded_io::ErrorType for BlockingReceiveHalf<'a, PADS> {
+impl<'a> embedded_io::ErrorType for BlockingReceiveHalf<'a> {
     type Error = Error;
 }
 
-impl<'a, PADS> embedded_hal_nb::serial::ErrorType for BlockingReceiveHalf<'a, PADS> {
+impl<'a> embedded_hal_nb::serial::ErrorType for BlockingReceiveHalf<'a> {
     type Error = Error;
 }
 
-impl<'a, PADS> embedded_io::Write for BlockingSerial<'a, PADS> {
+impl<'a> embedded_io::Write for BlockingSerial<'a> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         uart_write(&self.uart, buf)
@@ -196,7 +199,7 @@ impl<'a, PADS> embedded_io::Write for BlockingSerial<'a, PADS> {
     }
 }
 
-impl<'a, PADS> embedded_hal_nb::serial::Write for BlockingSerial<'a, PADS> {
+impl<'a> embedded_hal_nb::serial::Write for BlockingSerial<'a> {
     #[inline]
     fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
         uart_write_nb(&self.uart, word)
@@ -207,21 +210,21 @@ impl<'a, PADS> embedded_hal_nb::serial::Write for BlockingSerial<'a, PADS> {
     }
 }
 
-impl<'a, PADS> embedded_io::Read for BlockingSerial<'a, PADS> {
+impl<'a> embedded_io::Read for BlockingSerial<'a> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         uart_read(&self.uart, buf)
     }
 }
 
-impl<'a, PADS> embedded_hal_nb::serial::Read for BlockingSerial<'a, PADS> {
+impl<'a> embedded_hal_nb::serial::Read for BlockingSerial<'a> {
     #[inline]
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
         uart_read_nb(&self.uart)
     }
 }
 
-impl<'a, PADS> embedded_io::Write for BlockingTransmitHalf<'a, PADS> {
+impl<'a> embedded_io::Write for BlockingTransmitHalf<'a> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         uart_write(&self.uart, buf)
@@ -232,7 +235,7 @@ impl<'a, PADS> embedded_io::Write for BlockingTransmitHalf<'a, PADS> {
     }
 }
 
-impl<'a, PADS> embedded_hal_nb::serial::Write for BlockingTransmitHalf<'a, PADS> {
+impl<'a> embedded_hal_nb::serial::Write for BlockingTransmitHalf<'a> {
     #[inline]
     fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
         uart_write_nb(&self.uart, word)
@@ -243,14 +246,14 @@ impl<'a, PADS> embedded_hal_nb::serial::Write for BlockingTransmitHalf<'a, PADS>
     }
 }
 
-impl<'a, PADS> embedded_io::Read for BlockingReceiveHalf<'a, PADS> {
+impl<'a> embedded_io::Read for BlockingReceiveHalf<'a> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         uart_read(&self.uart, buf)
     }
 }
 
-impl<'a, PADS> embedded_hal_nb::serial::Read for BlockingReceiveHalf<'a, PADS> {
+impl<'a> embedded_hal_nb::serial::Read for BlockingReceiveHalf<'a> {
     #[inline]
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
         uart_read_nb(&self.uart)

@@ -15,7 +15,7 @@ pub struct MuxRxd<const I: usize>;
 
 impl<const I: usize> MuxRts<I> {
     #[inline]
-    fn signal() -> UartSignal {
+    pub fn signal() -> UartSignal {
         match I {
             0 => UartSignal::Rts0,
             1 => UartSignal::Rts1,
@@ -27,7 +27,7 @@ impl<const I: usize> MuxRts<I> {
 
 impl<const I: usize> MuxCts<I> {
     #[inline]
-    fn signal() -> UartSignal {
+    pub fn signal() -> UartSignal {
         match I {
             0 => UartSignal::Cts0,
             1 => UartSignal::Cts1,
@@ -39,7 +39,7 @@ impl<const I: usize> MuxCts<I> {
 
 impl<const I: usize> MuxTxd<I> {
     #[inline]
-    fn signal() -> UartSignal {
+    pub fn signal() -> UartSignal {
         match I {
             0 => UartSignal::Txd0,
             1 => UartSignal::Txd1,
@@ -51,7 +51,7 @@ impl<const I: usize> MuxTxd<I> {
 
 impl<const I: usize> MuxRxd<I> {
     #[inline]
-    fn signal() -> UartSignal {
+    pub fn signal() -> UartSignal {
         match I {
             0 => UartSignal::Rxd0,
             1 => UartSignal::Rxd1,
@@ -160,6 +160,7 @@ impl<'a, const N: usize, M> UartMux<'a, N, M> {
         }
     }
 }
+
 impl<'a> UartMuxes<'a> {
     #[doc(hidden)]
     #[inline]

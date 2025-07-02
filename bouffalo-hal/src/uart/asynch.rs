@@ -1,40 +1,38 @@
 use super::{
-    Config, ConfigError, Error, Interrupt, InterruptClear, Numbered, Pads, RegisterBlock,
-    uart_config,
+    Config, ConfigError, Error, Interrupt, InterruptClear, Numbered, RegisterBlock,
+    signal::IntoSignals, uart_config,
 };
 use crate::clocks::Clocks;
 use core::{
     future::Future,
+    marker::PhantomData,
     pin::Pin,
     sync::atomic::{AtomicUsize, Ordering},
     task::{Context, Poll},
 };
 
 /// Managed async/await serial peripheral.
-pub struct AsyncSerial<'a, PADS> {
+pub struct AsyncSerial<'a> {
     uart: &'a RegisterBlock,
-    pads: PADS,
+    pads: PhantomData<()>,
     state: &'a SerialState,
 }
 
-impl<'a, PADS> AsyncSerial<'a, PADS> {
+impl<'a> AsyncSerial<'a> {
     /// Creates the async/await serial peripheral from owned peripheral structure, configuration, pads
     /// and a waker registry.
     #[inline]
     pub fn new<const I: usize>(
         uart: impl Numbered<'a, I>,
         config: Config,
-        pads: PADS,
+        pads: impl IntoSignals<'a, I>,
         clocks: &Clocks,
         state: &'a SerialState,
-    ) -> Result<Self, ConfigError>
-    where
-        PADS: Pads<I>,
-    {
+    ) -> Result<Self, ConfigError> {
         let uart = uart.register_block();
         // Calculate transmit interval and register values from configuration.
         let (bit_period, data_config, transmit_config, receive_config) =
-            uart_config::<I, PADS>(config, &clocks)?;
+            uart_config(config, &clocks, &pads)?;
 
         // Write bit period.
         unsafe { uart.bit_period.write(bit_period) };
@@ -49,13 +47,11 @@ impl<'a, PADS> AsyncSerial<'a, PADS> {
             .ref_to_serial
             .store(&*uart as *const _ as usize, Ordering::Release);
 
-        Ok(AsyncSerial { uart, pads, state })
-    }
-
-    /// Release serial instance and return its peripheral and pads.
-    #[inline]
-    pub fn free(self) -> PADS {
-        self.pads
+        Ok(AsyncSerial {
+            uart,
+            pads: PhantomData,
+            state,
+        })
     }
 }
 
@@ -188,18 +184,18 @@ async fn uart_read_async(
     Ok(len)
 }
 
-impl<'a, PADS> embedded_io_async::ErrorType for AsyncSerial<'a, PADS> {
+impl<'a> embedded_io_async::ErrorType for AsyncSerial<'a> {
     type Error = Error;
 }
 
-impl<'a, PADS> embedded_io_async::Write for AsyncSerial<'a, PADS> {
+impl<'a> embedded_io_async::Write for AsyncSerial<'a> {
     #[inline]
     async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         uart_write_async(&self.uart, buf, &self.state.transmit_ready).await
     }
 }
 
-impl<'a, PADS> embedded_io_async::Read for AsyncSerial<'a, PADS> {
+impl<'a> embedded_io_async::Read for AsyncSerial<'a> {
     #[inline]
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         uart_read_async(&self.uart, buf, &self.state.receive_ready).await

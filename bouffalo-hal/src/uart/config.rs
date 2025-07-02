@@ -1,4 +1,4 @@
-use super::{BitPeriod, DataConfig, Pads, ReceiveConfig, TransmitConfig};
+use super::{BitPeriod, DataConfig, ReceiveConfig, TransmitConfig};
 use crate::clocks::Clocks;
 use embedded_time::rate::{Baud, Extensions};
 
@@ -85,9 +85,10 @@ impl Default for Config {
 }
 
 #[inline]
-pub(crate) fn uart_config<const I: usize, PADS: Pads<I>>(
+pub(crate) fn uart_config<'a, const I: usize, T: super::signal::IntoSignals<'a, I>>(
     config: Config,
     clocks: &Clocks,
+    _pads: &T,
 ) -> Result<(BitPeriod, DataConfig, TransmitConfig, ReceiveConfig), ConfigError> {
     let uart_clock = match clocks.uart_clock::<I>() {
         Some(freq) => freq,
@@ -109,13 +110,13 @@ pub(crate) fn uart_config<const I: usize, PADS: Pads<I>>(
         .set_transmit_time_interval(transmit_interval as u16)
         .set_receive_time_interval(receive_interval as u16);
     let (data_config, mut transmit_config, mut receive_config) = config.into_registers();
-    if PADS::TXD {
+    if T::TXD {
         transmit_config = transmit_config.enable_txd();
     }
-    if PADS::CTS {
+    if T::CTS {
         transmit_config = transmit_config.enable_cts();
     }
-    if PADS::RXD {
+    if T::RXD {
         receive_config = receive_config.enable_rxd();
     }
     Ok((bit_period, data_config, transmit_config, receive_config))

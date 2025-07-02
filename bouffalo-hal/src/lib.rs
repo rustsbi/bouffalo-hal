@@ -38,7 +38,7 @@ pub mod prelude {
     #[cfg(feature = "glb-v2")]
     pub use crate::gpio::IntoPadv2 as _;
     pub use crate::lz4d::Lz4dExt as _;
-    pub use crate::uart::UartExt as _;
+    pub use crate::uart::{IntoUartSignal as _, UartExt as _};
     pub use embedded_hal::digital::{InputPin as _, OutputPin as _, PinState};
     pub use embedded_hal::i2c::I2c as _;
     pub use embedded_hal::pwm::SetDutyCycle as _;
