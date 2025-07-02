@@ -1,5 +1,5 @@
 use super::{
-    Config, ConfigError, Error, Numbered, RegisterBlock, signal::IntoSignals, uart_config,
+    Config, ConfigError, Error, Instance, Numbered, RegisterBlock, signal::IntoSignals, uart_config,
 };
 use crate::clocks::Clocks;
 use core::marker::PhantomData;
@@ -40,6 +40,20 @@ impl<'a> BlockingSerial<'a> {
             uart,
             pads: PhantomData,
         })
+    }
+
+    /// Steal `BlockingSerial` instance from existing register block that is already configured.
+    ///
+    /// # Unsafety
+    ///
+    /// Caller must ensure that no I/O pad conflicts exists during the lifetime of this peripheral,
+    /// and that the peripheral clocks are already properly configured.
+    #[inline]
+    pub unsafe fn steal_freerun(uart: impl Instance<'a>) -> Self {
+        Self {
+            uart: uart.register_block(),
+            pads: PhantomData,
+        }
     }
 
     /// Enable transmit DMA.
