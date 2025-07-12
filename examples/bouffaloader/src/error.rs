@@ -9,7 +9,7 @@ where
     /// The file length is too long.
     FileLength(u32),
     /// The file is not a valid DTB.
-    InvalidDTB,
+    InvalidDtb,
     /// The device tree magic number is invalid.
     InvalideMagic(u32),
 }

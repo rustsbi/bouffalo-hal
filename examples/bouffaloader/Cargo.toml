@@ -2,21 +2,13 @@
 name = "bouffaloader"
 version = "0.0.0"
 edition = "2024"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[workspace]
-members = [
-    "blri",
-]
-
 [dependencies]
-bouffalo-hal = { git = "https://github.com/rustsbi/bouffalo-hal", rev = "65a354d", features = [
-    "bl808",
-] }
-bouffalo-rt = { git = "https://github.com/rustsbi/bouffalo-hal", rev = "65a354d", features = [
-    "bl808-dsp",
-] }
+bouffalo-hal = { path = "../../bouffalo-hal", features = ["bl808"] }
+bouffalo-rt = { path = "../../bouffalo-rt", features = ["bl808-dsp"] }
 panic-halt = "1.0.0"
 embedded-time = "0.12.1"
 embedded-cli = "0.2.1"
@@ -30,11 +22,6 @@ serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde-device-tree = { git = "https://github.com/rustsbi/serde-device-tree", default-features = false, features = ["ser"]}
 
 [[bin]]
-name = "bouffaloader"
-test = false
-bench = false
-
-[lib]
 name = "bouffaloader"
 test = false
 bench = false

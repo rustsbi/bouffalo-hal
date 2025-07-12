@@ -1,3 +1,0 @@
-[alias]
-make = "build --target riscv64imac-unknown-none-elf --release"
-blri = "run --package blri --release --"

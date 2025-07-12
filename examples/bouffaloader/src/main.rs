@@ -34,13 +34,11 @@ static DYNAMIC_INFO: DynamicInfo = DynamicInfo {
 fn main(p: Peripherals, c: Clocks) -> ! {
     // Initialize devices.
     let (tx, rx) = {
-        let tx = p.gpio.io14.into_uart();
-        let rx = p.gpio.io15.into_uart();
-        let sig2 = p.uart_muxes.sig2.into_transmit::<0>();
-        let sig3 = p.uart_muxes.sig3.into_receive::<0>();
+        let tx = p.uart_muxes.sig2.into_transmit(p.gpio.io14);
+        let rx = p.uart_muxes.sig3.into_receive(p.gpio.io15);
 
         let config = UartConfig::default().set_baudrate(2000000.Bd());
-        let serial = p.uart0.freerun(config, ((tx, sig2), (rx, sig3)), &c);
+        let serial = p.uart0.freerun(config, (tx, rx), &c);
 
         serial.unwrap().split()
     };

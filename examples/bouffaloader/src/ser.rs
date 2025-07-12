@@ -22,7 +22,7 @@ pub fn set_bootargs(new_bootargs: &String<128>) -> Result<(), Error<()>> {
             // Get the aligned size of the dtb.
             let size = ptr.align();
             let dtb = Dtb::from(ptr).share();
-            let root: Node = from_raw_mut(&dtb).map_err(|_| Error::InvalidDTB)?;
+            let root: Node = from_raw_mut(&dtb).map_err(|_| Error::InvalidDtb)?;
             let chosen = Chosen {
                 bootargs: new_bootargs,
             };
@@ -35,7 +35,7 @@ pub fn set_bootargs(new_bootargs: &String<128>) -> Result<(), Error<()>> {
             let patches = [patch];
             let mut temp_buffer =
                 unsafe { core::slice::from_raw_parts_mut(FIRMWARE_ADDRESS as *mut u8, size * 2) };
-            to_dtb(&root, &patches, &mut temp_buffer).map_err(|_| Error::InvalidDTB)?;
+            to_dtb(&root, &patches, &mut temp_buffer).map_err(|_| Error::InvalidDtb)?;
             let target =
                 unsafe { core::slice::from_raw_parts_mut(OPAQUE_ADDRESS as *mut u8, size) };
             target.copy_from_slice(&temp_buffer[..size]);
@@ -46,7 +46,7 @@ pub fn set_bootargs(new_bootargs: &String<128>) -> Result<(), Error<()>> {
             error_type: ErrorType::InvalidMagic { wrong_magic },
             ..
         }) => Err(Error::InvalideMagic(wrong_magic)),
-        Err(_) => Err(Error::InvalidDTB),
+        Err(_) => Err(Error::InvalidDtb),
     }
 }
 

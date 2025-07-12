@@ -14,7 +14,7 @@ Consisitent with following steps.
 ### Compile
 
 ```bash
-cargo build --target riscv64imac-unknown-none-elf --release
+cargo build -p bouffaloader --target riscv64imac-unknown-none-elf --release
 ```
 
 ### Convert ELF file to binary file
@@ -41,7 +41,7 @@ cargo blri flash ./target/riscv64imac-unknown-none-elf/release/bouffaloader.bin
 
 ```bash
 rustup target install riscv64imac-unknown-none-elf
-cargo build --target riscv64imac-unknown-none-elf --release
+cargo build -p bouffaloader --target riscv64imac-unknown-none-elf --release
 ```
 
 ### Convert the elf file to a binary file

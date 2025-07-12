@@ -51,7 +51,7 @@ pub extern "C" fn default_handler() {}
 
 /// Flash configuration in ROM header.
 #[cfg_attr(feature = "image_fuse", derive(Serialize, Deserialize))]
-#[cfg_attr(any(test, debug_assertions), derive(Debug, Clone, PartialEq, Eq))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub struct HalFlashConfig {
     magic: u32,
@@ -183,7 +183,7 @@ impl HalFlashConfig {
 }
 
 #[cfg_attr(feature = "image_fuse", derive(Serialize, Deserialize))]
-#[cfg_attr(any(test, debug_assertions), derive(Debug, Clone, PartialEq, Eq))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 struct SpiFlashCfgType {
     /// Serail flash uint32erface mode,bit0-3:IF mode,bit4:unwrap,bit5:32-bits addr mode support.
@@ -346,7 +346,7 @@ impl SpiFlashCfgType {
     }
 }
 #[cfg_attr(feature = "image_fuse", derive(Serialize, Deserialize))]
-#[cfg_attr(any(test, debug_assertions), derive(Debug, Clone, PartialEq, Eq))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub struct HalBasicConfig {
     /// Flags 4bytes
@@ -416,7 +416,7 @@ impl HalBasicConfig {
 // Note that the definition is different from the comments in HalBasicConfig,
 // this is derived from the 010 Editor bt file.
 #[cfg_attr(feature = "image_fuse", derive(Serialize, Deserialize))]
-#[cfg_attr(any(test, debug_assertions), derive(Debug, Clone, PartialEq, Eq))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BasicConfigFlags {
     /// Raw flag value
     pub raw: u32,
@@ -462,7 +462,6 @@ pub struct BasicConfigFlags {
     pub fpga_halt_release: bool,
 }
 
-#[cfg(any(test, debug_assertions))]
 impl BasicConfigFlags {
     /// Parse from raw u32 value
     pub fn from_u32(raw: u32) -> Self {
@@ -517,7 +516,7 @@ impl BasicConfigFlags {
 }
 /// Program or ROM code patches.
 #[cfg_attr(feature = "image_fuse", derive(Serialize, Deserialize))]
-#[cfg_attr(any(test, debug_assertions), derive(Debug, Clone, PartialEq, Eq))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub struct HalPatchCfg {
     addr: u32,
