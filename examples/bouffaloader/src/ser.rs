@@ -45,7 +45,7 @@ pub fn set_bootargs(new_bootargs: &String<128>) -> Result<(), Error<()>> {
         Err(DtbError::Typed {
             error_type: ErrorType::InvalidMagic { wrong_magic },
             ..
-        }) => Err(Error::InvalideMagic(wrong_magic)),
+        }) => Err(Error::InvalidMagic(wrong_magic)),
         Err(_) => Err(Error::InvalidDtb),
     }
 }

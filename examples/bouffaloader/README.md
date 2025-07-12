@@ -9,7 +9,7 @@ cargo make
 cargo blri run
 ```
 
-Consisitent with following steps.
+Consistent with the following steps.
 
 ### Compile
 

@@ -9,10 +9,6 @@ pub mod utils;
 pub use error::Error;
 
 use bouffalo_hal::sdio::NonSysDmaSdh;
-use core::clone::Clone;
-use core::fmt::Debug;
-use core::marker::Copy;
-use core::option::Option;
 use embedded_hal::digital::OutputPin;
 use embedded_io::{Read, Write};
 use heapless::String;

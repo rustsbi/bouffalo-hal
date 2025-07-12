@@ -135,7 +135,7 @@ fn run_cli<
             #[command(subcommand)]
             command: Option<BootargsCommand<'a>>,
         },
-        ///print the infomation in configs.bootargs
+        /// Print the information in `configs.bootargs`.
         Print,
     }
 

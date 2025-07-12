@@ -11,7 +11,7 @@ where
     /// The file is not a valid DTB.
     InvalidDtb,
     /// The device tree magic number is invalid.
-    InvalideMagic(u32),
+    InvalidMagic(u32),
 }
 
 impl<BE> From<embedded_sdmmc::Error<BE>> for Error<BE>

@@ -107,7 +107,15 @@ pub fn load_from_sdcard<
             .ok();
             return Err(());
         }
-        Err(_) => {}
+        Err(e) => {
+            writeln!(
+                d.tx,
+                "error: an unexpected error occurred while loading the DTB: {:?}",
+                e
+            )
+            .ok();
+            return Err(());
+        }
     }
     // Patch bootargs to dtb.
     if let Some(bootargs) = config.configs.bootargs {
@@ -123,7 +131,7 @@ pub fn load_from_sdcard<
             Ok(()) => {
                 writeln!(d.tx, "info: /config.toml: bootargs set to `{}`.", bootargs).ok();
             }
-            Err(Error::InvalideMagic(_magic)) => {
+            Err(Error::InvalidMagic(_magic)) => {
                 writeln!(d.tx, "warning: /config.toml: bootargs is unused, as `config.opaque` does not include an opaque information file in DTB format.
         note: /config.toml: `config.bootargs` is set to `console=ttyS0,115200n8 root=/dev/mmcblk0p2 rw rootwait quiet` in the configuration.").ok();
             }
