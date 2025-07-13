@@ -127,7 +127,7 @@ pub static PATCH_ON_JUMP: [HalPatchCfg; 4] = [
 
 /// Full ROM bootloading header.
 #[cfg_attr(feature = "image_fuse", derive(Serialize, Deserialize))]
-#[cfg_attr(any(test, debug_assertions), derive(Debug, Clone, PartialEq, Eq))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub struct HalBootheader {
     pub magic: u32,
@@ -301,7 +301,7 @@ impl HalBootheader {
 }
 /// Hardware system clock configuration.
 #[cfg_attr(feature = "image_fuse", derive(Serialize, Deserialize))]
-#[cfg_attr(any(test, debug_assertions), derive(Debug, Clone, PartialEq, Eq))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub struct HalSysClkConfig {
     xtal_type: u8,
@@ -377,7 +377,7 @@ impl HalSysClkConfig {
 
 /// Clock configuration in ROM header.
 #[cfg_attr(feature = "image_fuse", derive(Serialize, Deserialize))]
-#[cfg_attr(any(test, debug_assertions), derive(Debug, Clone, PartialEq, Eq))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub struct HalPllConfig {
     magic: u32,
@@ -435,7 +435,7 @@ impl HalPllConfig {
 
 /// Processor core configuration in ROM header.
 #[cfg_attr(feature = "image_fuse", derive(Serialize, Deserialize))]
-#[cfg_attr(any(test, debug_assertions), derive(Debug, Clone, PartialEq, Eq))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(C)]
 pub struct HalCpuCfg {
     /// Config this cpu.
