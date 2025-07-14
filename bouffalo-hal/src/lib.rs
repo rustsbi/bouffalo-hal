@@ -13,6 +13,7 @@ pub mod clocks;
 pub mod audio;
 pub mod dbi;
 pub mod dma;
+pub mod efuse;
 pub mod emac;
 pub mod glb;
 pub mod gpio;
