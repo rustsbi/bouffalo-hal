@@ -17,3 +17,4 @@
 | `uart-cli-demo`       | √     |
 | `uart-demo`       | √     |
 | `uart-dma-demo`       | √     |
+| `adc-tsen-demo`       | √     |
