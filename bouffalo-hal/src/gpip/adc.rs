@@ -1,5 +1,5 @@
 use super::register::*;
-use crate::hbn::{self};
+use crate::hbn;
 use cfg_if::cfg_if;
 use core::ops::Deref;
 
