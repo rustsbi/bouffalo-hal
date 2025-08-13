@@ -57,11 +57,15 @@ pub struct Peripherals {
     pub dma1: DMA1,
     /// Direct Memory Access peripheral 2.
     pub dma2: DMA2,
+    /// Generic DAC, ADC and ACOMP interface control peripheral.
+    pub gpip: GPIP,
 }
 
 soc! {
     /// Global configuration peripheral.
     pub struct GLBv2 => 0x20000000, bouffalo_hal::glb::v2::RegisterBlock;
+    /// Generic DAC, ADC and ACOMP interface control peripheral.
+    pub struct GPIP => 0x20002000, bouffalo_hal::gpip::RegisterBlock;
     /// Universal Asynchronous Receiver/Transmitter 0 with fixed base address.
     pub struct UART0 => 0x2000A000, bouffalo_hal::uart::RegisterBlock;
     /// Universal Asynchronous Receiver/Transmitter 1 with fixed base address.
@@ -198,6 +202,7 @@ pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals, Clocks) {
         dma0: DMA0 { _private: () },
         dma1: DMA1 { _private: () },
         dma2: DMA2 { _private: () },
+        gpip: GPIP { _private: () },
     };
     let clocks = Clocks {
         xtal: Hertz(xtal_hz),

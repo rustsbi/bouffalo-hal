@@ -1,5 +1,5 @@
 //! Electronic fuse peripheral.
-use volatile_register::{RO, RW, WO};
+use volatile_register::RW;
 
 /// Electronic fuse peripheral registers.
 #[repr(C)]
@@ -445,10 +445,7 @@ pub struct EfuseIf1ManualConfig(u32);
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        EfuseConfig0, EfuseControl, EfuseCycleConfig0, EfuseCycleConfig1, EfuseIf0ManualConfig,
-        RegisterBlock,
-    };
+    use super::{EfuseControl, EfuseCycleConfig1, EfuseIf0ManualConfig, RegisterBlock};
     use core::mem::offset_of;
 
     #[test]
