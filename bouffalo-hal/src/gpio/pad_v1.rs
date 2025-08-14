@@ -1,5 +1,5 @@
 use crate::glb::{Drive, Pull, v1};
-use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
+use embedded_hal::digital::{ErrorType, InputPin, OutputPin, StatefulOutputPin};
 
 /// Peripheral instance of a version 1 GPIO pad.
 pub trait Instance<'a> {
@@ -217,5 +217,19 @@ impl<'a> OutputPin for Outputv1<'a> {
         let val = self.base.gpio_output_value.read();
         unsafe { self.base.gpio_output_value.write(val | (1 << n)) };
         Ok(())
+    }
+}
+
+// TODO: need to verify if this is usable for v1
+impl<'a> StatefulOutputPin for Outputv1<'a> {
+    #[inline]
+    fn is_set_high(&mut self) -> Result<bool, Self::Error> {
+        let n = self.number;
+        Ok(self.base.gpio_output_value.read() & (1 << n) != 0)
+    }
+    #[inline]
+    fn is_set_low(&mut self) -> Result<bool, Self::Error> {
+        let n = self.number;
+        Ok(self.base.gpio_output_value.read() & (1 << n) == 0)
     }
 }
