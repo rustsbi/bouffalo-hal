@@ -1,7 +1,7 @@
 use super::typestate::{I2c, JtagD0, JtagLp, JtagM0, MmUart, Pwm, Sdh, Spi, Uart};
 use crate::glb::{Drive, Pull, v2};
 use core::marker::PhantomData;
-use embedded_hal::digital::{ErrorType, InputPin, OutputPin};
+use embedded_hal::digital::{ErrorType, InputPin, OutputPin, StatefulOutputPin};
 
 /// Peripheral instance of a version 2 GPIO pad.
 pub trait Instance<'a> {
@@ -204,6 +204,19 @@ impl<'a> OutputPin for Outputv2<'a> {
         let n = self.number;
         unsafe { self.base.gpio_set[n >> 5].write(1 << (n & 0x1F)) };
         Ok(())
+    }
+}
+
+impl<'a> StatefulOutputPin for Outputv2<'a> {
+    #[inline]
+    fn is_set_high(&mut self) -> Result<bool, Self::Error> {
+        let n = self.number;
+        Ok(self.base.gpio_output[n >> 5].read() & (1 << (n & 0x1F)) != 0)
+    }
+    #[inline]
+    fn is_set_low(&mut self) -> Result<bool, Self::Error> {
+        let n = self.number;
+        Ok(self.base.gpio_output[n >> 5].read() & (1 << (n & 0x1F)) == 0)
     }
 }
 

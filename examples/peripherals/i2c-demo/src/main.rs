@@ -19,8 +19,8 @@ fn main(p: Peripherals, c: Clocks) -> ! {
 
     let scl = p.gpio.io6;
     let sda = p.gpio.io7;
-    let mut i2c = I2c::new(p.i2c0, (scl, sda), &p.glb);
-    i2c.enable_sub_address(SCREEN_TOUCH_SUB_ADDRESS);
+    let mut touch_int = p.gpio.io32.into_pull_up_input();
+    let mut i2c = I2c::new(p.i2c0, (scl, sda), 100_000.Hz(), &p.glb);
 
     writeln!(serial, "Hello Rust🦀!").ok();
     writeln!(
@@ -31,15 +31,25 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     led.set_high().ok();
     let mut buf = [0u8; 6];
     loop {
-        riscv::asm::delay(100_000);
-        match i2c.read(SCREEN_ADDRESS, &mut buf) {
+        while touch_int.is_high().unwrap() {
+            core::hint::spin_loop();
+        }
+
+        match i2c.write_read(SCREEN_ADDRESS, &[SCREEN_TOUCH_SUB_ADDRESS], &mut buf) {
             Ok(_) => {
-                if buf[2] >> 4 == 8 {
+                if buf[2] >> 6 != 1 {
                     led.set_low().ok();
                 } else {
                     led.set_high().ok();
                 }
-                writeln!(serial, "pos: ({}, {})[{}]", buf[3], buf[5], buf[2] >> 4).ok();
+                writeln!(
+                    serial,
+                    "pos: ({}, {}) event flag[{}]",
+                    buf[3],
+                    buf[5],
+                    buf[2] >> 6
+                )
+                .ok();
             }
             Err(_) => {}
         }

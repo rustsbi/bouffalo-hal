@@ -1,6 +1,6 @@
 use super::{Instance, input::Input, pad_v1::Outputv1, pad_v2::Outputv2};
 use crate::glb::{Drive, Pull, Version};
-use embedded_hal::digital::{ErrorType, OutputPin};
+use embedded_hal::digital::{ErrorType, OutputPin, StatefulOutputPin};
 
 /// Output mode driver for GPIO pad for all versions.
 pub struct Output<'a> {
@@ -109,6 +109,23 @@ impl<'a> OutputPin for Output<'a> {
         match self.version {
             Version::V1 => Outputv1::at(self.number, self.base).set_high(),
             Version::V2 => Outputv2::at(self.number, self.base).set_high(),
+        }
+    }
+}
+
+impl<'a> StatefulOutputPin for Output<'a> {
+    #[inline]
+    fn is_set_high(&mut self) -> Result<bool, Self::Error> {
+        match self.version {
+            Version::V1 => Outputv1::at(self.number, self.base).is_set_high(),
+            Version::V2 => Outputv2::at(self.number, self.base).is_set_high(),
+        }
+    }
+    #[inline]
+    fn is_set_low(&mut self) -> Result<bool, Self::Error> {
+        match self.version {
+            Version::V1 => Outputv1::at(self.number, self.base).is_set_low(),
+            Version::V2 => Outputv2::at(self.number, self.base).is_set_low(),
         }
     }
 }

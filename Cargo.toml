@@ -11,6 +11,7 @@ members = [
     "examples/multicore/multicore-demo/dsp",
     "examples/peripherals/gpio-demo",
     "examples/peripherals/i2c-demo",
+    "examples/peripherals/i2c-screen-demo",
     "examples/peripherals/jtag-demo",
     "examples/peripherals/lz4d-demo",
     "examples/peripherals/pwm-demo",
