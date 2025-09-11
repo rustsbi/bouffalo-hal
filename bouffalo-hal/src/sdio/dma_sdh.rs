@@ -7,7 +7,6 @@ use super::register::{
 use crate::dma::{LliPool, LliTransfer, UntypedChannel};
 use crate::glb;
 use core::ops::Deref;
-use core::sync::atomic::{Ordering, fence};
 use embedded_io::Write;
 use embedded_sdmmc::Block;
 
@@ -153,9 +152,6 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
 
             self.dma_channel.stop();
 
-            // FIXME modify to a proper fence
-            fence(Ordering::SeqCst);
-
             block[j * 4 + 0] = (val[0] >> 0) as u8;
             block[j * 4 + 1] = (val[0] >> 8) as u8;
             block[j * 4 + 2] = (val[0] >> 16) as u8;
@@ -221,9 +217,6 @@ impl<'a, SDH: Deref<Target = RegisterBlock>, PADS, CH: Deref<Target = UntypedCha
             }
 
             self.dma_channel.stop();
-
-            // FIXME modify to a proper fence
-            fence(Ordering::SeqCst);
 
             unsafe {
                 self.sdh

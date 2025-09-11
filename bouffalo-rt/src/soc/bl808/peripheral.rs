@@ -59,6 +59,8 @@ pub struct Peripherals {
     pub dma2: DMA2,
     /// Generic DAC, ADC and ACOMP interface control peripheral.
     pub gpip: GPIP,
+    /// Efuse peripheral.
+    pub efuse: EFUSE,
 }
 
 soc! {
@@ -86,6 +88,8 @@ soc! {
     pub struct DMA0 => 0x2000C000, bouffalo_hal::dma::RegisterBlock;
     /// Hibernation control peripheral.
     pub struct HBN => 0x2000F000, bouffalo_hal::hbn::RegisterBlock;
+    /// Efuse peripheral.
+    pub struct EFUSE => 0x20056000, bouffalo_hal::efuse::RegisterBlock;
     /// Secure Digital High Capacity peripheral.
     pub struct SDH => 0x20060000, bouffalo_hal::sdio::RegisterBlock;
     /// Ethernet Media Access Control peripheral.
@@ -203,6 +207,7 @@ pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals, Clocks) {
         dma1: DMA1 { _private: () },
         dma2: DMA2 { _private: () },
         gpip: GPIP { _private: () },
+        efuse: EFUSE { _private: () },
     };
     let clocks = Clocks {
         xtal: Hertz(xtal_hz),

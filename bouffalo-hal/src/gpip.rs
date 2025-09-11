@@ -3,4 +3,5 @@
 mod adc;
 mod register;
 
+pub use adc::*;
 pub use register::*;

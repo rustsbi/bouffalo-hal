@@ -5,7 +5,9 @@ use volatile_register::{RO, RW, WO};
 /// Global configuration registers.
 #[repr(C)]
 pub struct RegisterBlock {
-    _reserved0: [u8; 0x100],
+    /// Clock configuration register.
+    pub clock_config0: RW<ClockConfig0>,
+    _reserved0: [u8; 0xFC],
     /// Generic Purpose Input/Output configuration register.
     pub gpio_config: [RW<GpioConfig>; 16],
     _reserved1: [u8; 0x40],
@@ -28,6 +30,130 @@ pub struct RegisterBlock {
     _reserved6: [u8; 0xc],
     /// Generic Purpose Input/Output interrupt mode register.
     pub gpio_interrupt_mode: [RW<GpioInterruptMode>; 16],
+}
+
+/// Root clock source.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum GlbRootClk {
+    Rc32M = 0,
+    Xtal = 1,
+    Pll = 2,
+}
+
+/// Clock configuration register.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[repr(transparent)]
+pub struct ClockConfig0(u32);
+
+impl ClockConfig0 {
+    // const GLB_ID: u32 = 0xF << 28;
+    // const GLB_CHIP_RDY: u32 = 0x1 << 27;
+    // const GLB_FCLK_SW_STATE: u32 = 0x7 << 24;
+    const GLB_REG_BCLK_DIV: u32 = 0xFF << 16;
+    const GLB_REG_HCLK_DIV: u32 = 0xFF << 8;
+    const GLB_HBN_ROOT_CLK_SEL: u32 = 0x3 << 6;
+    // const GLB_REG_PLL_SEL: u32 = 0x3 << 4;
+    const GLB_REG_BCLK_EN: u32 = 0x1 << 3;
+    const GLB_REG_HCLK_EN: u32 = 0x1 << 2;
+    const GLB_REG_FCLK_EN: u32 = 0x1 << 1;
+    const GLB_REG_PLL_EN: u32 = 0x1 << 0;
+
+    /// Enable bclk.
+    #[inline]
+    pub const fn enable_bclk(self) -> Self {
+        Self(self.0 | Self::GLB_REG_BCLK_EN)
+    }
+    /// Disable bclk.
+    #[inline]
+    pub const fn disable_bclk(self) -> Self {
+        Self(self.0 & !Self::GLB_REG_BCLK_EN)
+    }
+    /// Check if bclk is enabled.
+    #[inline]
+    pub const fn is_bclk_enabled(self) -> bool {
+        self.0 & Self::GLB_REG_BCLK_EN != 0
+    }
+    /// Enable hclk (cpu clock).
+    #[inline]
+    pub const fn enable_hclk(self) -> Self {
+        Self(self.0 | Self::GLB_REG_HCLK_EN)
+    }
+    /// Disable hclk (cpu clock).
+    #[inline]
+    pub const fn disable_hclk(self) -> Self {
+        Self(self.0 & !Self::GLB_REG_HCLK_EN)
+    }
+    /// Check if hclk (cpu clock) is enabled.
+    #[inline]
+    pub const fn is_hclk_enabled(self) -> bool {
+        self.0 & Self::GLB_REG_HCLK_EN != 0
+    }
+    /// Enable fclk.
+    #[inline]
+    pub const fn enable_fclk(self) -> Self {
+        Self(self.0 | Self::GLB_REG_FCLK_EN)
+    }
+    /// Disable fclk.
+    #[inline]
+    pub const fn disable_fclk(self) -> Self {
+        Self(self.0 & !Self::GLB_REG_FCLK_EN)
+    }
+    /// Check if fclk is enabled.
+    #[inline]
+    pub const fn is_fclk_enabled(self) -> bool {
+        self.0 & Self::GLB_REG_FCLK_EN != 0
+    }
+    /// Enable pll.
+    #[inline]
+    pub const fn enable_pll(self) -> Self {
+        Self(self.0 | Self::GLB_REG_PLL_EN)
+    }
+    /// Disable pll.
+    #[inline]
+    pub const fn disable_pll(self) -> Self {
+        Self(self.0 & !Self::GLB_REG_PLL_EN)
+    }
+    /// Check if pll is enabled.
+    #[inline]
+    pub const fn is_pll_enabled(self) -> bool {
+        self.0 & Self::GLB_REG_PLL_EN != 0
+    }
+    /// Get bclk divider.
+    #[inline]
+    pub const fn bclk_div(self) -> u8 {
+        ((self.0 & Self::GLB_REG_BCLK_DIV) >> 16) as u8
+    }
+    /// Set bclk divider.
+    #[inline]
+    pub const fn set_bclk_div(self, val: u8) -> Self {
+        Self((self.0 & !Self::GLB_REG_BCLK_DIV) | ((val as u32) << 16))
+    }
+    /// Get hclk (cpu clock) divider.
+    #[inline]
+    pub const fn hclk_div(self) -> u8 {
+        ((self.0 & Self::GLB_REG_HCLK_DIV) >> 8) as u8
+    }
+    /// Set hclk (cpu clock) divider.
+    #[inline]
+    pub const fn set_hclk_div(self, val: u8) -> Self {
+        Self((self.0 & !Self::GLB_REG_HCLK_DIV) | ((val as u32) << 8))
+    }
+    /// Get root clock source in hbn mode.
+    #[inline]
+    pub const fn hbn_root_clk_sel(self) -> GlbRootClk {
+        match ((self.0 & Self::GLB_HBN_ROOT_CLK_SEL) >> 6) as u8 {
+            0 => GlbRootClk::Rc32M,
+            1 => GlbRootClk::Xtal,
+            2 | 3 => GlbRootClk::Pll,
+            _ => unreachable!(),
+        }
+    }
+    /// Set root clock source in hbn mode.
+    #[inline]
+    pub const fn set_hbn_root_clk_sel(self, val: GlbRootClk) -> Self {
+        Self((self.0 & !Self::GLB_HBN_ROOT_CLK_SEL) | ((val as u32) << 6))
+    }
 }
 
 /// Generic Purpose Input/Output Configuration register.
