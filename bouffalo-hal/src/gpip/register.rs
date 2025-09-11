@@ -449,7 +449,7 @@ impl AdcConfig {
 /// Adc command.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(u8)]
-pub enum AdcCommmand {
+pub enum AdcCommand {
     ClearFifo,
     VbatEn,
 }
@@ -475,6 +475,8 @@ where
     pub(crate) adc_coe: f32,
     pub(crate) adc_os1: u32,
     pub(crate) adc_os2: i32,
+    pub(crate) adc_reference_channel: Option<GpadcChannel>,
+    pub(crate) adc_reference_mv: i32,
     pub(crate) tsen_offset: u32,
     pub(crate) dac_config: Option<DacConfig>,
     pub(crate) dac_calibration_complete: bool,
@@ -623,9 +625,11 @@ impl<G: Deref<Target = RegisterBlock>> Gpip<G> {
             gpip,
             adc_config,
             adc_calibration_complete: false,
-            adc_coe: 0.0,
+            adc_coe: 1.0,
             adc_os1: 0,
             adc_os2: 0,
+            adc_reference_channel: None,
+            adc_reference_mv: -1,
             tsen_offset: 0,
             dac_config,
             dac_calibration_complete: false,

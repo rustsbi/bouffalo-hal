@@ -70,7 +70,7 @@ jobs:
       matrix:
         TARGET: [riscv32imac-unknown-none-elf]
         TOOLCHAIN: [nightly]
-        EXAMPLES: [uart-dma-demo, adc-tsen-demo]
+        EXAMPLES: [uart-dma-demo, adc-tsen-demo, adc-poll-demo, adc-poll-diff-demo, adc-poll-onechan-demo, adc-vbat-demo]
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1

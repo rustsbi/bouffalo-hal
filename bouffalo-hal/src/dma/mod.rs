@@ -55,7 +55,7 @@ pub trait DmaExt {
 
 /// Linked list item pool descriptor.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-#[repr(C)]
+#[repr(C, align(32))]
 pub struct LliPool {
     /// Source address.
     pub src_addr: u32,

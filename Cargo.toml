@@ -26,5 +26,9 @@ members = [
     "examples/peripherals/sdh-demo",
     "examples/peripherals/sdh-dma-demo",
     "examples/peripherals/adc-tsen-demo",
+    "examples/peripherals/adc-poll-demo",
+    "examples/peripherals/adc-poll-diff-demo",
+    "examples/peripherals/adc-poll-onechan-demo",
+    "examples/peripherals/adc-vbat-demo",
 ]
 resolver = "3"

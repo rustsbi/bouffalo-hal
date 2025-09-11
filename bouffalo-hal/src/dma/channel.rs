@@ -206,18 +206,34 @@ impl<'a> UntypedChannel<'a> {
                     .set_transfer_size(last_transfer_len as u16)
                     .enable_cplt_int();
             }
-            if i != 0 {
+            if i > 0 {
                 lli_pool[(i - 1) as usize].next_lli =
                     (&lli_pool[i as usize] as *const LliPool) as u32;
             }
 
             lli_pool[i as usize].control = ctrl_cfg;
         }
+
+        unsafe {
+            l1c_dcache_clean_range(
+                lli_pool.as_ptr() as usize,
+                lli_pool.len() * core::mem::size_of::<LliPool>(),
+            );
+        }
     }
-    /// Enable linked list continous mode.
+
+    /// Enable linked list continuous mode.
     #[inline]
     pub fn lli_link_head(&self, lli_pool: &mut [LliPool], used_count: usize) {
         lli_pool[used_count - 1].next_lli = (&lli_pool[0] as *const LliPool) as u32;
+
+        unsafe {
+            l1c_dcache_clean_range(
+                &lli_pool[used_count - 1] as *const _ as usize,
+                core::mem::size_of::<LliPool>(),
+            );
+        }
+
         unsafe {
             self.dma.channels[self.channel_id]
                 .linked_list_item
@@ -238,17 +254,32 @@ impl<'a> UntypedChannel<'a> {
         let mut lli_count_used_offset = 0;
         let actual_transfer_offset = match ctrl_cfg.src_transfer_width() {
             TransferWidth::Byte => 4064,
-            TransferWidth::HalfWord => 4064 << 1,
-            TransferWidth::Word => 4064 << 2,
-            TransferWidth::DoubleWord => 4064 << 3,
+            TransferWidth::HalfWord => 4064 * 2,
+            TransferWidth::Word => 4064 * 4,
+            TransferWidth::DoubleWord => 4064 * 8,
         };
 
         for i in 0..count {
             let actual_transfer_len = match ctrl_cfg.src_transfer_width() {
                 TransferWidth::Byte => transfer[i as usize].nbytes,
-                TransferWidth::HalfWord => transfer[i as usize].nbytes >> 1,
-                TransferWidth::Word => transfer[i as usize].nbytes >> 2,
-                TransferWidth::DoubleWord => transfer[i as usize].nbytes >> 3,
+                TransferWidth::HalfWord => {
+                    if transfer[i as usize].nbytes % 2 != 0 {
+                        return -1;
+                    }
+                    transfer[i as usize].nbytes / 2
+                }
+                TransferWidth::Word => {
+                    if transfer[i as usize].nbytes % 4 != 0 {
+                        return -1;
+                    }
+                    transfer[i as usize].nbytes / 4
+                }
+                TransferWidth::DoubleWord => {
+                    if transfer[i as usize].nbytes % 8 != 0 {
+                        return -1;
+                    }
+                    transfer[i as usize].nbytes / 8
+                }
             };
 
             let mut current_lli_count = actual_transfer_len / 4064 + 1;
@@ -268,7 +299,7 @@ impl<'a> UntypedChannel<'a> {
                 last_transfer_len,
             );
 
-            if i != 0 {
+            if i > 0 && lli_count_used_offset > 0 {
                 lli_pool[lli_count_used_offset - 1].next_lli =
                     (&lli_pool[lli_count_used_offset] as *const LliPool) as u32;
             }
@@ -281,20 +312,30 @@ impl<'a> UntypedChannel<'a> {
             }
         }
 
-        unsafe {
-            self.dma.channels[self.channel_id]
-                .source_address
-                .write(lli_pool[0].src_addr);
-            self.dma.channels[self.channel_id]
-                .destination_address
-                .write(lli_pool[0].dst_addr);
-            self.dma.channels[self.channel_id]
-                .linked_list_item
-                .write(lli_pool[0].next_lli);
-            self.dma.channels[self.channel_id]
-                .control
-                .write(lli_pool[0].control);
+        if lli_count_used_offset > 0 {
+            unsafe {
+                self.dma.channels[self.channel_id]
+                    .source_address
+                    .write(lli_pool[0].src_addr);
+                self.dma.channels[self.channel_id]
+                    .destination_address
+                    .write(lli_pool[0].dst_addr);
+                self.dma.channels[self.channel_id]
+                    .linked_list_item
+                    .write(lli_pool[0].next_lli);
+                self.dma.channels[self.channel_id]
+                    .control
+                    .write(lli_pool[0].control);
+            }
+
+            unsafe {
+                l1c_dcache_clean_range(
+                    lli_pool.as_ptr() as usize,
+                    lli_count_used_offset * core::mem::size_of::<LliPool>(),
+                );
+            }
         }
+
         lli_count_used_offset as i32
     }
     /// Start DMA transfer.
@@ -363,4 +404,70 @@ impl<'a, T> FourChannels<'a, T> {
             ch3: TypedChannel::new(dma, 3),
         }
     }
+}
+/// Clean (write back) L1 data cache for a specific memory range.
+///
+/// # Parameters
+/// - `addr`: Start address of the memory range to clean
+/// - `len`: Length in bytes of the memory range to clean
+///
+/// # Safety
+/// This function uses raw assembly instructions and directly manipulates cache hardware.
+/// The caller must ensure the addresses are valid memory locations.
+#[inline]
+pub unsafe fn l1c_dcache_clean_range(addr: usize, len: usize) {
+    // First check if the address is valid for cache operations
+    if !check_cache_addr(addr) {
+        return;
+    }
+
+    // Cache line size is 32 bytes for Bouffalo chips
+    const CACHE_LINE_SIZE: usize = 32;
+
+    // Align start address to cache line boundary (round down)
+    let start = addr & !(CACHE_LINE_SIZE - 1);
+
+    // Calculate end address and align to cache line boundary (round up)
+    let end = (addr + len + CACHE_LINE_SIZE - 1) & !(CACHE_LINE_SIZE - 1);
+
+    let mut current = start;
+
+    while current < end {
+        // Use RISC-V custom instruction to clean cache line
+        unsafe {
+            core::arch::asm!(
+                "mv x10, {0}",      // Move value to x10 register (same as a0)
+                ".word 0x02A5F02F", // dcache.cpa instruction (cache push address)
+                in(reg) current,    // Input in any register
+                options(nostack)
+            );
+        }
+
+        current += CACHE_LINE_SIZE;
+    }
+
+    // Memory fence to ensure all cache operations are complete
+    unsafe {
+        core::arch::asm!("fence", options(nostack));
+    }
+}
+
+/// Check if address is valid for cache operations
+///
+/// # Returns
+/// `true` if address is valid for cache operations, `false` otherwise
+#[inline]
+fn check_cache_addr(addr: usize) -> bool {
+    // For Bouffalo chips, typically addresses in certain ranges are cacheable
+    // This is a simplified implementation - actual implementation should check
+    // against the specific chip's memory map
+
+    // Example: Check if address is in DTCM or main RAM regions
+    // Adjust these values based on the specific Bouffalo chip you're targeting
+    const DTCM_START: usize = 0x2000_0000;
+    const DTCM_END: usize = 0x2003_FFFF;
+    const RAM_START: usize = 0x6000_0000;
+    const RAM_END: usize = 0x60FF_FFFF;
+
+    (addr >= DTCM_START && addr <= DTCM_END) || (addr >= RAM_START && addr <= RAM_END)
 }

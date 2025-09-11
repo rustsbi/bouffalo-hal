@@ -1,12 +1,16 @@
 //! Electronic fuse peripheral.
 use volatile_register::RW;
 
+use core::ops::Deref;
+
+use crate::{efuse::*, glb, hbn};
+
 /// Electronic fuse peripheral registers.
 #[repr(C)]
 pub struct RegisterBlock {
     _reserved0: [u8; 0x800],
     /// Efuse interface 0 control register.
-    pub control: RW<EfuseControl>,
+    pub control0: RW<EfuseControl0>,
     /// Efuse interface 0 cycle config0 register.
     pub cycle_config0: RW<EfuseCycleConfig0>,
     /// Efuse interface 0 cycle config1 register.
@@ -29,9 +33,9 @@ pub struct RegisterBlock {
 
 /// Efuse interface 0 control register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct EfuseControl(u32);
+pub struct EfuseControl0(u32);
 
-impl EfuseControl {
+impl EfuseControl0 {
     const IF_PROT_CODE_CYC_MASK: u32 = 0xFF << 24;
     const IF_0_INT_SET_MASK: u32 = 0x1 << 22;
     const IF_0_INT_CLR_MASK: u32 = 0x1 << 21;
@@ -439,18 +443,641 @@ pub struct EfuseConfig0(u32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct EfuseControl1(u32);
 
+impl EfuseControl1 {
+    const IF_1_INT_SET_MASK: u32 = 0x1 << 22;
+    const IF_1_INT_CLR_MASK: u32 = 0x1 << 21;
+    const IF_1_INT_MASK: u32 = 0x1 << 20;
+    const IF_1_CYC_MODIFY_MASK: u32 = 0x1 << 6;
+    const IF_1_MANUAL_EN_MASK: u32 = 0x1 << 5;
+    const IF_1_TRIG_MASK: u32 = 0x1 << 4;
+    const IF_1_RW_MASK: u32 = 0x1 << 3;
+    const IF_1_BUSY_MASK: u32 = 0x1 << 2;
+
+    /// Set interface 1 read/write bit.
+    #[inline]
+    pub const fn set_if1_rw(self, val: u8) -> Self {
+        Self((self.0 & !Self::IF_1_RW_MASK) | (Self::IF_1_RW_MASK & ((val as u32) << 3)))
+    }
+
+    /// Get interface 1 read/write bit.
+    #[inline]
+    pub const fn if1_rw(self) -> u8 {
+        ((self.0 & Self::IF_1_RW_MASK) >> 3) as u8
+    }
+
+    /// Set interface 1 trig bit.
+    #[inline]
+    pub const fn set_if1_trig(self, val: u8) -> Self {
+        Self((self.0 & !Self::IF_1_TRIG_MASK) | (Self::IF_1_TRIG_MASK & ((val as u32) << 4)))
+    }
+
+    /// Get interface 1 trig bit.
+    #[inline]
+    pub const fn if1_trig(self) -> u8 {
+        ((self.0 & Self::IF_1_TRIG_MASK) >> 4) as u8
+    }
+
+    /// Enable interface 1 manually.
+    #[inline]
+    pub const fn enable_if1_manually(self) -> Self {
+        Self(self.0 | Self::IF_1_MANUAL_EN_MASK)
+    }
+
+    /// Disable interface 1 manually.
+    #[inline]
+    pub const fn disable_if1_manually(self) -> Self {
+        Self(self.0 & !Self::IF_1_MANUAL_EN_MASK)
+    }
+
+    /// Check if interface 1 is manually enabled.
+    #[inline]
+    pub const fn is_if1_manually_enabled(self) -> bool {
+        (self.0 & Self::IF_1_MANUAL_EN_MASK) != 0
+    }
+
+    /// Set interface 1 cycle modify bit.
+    #[inline]
+    pub const fn set_if1_cyc_modify(self, val: u8) -> Self {
+        Self(
+            (self.0 & !Self::IF_1_CYC_MODIFY_MASK)
+                | (Self::IF_1_CYC_MODIFY_MASK & ((val as u32) << 6)),
+        )
+    }
+
+    /// Get interface 1 cycle modify bit.
+    #[inline]
+    pub const fn if1_cyc_modify(self) -> u8 {
+        ((self.0 & Self::IF_1_CYC_MODIFY_MASK) >> 6) as u8
+    }
+
+    /// Set interface 1 interrupt bit.
+    #[inline]
+    pub const fn set_if1_int(self, val: u8) -> Self {
+        Self((self.0 & !Self::IF_1_INT_MASK) | (Self::IF_1_INT_MASK & ((val as u32) << 20)))
+    }
+
+    /// Get interface 1 interrupt bit.
+    #[inline]
+    pub const fn if1_int(self) -> u8 {
+        ((self.0 & Self::IF_1_INT_MASK) >> 20) as u8
+    }
+
+    /// Set interface 1 interrupt clear bit.
+    #[inline]
+    pub const fn set_if1_int_clr(self, val: u8) -> Self {
+        Self((self.0 & !Self::IF_1_INT_CLR_MASK) | (Self::IF_1_INT_CLR_MASK & ((val as u32) << 21)))
+    }
+
+    /// Get interface 1 interrupt clear bit.
+    #[inline]
+    pub const fn if1_int_clr(self) -> u8 {
+        ((self.0 & Self::IF_1_INT_CLR_MASK) >> 21) as u8
+    }
+
+    /// Set interface 1 interrupt set bit.
+    #[inline]
+    pub const fn set_if1_int_set(self, val: u8) -> Self {
+        Self((self.0 & !Self::IF_1_INT_SET_MASK) | (Self::IF_1_INT_SET_MASK & ((val as u32) << 22)))
+    }
+
+    /// Get interface 1 interrupt set bit.
+    #[inline]
+    pub const fn if1_int_set(self) -> u8 {
+        ((self.0 & Self::IF_1_INT_SET_MASK) >> 22) as u8
+    }
+
+    /// Check if efuse 1 is busy.
+    #[inline]
+    pub const fn is_efuse_busy(self) -> bool {
+        (self.0 & Self::IF_1_BUSY_MASK) != 0
+    }
+}
+
 /// Efuse interface 1 manual config register.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct EfuseIf1ManualConfig(u32);
 
+/// Efuse instance.
+pub struct Efuse<E>
+where
+    E: Deref<Target = RegisterBlock>,
+{
+    efuse: E,
+}
+
+/// Efuse error.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum EfuseError {
+    /// Timeout error.
+    Timeout,
+    /// Not found error.
+    NotFound,
+}
+
+impl core::fmt::Display for EfuseError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            EfuseError::Timeout => write!(f, "Timeout error"),
+            EfuseError::NotFound => write!(f, "Not found error"),
+        }
+    }
+}
+
+impl<E> Efuse<E>
+where
+    E: Deref<Target = RegisterBlock>,
+{
+    const EFUSE_R0_SIZE: usize = {
+        cfg_if::cfg_if! {
+            if #[cfg(any(feature = "bl702", feature = "bl808"))] {
+                128
+            } else if #[cfg(feature = "bl616")] {
+                512
+            } else {
+                128
+            }
+        }
+    };
+
+    #[cfg(feature = "bl808")]
+    const EFUSE_R1_SIZE: usize = 128;
+
+    #[inline]
+    pub fn new(efuse: E) -> Self {
+        Efuse { efuse }
+    }
+
+    /// Switch AHB clock to R0.
+    #[inline]
+    pub fn switch_ahb_clk_r0(&self) -> Result<(), EfuseError> {
+        const TIMEOUT_VALUE: u32 = 1_600_000;
+
+        let mut timeout = TIMEOUT_VALUE;
+        while self.efuse.control0.read().is_efuse_busy() {
+            if timeout == 0 {
+                return Err(EfuseError::Timeout);
+            }
+            timeout -= 1;
+        }
+        unsafe {
+            self.efuse.control0.write({
+                let ctrl = EfuseControl0(0)
+                    .set_prot_code_ctrl(0xbf)
+                    .disable_if0_manually()
+                    .set_if0_cyc_modify(0)
+                    .enable_auto_read()
+                    .set_por_dig(0)
+                    .set_if0_int_clr(1)
+                    .set_if0_rw(0)
+                    .set_if0_trig(0);
+                #[cfg(any(feature = "bl702", feature = "bl602"))]
+                {
+                    let ctrl = ctrl.set_clk_sahb_data_sel(1);
+                }
+                ctrl
+            });
+        }
+
+        delay(4);
+        Ok(())
+    }
+
+    /// Switch AHB clock to R1.
+    #[cfg(feature = "bl808")]
+    #[inline]
+    pub fn switch_ahb_clk_r1(&self) -> Result<(), EfuseError> {
+        const TIMEOUT_VALUE: u32 = 1_600_000;
+
+        let mut timeout = TIMEOUT_VALUE;
+        while self.efuse.control0.read().is_efuse_busy() {
+            if timeout == 0 {
+                return Err(EfuseError::Timeout);
+            }
+            timeout -= 1;
+        }
+        unsafe {
+            self.efuse.control0.write(
+                EfuseControl0(0)
+                    .set_prot_code_ctrl(0xbf)
+                    .disable_if0_manually()
+                    .set_if0_cyc_modify(0)
+                    .enable_auto_read()
+                    .set_por_dig(0)
+                    .set_if0_int_clr(1)
+                    .set_if0_rw(0)
+                    .set_if0_trig(0),
+            );
+            self.efuse.control1.write(
+                EfuseControl1(0)
+                    .set_if1_cyc_modify(0xbf)
+                    .disable_if1_manually()
+                    .set_if1_cyc_modify(0)
+                    .set_if1_int_clr(1)
+                    .set_if1_rw(0)
+                    .set_if1_trig(0),
+            );
+        }
+
+        delay(4);
+        Ok(())
+    }
+
+    /// Clear data register 0.
+    #[inline]
+    pub fn clear_data_reg0(&self) -> Result<(), EfuseError> {
+        self.switch_ahb_clk_r0()?;
+        let base_addr = &self.efuse as *const _ as usize;
+
+        for i in 0..Self::EFUSE_R0_SIZE / 4 {
+            unsafe {
+                core::ptr::write_volatile((base_addr + i * 4) as *mut u32, 0);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Clear data register 1.
+    #[cfg(feature = "bl808")]
+    #[inline]
+    pub fn clear_data_reg1(&self) -> Result<(), EfuseError> {
+        self.switch_ahb_clk_r1()?;
+        let r1_base_addr = (&self.efuse as *const _ as usize) + Self::EFUSE_R0_SIZE;
+
+        for i in 0..Self::EFUSE_R1_SIZE / 4 {
+            unsafe {
+                core::ptr::write_volatile((r1_base_addr + i * 4) as *mut u32, 0);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Load efuse R0 data into data register 0.
+    #[inline]
+    pub fn load_efuse_r0(&self) -> Result<(), EfuseError> {
+        self.clear_data_reg0()?;
+
+        unsafe {
+            self.efuse.control0.write({
+                let ctrl = EfuseControl0(0)
+                    .set_prot_code_ctrl(0xbf)
+                    .disable_if0_manually()
+                    .set_if0_cyc_modify(0)
+                    .enable_auto_read()
+                    .set_por_dig(0)
+                    .set_if0_int_clr(1)
+                    .set_if0_rw(0)
+                    .set_if0_trig(0);
+                #[cfg(any(feature = "bl702", feature = "bl602"))]
+                {
+                    let ctrl = ctrl.set_clk_sahb_data_sel(1);
+                }
+                ctrl
+            });
+
+            // Trig read
+            self.efuse.control0.modify(|val| val.set_if0_trig(1));
+        }
+
+        delay(10);
+
+        const TIMEOUT_VALUE: u32 = 160_000; // EF_CTRL_DFT_TIMEOUT_VAL
+        let mut timeout = TIMEOUT_VALUE;
+
+        while self.efuse.control0.read().is_efuse_busy()
+            && !self.efuse.control0.read().is_efuse_autoload_done()
+        {
+            timeout -= 1;
+            if timeout == 0 {
+                return Err(EfuseError::Timeout);
+            }
+        }
+
+        unsafe {
+            self.efuse.control0.write({
+                let ctrl = EfuseControl0(0)
+                    .set_prot_code_ctrl(0xbf)
+                    .disable_if0_manually()
+                    .set_if0_cyc_modify(0)
+                    .enable_auto_read()
+                    .set_por_dig(0)
+                    .set_if0_int_clr(1)
+                    .set_if0_rw(0)
+                    .set_if0_trig(0);
+                #[cfg(any(feature = "bl702", feature = "bl602"))]
+                {
+                    let ctrl = ctrl.set_clk_sahb_data_sel(0);
+                }
+                ctrl
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Load efuse R1 data into data register 1.
+    #[cfg(feature = "bl808")]
+    #[inline]
+    pub fn load_efuse_r1(&self) -> Result<(), EfuseError> {
+        self.clear_data_reg1()?;
+
+        unsafe {
+            self.efuse.control0.write(
+                EfuseControl0(0)
+                    .set_prot_code_ctrl(0xbf)
+                    .disable_if0_manually()
+                    .set_if0_cyc_modify(0)
+                    .enable_auto_read()
+                    .set_por_dig(0)
+                    .set_if0_int_clr(1)
+                    .set_if0_rw(0)
+                    .set_if0_trig(0),
+            );
+
+            self.efuse.control1.write(
+                EfuseControl1(0)
+                    .disable_if1_manually()
+                    .set_if1_cyc_modify(0)
+                    .set_if1_int_clr(1)
+                    .set_if1_rw(0)
+                    .set_if1_trig(0),
+            );
+
+            self.efuse.control1.write(
+                EfuseControl1(0)
+                    .disable_if1_manually()
+                    .set_if1_cyc_modify(0)
+                    .set_if1_int_clr(1)
+                    .set_if1_rw(0)
+                    .set_if1_trig(1),
+            );
+        }
+
+        delay(10);
+
+        const TIMEOUT_VALUE: u32 = 160_000;
+        let mut timeout = TIMEOUT_VALUE;
+
+        while self.efuse.control1.read().is_efuse_busy() {
+            timeout -= 1;
+            if timeout == 0 {
+                return Err(EfuseError::Timeout);
+            }
+        }
+
+        timeout = TIMEOUT_VALUE;
+        while !self.efuse.control0.read().is_efuse_autoload_done() {
+            timeout -= 1;
+            if timeout == 0 {
+                return Err(EfuseError::Timeout);
+            }
+        }
+
+        unsafe {
+            self.efuse.control0.write(
+                EfuseControl0(0)
+                    .set_prot_code_ctrl(0xbf)
+                    .disable_if0_manually()
+                    .set_if0_cyc_modify(0)
+                    .enable_auto_read()
+                    .set_por_dig(0)
+                    .set_if0_int_clr(1)
+                    .set_if0_rw(0)
+                    .set_if0_trig(0),
+            );
+
+            self.efuse.control1.write(
+                EfuseControl1(0)
+                    .disable_if1_manually()
+                    .set_if1_cyc_modify(0)
+                    .set_if1_int_clr(1)
+                    .set_if1_rw(0)
+                    .set_if1_trig(0),
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Read common trim data from efuse.
+    ///
+    /// # Arguments
+    ///
+    /// * `dev` - Trim device type to read.
+    /// * `reload` - Whether to reload efuse data before reading.
+    /// * `glb` - GLB register block reference (needed for bl602/bl702).
+    /// * `hbn` - HBN register block reference (needed for bl602/bl702).
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(TrimData)` - Trim data if successful.
+    /// * `Err(EfuseError)` - Error information if failed.
+    #[inline]
+    pub fn read_common_trim(
+        &self,
+        dev: TrimDev,
+        reload: bool,
+        glb: Option<&glb::v1::RegisterBlock>,
+        hbn: Option<&hbn::RegisterBlock>,
+    ) -> Result<TrimData, EfuseError> {
+        // Find trim configuration for the device
+        let trim_cfg = match find_trim_cfg(dev) {
+            Some(cfg) => cfg,
+            None => return Err(EfuseError::NotFound),
+        };
+
+        // Initialize trim data with default values
+        let mut trim_data = TrimData {
+            en: false,
+            parity: false,
+            empty: true,
+            value: 0,
+            len: trim_cfg.value_len,
+        };
+
+        // Save interrupt state and disable interrupts
+        riscv::interrupt::disable();
+
+        // For BL602/BL702, save and switch CPU clock
+        #[cfg(any(feature = "bl702", feature = "bl602"))]
+        let clock_state = if let (Some(glb_reg), Some(hbn_reg)) = (glb, hbn) {
+            Some(efuse_switch_cpu_clock_save(glb_reg, hbn_reg))
+        } else {
+            None
+        };
+
+        // Reload EFUSE data if requested
+        if reload {
+            self.load_efuse_r0()?;
+
+            #[cfg(feature = "bl808")]
+            self.load_efuse_r1()?;
+        }
+
+        // Select appropriate clock based on address range
+        if (trim_cfg.en_addr as usize) < Self::EFUSE_R0_SIZE * 8 {
+            self.switch_ahb_clk_r0()?;
+        } else if (trim_cfg.en_addr as usize) >= Self::EFUSE_R0_SIZE * 8 {
+            #[cfg(feature = "bl808")]
+            self.switch_ahb_clk_r1()?;
+        }
+
+        // Read enable bit
+        let en_addr_offset = trim_cfg.en_addr / 32;
+        let en_bit_pos = trim_cfg.en_addr % 32;
+        let en_word = unsafe {
+            let addr = (&self.efuse as *const _ as usize) + en_addr_offset as usize * 4;
+            core::ptr::read_volatile(addr as *const u32)
+        };
+        trim_data.en = ((en_word >> en_bit_pos) & 1) != 0;
+
+        // Read parity bit
+        let parity_addr_offset = trim_cfg.parity_addr / 32;
+        let parity_bit_pos = trim_cfg.parity_addr % 32;
+        let parity_word = unsafe {
+            let addr = (&self.efuse as *const _ as usize) + parity_addr_offset as usize * 4;
+            core::ptr::read_volatile(addr as *const u32)
+        };
+        trim_data.parity = ((parity_word >> parity_bit_pos) & 1) != 0;
+
+        // Read trim value
+        // Check if value spans multiple words
+        if ((trim_cfg.value_addr % 32) + trim_cfg.value_len as u16) > 32 {
+            // Value spans two words
+            let value_addr_offset1 = (trim_cfg.value_addr / 32) as usize;
+            let value_bit_pos = (trim_cfg.value_addr % 32) as u32;
+
+            // Read first word
+            let value_word1 = unsafe {
+                let addr = (&self.efuse as *const _ as usize) + value_addr_offset1 * 4;
+                core::ptr::read_volatile(addr as *const u32)
+            };
+
+            // Read second word
+            let value_word2 = unsafe {
+                let addr = (&self.efuse as *const _ as usize) + (value_addr_offset1 + 1) * 4;
+                core::ptr::read_volatile(addr as *const u32)
+            };
+
+            // Calculate bits in each word
+            let bits_in_first_word = 32 - value_bit_pos;
+            let bits_in_second_word = trim_cfg.value_len as u32 - bits_in_first_word;
+
+            // Extract and combine value
+            let first_part = (value_word1 >> value_bit_pos) & ((1u32 << bits_in_first_word) - 1);
+            let second_part = value_word2 & ((1u32 << bits_in_second_word) - 1);
+
+            trim_data.value = first_part | (second_part << bits_in_first_word);
+        } else {
+            // Value fits in one word
+            let value_addr_offset = (trim_cfg.value_addr / 32) as usize;
+            let value_bit_pos = (trim_cfg.value_addr % 32) as u32;
+
+            let value_word = unsafe {
+                let addr = (&self.efuse as *const _ as usize) + value_addr_offset * 4;
+                core::ptr::read_volatile(addr as *const u32)
+            };
+
+            trim_data.value = (value_word >> value_bit_pos) & ((1u32 << trim_cfg.value_len) - 1);
+        }
+
+        // Update empty flag based on data
+        if trim_data.en == false && trim_data.parity == false && trim_data.value == 0 {
+            trim_data.empty = true;
+        } else {
+            trim_data.empty = false;
+        }
+
+        // Restore CPU clock for BL602/BL702
+        #[cfg(any(feature = "bl702", feature = "bl602"))]
+        if let (Some(glb_reg), Some(hbn_reg), Some((bdiv, hdiv, rt_clk, xclk))) =
+            (glb, hbn, clock_state)
+        {
+            efuse_switch_cpu_clock_restore(bdiv, hdiv, rt_clk, xclk, glb_reg, hbn_reg);
+        }
+
+        // Return trim data
+        Ok(trim_data)
+    }
+
+    /// Calculate parity for a trim value.
+    pub fn get_trim_parity(&self, value: u32, len: u8) -> bool {
+        let mut parity = false;
+        let mut val = value;
+
+        for _ in 0..len {
+            parity ^= (val & 1) != 0;
+            val >>= 1;
+        }
+
+        parity
+    }
+
+    /// Get adc tsen trim value.
+    #[inline]
+    pub fn get_adc_trim(
+        &self,
+        glb: Option<&glb::v1::RegisterBlock>,
+        hbn: Option<&hbn::RegisterBlock>,
+    ) -> f32 {
+        let mut coe = 1.0;
+
+        // Read the ADC gain trim value
+        if let Ok(trim) = self.read_common_trim(TrimDev::Gpadc, true, glb, hbn) {
+            // Verify that trim is enabled and parity is correct
+            if trim.en && trim.parity == self.get_trim_parity(trim.value, trim.len) {
+                let mut tmp = trim.value;
+
+                // Process based on sign bit (bit 11)
+                if (tmp & 0x800) != 0 {
+                    // Negative coefficient - convert from two's complement
+                    tmp = !tmp;
+                    tmp += 1;
+                    tmp &= 0xfff;
+                    // Coefficient = 1.0 + (value / 2048.0)
+                    coe = 1.0 + (tmp as f32 / 2048.0);
+                } else {
+                    // Positive coefficient
+                    // Coefficient = 1.0 - (value / 2048.0)
+                    coe = 1.0 - (tmp as f32 / 2048.0);
+                }
+            }
+        }
+
+        coe
+    }
+
+    /// Get adc tsen trim value.
+    #[inline]
+    pub fn get_adc_tsen_trim(
+        &self,
+        glb: Option<&glb::v1::RegisterBlock>,
+        hbn: Option<&hbn::RegisterBlock>,
+    ) -> u32 {
+        // Read the temperature sensor trim value
+        if let Ok(trim) = self.read_common_trim(TrimDev::Tsen, true, glb, hbn) {
+            // Verify that trim is enabled and parity is correct
+            if trim.en && trim.parity == self.get_trim_parity(trim.value, trim.len) {
+                return trim.value;
+            }
+        }
+
+        // Return default value if trim data is invalid or not available
+        2042
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{EfuseControl, EfuseCycleConfig1, EfuseIf0ManualConfig, RegisterBlock};
+    use super::{
+        EfuseControl0, EfuseControl1, EfuseCycleConfig1, EfuseIf0ManualConfig, RegisterBlock,
+    };
     use core::mem::offset_of;
 
     #[test]
     fn struct_register_block_offset() {
-        assert_eq!(offset_of!(RegisterBlock, control), 0x800);
+        assert_eq!(offset_of!(RegisterBlock, control0), 0x800);
         assert_eq!(offset_of!(RegisterBlock, cycle_config0), 0x804);
         assert_eq!(offset_of!(RegisterBlock, cycle_config1), 0x808);
         assert_eq!(offset_of!(RegisterBlock, if0_manual_config), 0x80C);
@@ -461,30 +1088,30 @@ mod tests {
     }
 
     #[test]
-    fn struct_efuse_control_functions() {
-        let mut val = EfuseControl(0x0);
+    fn struct_efuse_control0_functions() {
+        let mut val = EfuseControl0(0x0);
 
         val = val.set_prot_code_cyc(0xFF);
         assert_eq!(val.prot_code_cyc(), 0xFF);
         assert_eq!(val.0, 0xFF00_0000);
 
-        val = EfuseControl(0x0).set_if0_int_set(0x1);
+        val = EfuseControl0(0x0).set_if0_int_set(0x1);
         assert_eq!(val.if0_int_set(), 0x1);
         assert_eq!(val.0, 0x0040_0000);
 
-        val = EfuseControl(0x0).set_if0_int_clr(0x1);
+        val = EfuseControl0(0x0).set_if0_int_clr(0x1);
         assert_eq!(val.if0_int_clr(), 0x1);
         assert_eq!(val.0, 0x0020_0000);
 
-        val = EfuseControl(0x0).set_if0_int(0x1);
+        val = EfuseControl0(0x0).set_if0_int(0x1);
         assert_eq!(val.if0_int(), 0x1);
         assert_eq!(val.0, 0x0010_0000);
 
-        val = EfuseControl(0x0).set_cyc_modify_lock(0x1);
+        val = EfuseControl0(0x0).set_cyc_modify_lock(0x1);
         assert_eq!(val.cyc_modify_lock(), 0x1);
         assert_eq!(val.0, 0x0008_0000);
 
-        val = EfuseControl(0x0).enable_auto_read();
+        val = EfuseControl0(0x0).enable_auto_read();
         assert!(val.is_auto_read_enabled());
         assert_eq!(val.0, 0x0004_0000);
 
@@ -504,45 +1131,45 @@ mod tests {
         assert_eq!(val.clk_sahb_data_gate(), 0x1);
         assert_eq!(val.0, 0x0002_0000);
 
-        val = EfuseControl(0x0).set_por_dig(0x1);
+        val = EfuseControl0(0x0).set_por_dig(0x1);
         assert_eq!(val.por_dig(), 0x1);
         assert_eq!(val.0, 0x0001_0000);
 
-        val = EfuseControl(0x0).set_prot_code_ctrl(0xFF);
+        val = EfuseControl0(0x0).set_prot_code_ctrl(0xFF);
         assert_eq!(val.prot_code_ctrl(), 0xFF);
         assert_eq!(val.0, 0x0000_FF00);
 
-        val = EfuseControl(0x0).set_clk_sahb_data_sel(0x1);
+        val = EfuseControl0(0x0).set_clk_sahb_data_sel(0x1);
         assert_eq!(val.clk_sahb_data_sel(), 0x1);
         assert_eq!(val.0, 0x0000_0080);
 
-        val = EfuseControl(0x0).set_if0_cyc_modify(0x1);
+        val = EfuseControl0(0x0).set_if0_cyc_modify(0x1);
         assert_eq!(val.if0_cyc_modify(), 0x1);
         assert_eq!(val.0, 0x0000_0040);
 
-        val = EfuseControl(0x0).enable_if0_manually();
+        val = EfuseControl0(0x0).enable_if0_manually();
         assert!(val.is_if0_manually_enabled());
         assert_eq!(val.0, 0x0000_0020);
 
-        val = EfuseControl(0x0).disable_if0_manually();
+        val = EfuseControl0(0x0).disable_if0_manually();
         assert!(!val.is_if0_manually_enabled());
         assert_eq!(val.0, 0x0000_0000);
 
-        val = EfuseControl(0x0).set_if0_trig(0x1);
+        val = EfuseControl0(0x0).set_if0_trig(0x1);
         assert_eq!(val.if0_trig(), 0x1);
         assert_eq!(val.0, 0x0000_0010);
 
-        val = EfuseControl(0x0).set_if0_rw(0x1);
+        val = EfuseControl0(0x0).set_if0_rw(0x1);
         assert_eq!(val.if0_rw(), 0x1);
         assert_eq!(val.0, 0x0000_0008);
 
-        val = EfuseControl(0x0000_0004);
+        val = EfuseControl0(0x0000_0004);
         assert!(val.is_efuse_busy());
 
-        val = EfuseControl(0x0000_0002);
+        val = EfuseControl0(0x0000_0002);
         assert!(val.is_efuse_autoload_done());
 
-        val = EfuseControl(0x0000_0001);
+        val = EfuseControl0(0x0000_0001);
         assert!(val.is_efuse_autoload_p1_done());
     }
 
@@ -610,5 +1237,45 @@ mod tests {
         val = EfuseIf0ManualConfig(0x0).set_address(0x3FF);
         assert_eq!(val.address(), 0x3FF);
         assert_eq!(val.0, 0x0000_03FF);
+    }
+
+    #[test]
+    fn struct_efuse_control1_functions() {
+        let mut val = EfuseControl1(0x0);
+
+        val = val.set_if1_rw(0x1);
+        assert_eq!(val.if1_rw(), 0x1);
+        assert_eq!(val.0, 0x0000_0008);
+
+        val = EfuseControl1(0x0).set_if1_trig(0x1);
+        assert_eq!(val.if1_trig(), 0x1);
+        assert_eq!(val.0, 0x0000_0010);
+
+        val = EfuseControl1(0x0).enable_if1_manually();
+        assert!(val.is_if1_manually_enabled());
+        assert_eq!(val.0, 0x0000_0020);
+
+        val = val.disable_if1_manually();
+        assert!(!val.is_if1_manually_enabled());
+        assert_eq!(val.0, 0x0000_0000);
+
+        val = EfuseControl1(0x0).set_if1_cyc_modify(0x1);
+        assert_eq!(val.if1_cyc_modify(), 0x1);
+        assert_eq!(val.0, 0x0000_0040);
+
+        val = EfuseControl1(0x0).set_if1_int(0x1);
+        assert_eq!(val.if1_int(), 0x1);
+        assert_eq!(val.0, 0x0010_0000);
+
+        val = EfuseControl1(0x0).set_if1_int_clr(0x1);
+        assert_eq!(val.if1_int_clr(), 0x1);
+        assert_eq!(val.0, 0x0020_0000);
+
+        val = EfuseControl1(0x0).set_if1_int_set(0x1);
+        assert_eq!(val.if1_int_set(), 0x1);
+        assert_eq!(val.0, 0x0040_0000);
+
+        val = EfuseControl1(0x0000_0004);
+        assert!(val.is_efuse_busy());
     }
 }

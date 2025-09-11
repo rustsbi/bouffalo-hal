@@ -23,6 +23,7 @@ embedded-hal-027 = { package = "embedded-hal", version = "0.2.7" }
 embedded-io-async = "0.6.1"
 atomic-waker = "1.1.2"
 embedded-sdmmc = "0.8.1"
+riscv = "0.13.0"
 
 [dev-dependencies]
 

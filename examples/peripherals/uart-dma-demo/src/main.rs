@@ -11,7 +11,11 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     let tx = p.uart_muxes.sig2.into_transmit(p.gpio.io14);
     let rx = p.uart_muxes.sig3.into_receive(p.gpio.io15);
     let config = Config::default().set_baudrate(2000000.Bd());
-    let mut serial = p.uart0.freerun(config, (tx, rx), &c).unwrap();
+    let mut serial = p
+        .uart0
+        .freerun(config, (tx, rx), &c)
+        .unwrap()
+        .enable_tx_dma();
 
     let mut led = p.gpio.io8.into_floating_output();
 
