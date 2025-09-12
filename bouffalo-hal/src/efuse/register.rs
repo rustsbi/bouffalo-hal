@@ -882,7 +882,7 @@ where
         hbn: Option<&hbn::RegisterBlock>,
     ) -> Result<TrimData, EfuseError> {
         // Find trim configuration for the device
-        let trim_cfg = match find_trim_cfg(dev) {
+        let trim_cfg = match get_trim_cfg_by_dev(dev) {
             Some(cfg) => cfg,
             None => return Err(EfuseError::NotFound),
         };
