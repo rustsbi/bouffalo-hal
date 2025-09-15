@@ -17,6 +17,7 @@ members = [
     "examples/peripherals/pwm-demo",
     "examples/peripherals/spi-demo",
     "examples/peripherals/uart-demo",
+    "examples/peripherals/uart-bl616-demo",
     "examples/peripherals/uart-async-demo",
     "examples/peripherals/uart-cli-demo",
     "examples/peripherals/uart-dma-demo",

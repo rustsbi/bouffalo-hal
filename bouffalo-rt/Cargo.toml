@@ -24,6 +24,8 @@ bouffalo-rt = { path = ".", features = ["image_fuse"] }
 
 [features]
 default = []
+# BL602 and BL604 chip series.
+bl602 = ["bouffalo-hal/bl602", "bouffalo-rt-macros/bl602"]
 # BL616 and BL618 chip series.
 bl616 = ["bouffalo-hal/bl616", "bouffalo-rt-macros/bl616"]
 # BL808 chip.

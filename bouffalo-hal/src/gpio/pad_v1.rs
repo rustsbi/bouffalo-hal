@@ -17,7 +17,7 @@ pub struct Inputv1<'a> {
 }
 
 impl<'a> Inputv1<'a> {
-    /// Create a version 2 input driver from GPIO pad instance.
+    /// Create a version 1 input driver from GPIO pad instance.
     #[inline]
     pub fn new(gpio: impl Instance<'a>, number: usize, pull: Pull) -> Inputv1<'a> {
         let base = gpio.register_block();
@@ -152,6 +152,8 @@ impl<'a> Outputv1<'a> {
             .read()
             .set_function(number & 0x1, v1::Function::Gpio)
             .disable_input(number & 0x1)
+            .enable_schmitt(number & 0x1)
+            .set_drive(number & 0x1, Drive::Drive1)
             .set_pull(number & 0x1, pull);
         unsafe { base.gpio_config[number >> 1].write(config) };
         let val = base.gpio_output_enable.read();
