@@ -18,6 +18,7 @@ features = ["extra-traits", "full"]
 
 [features]
 default = []
+bl602 = []
 bl616 = []
 bl808-mcu = []
 bl808-dsp = []

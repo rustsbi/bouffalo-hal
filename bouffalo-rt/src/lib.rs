@@ -34,11 +34,15 @@ cfg_if::cfg_if! {
         pub use soc::bl616::{Peripherals, Clocks};
         #[doc(hidden)]
         pub use soc::bl616::__rom_init_params;
+    } else if #[cfg(feature = "bl602")] {
+        pub use soc::bl602::{Peripherals, Clocks};
+        #[doc(hidden)]
+        pub use soc::bl602::__rom_init_params;
     }
 }
 
 cfg_if::cfg_if! {
-    if #[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp", feature = "bl702", feature = "bl616"))] {
+    if #[cfg(any(feature = "bl808-mcu", feature = "bl808-dsp", feature = "bl702", feature = "bl616", feature = "bl602"))] {
         pub use arch::rvi::TrapFrame;
     } else if #[cfg(feature = "bl808-lp")] {
         pub use arch::rve::TrapFrame;

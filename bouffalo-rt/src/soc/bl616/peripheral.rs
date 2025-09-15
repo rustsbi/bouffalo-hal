@@ -1,27 +1,59 @@
+pub use bouffalo_hal::clocks::Clocks;
+use bouffalo_hal::{
+    gpio::{Alternate, FlexPad},
+    uart::IntoUartPad,
+};
+
 /// Peripherals available on ROM start.
-pub struct Peripherals<'a> {
+pub struct Peripherals {
     /// Global configuration peripheral.
     pub glb: GLBv2,
     /// General Purpose Input/Output pads.
     pub gpio: Pads,
     /// UART signal multiplexers.
-    pub uart_muxes: bouffalo_hal::uart::UartMuxes<'a>,
+    pub uart_muxes: UartMuxes,
     /// Universal Asynchronous Receiver/Transmitter peripheral 0.
     pub uart0: UART0,
     /// Universal Asynchronous Receiver/Transmitter peripheral 1.
     pub uart1: UART1,
-    /// Serial Peripheral Interface peripheral.
-    pub spi: SPI,
+    /// Serial Peripheral Interface peripheral 0.
+    pub spi0: SPI0,
     /// Inter-Integrated Circuit bus peripheral 0.
     pub i2c0: I2C0,
     /// Pulse Width Modulation peripheral.
     pub pwm: PWM,
     /// Inter-Integrated Circuit bus peripheral 1.
     pub i2c1: I2C1,
+    /// Timer peripheral.
+    pub timer: TIMER,
+    /// Infrared remote control peripheral.
+    pub ir: IR,
+    /// DBI (Display Bus Interface) peripheral.
+    pub dbi: DBI,
+    /// I2S audio peripheral.
+    pub i2s: I2S,
+    /// Audio ADC peripheral.
+    pub auadc: AUADC,
+    /// Direct Memory Access peripheral 0.
+    pub dma0: DMA0,
+    /// Pseudo Static Random Access Memory controller.
+    pub psram: PSRAM,
+    /// Audio DAC peripheral.
+    pub audac: AUDAC,
+    /// eFuse peripheral.
+    pub efuse: EFUSE,
+    /// Secure Digital High Capacity peripheral.
+    pub sdh: SDH,
+    /// USB peripheral.
+    pub usb: USBv1,
     /// Hibernation control peripheral.
     pub hbn: HBN,
     /// Ethernet Media Access Control peripheral.
     pub emac: EMAC,
+    /// Generic DAC, ADC and ACOMP interface control peripheral.
+    pub gpip: GPIP,
+    /// Hardware LZ4 Decompressor.
+    pub lz4d: LZ4D,
 }
 
 soc! {
@@ -31,19 +63,53 @@ soc! {
     pub struct UART0 => 0x2000A000, bouffalo_hal::uart::RegisterBlock;
     /// Universal Asynchronous Receiver/Transmitter 1 with fixed base address.
     pub struct UART1 => 0x2000A100, bouffalo_hal::uart::RegisterBlock;
-    /// Serial Peripheral Interface peripheral.
-    pub struct SPI => 0x2000A200, bouffalo_hal::spi::RegisterBlock;
+    /// Serial Peripheral Interface peripheral 0.
+    pub struct SPI0 => 0x2000A200, bouffalo_hal::spi::RegisterBlock;
     /// Inter-Integrated Circuit bus 0 with fixed base address.
     pub struct I2C0 => 0x2000A300, bouffalo_hal::i2c::RegisterBlock;
     /// Pulse Width Modulation peripheral.
     pub struct PWM => 0x2000A400, bouffalo_hal::pwm::RegisterBlock;
     /// Inter-Integrated Circuit bus 1 with fixed base address.
     pub struct I2C1 => 0x2000A900, bouffalo_hal::i2c::RegisterBlock;
-   /// Hibernation control peripheral.
+    /// Timer peripheral.
+    pub struct TIMER => 0x2000A500, bouffalo_hal::timer::RegisterBlock;
+    /// Infrared remote control peripheral.
+    pub struct IR => 0x2000A600, bouffalo_hal::ir::RegisterBlock;
+    /// DBI (Display Bus Interface) peripheral.
+    pub struct DBI => 0x2000A800, bouffalo_hal::dbi::RegisterBlock;
+    /// I2S audio peripheral.
+    pub struct I2S => 0x2000AB00, bouffalo_hal::i2s::RegisterBlock;
+    /// Audio ADC peripheral.
+    pub struct AUADC => 0x2000AC00, bouffalo_hal::audio::auadc::RegisterBlock;
+    /// Direct Memory Access peripheral 0.
+    pub struct DMA0 => 0x2000C000, bouffalo_hal::dma::RegisterBlock;
+    /// Hardware LZ4 Decompressor.
+    pub struct LZ4D => 0x2000AD00, bouffalo_hal::lz4d::RegisterBlock;
+    /// Pseudo Static Random Access Memory controller.
+    pub struct PSRAM => 0x20052000, bouffalo_hal::psram::RegisterBlock;
+    /// Audio DAC peripheral.
+    pub struct AUDAC => 0x20055000, bouffalo_hal::audio::audac::RegisterBlock;
+    /// eFuse peripheral.
+    pub struct EFUSE => 0x20056000, bouffalo_hal::efuse::RegisterBlock;
+    /// Secure Digital High Capacity peripheral.
+    pub struct SDH => 0x20060000, bouffalo_hal::sdio::RegisterBlock;
+    /// USB peripheral.
+    pub struct USBv1 => 0x20072000, bouffalo_hal::usb::v1::RegisterBlock;
+    /// Hibernation control peripheral.
     pub struct HBN => 0x2000F000, bouffalo_hal::hbn::RegisterBlock;
     /// Ethernet Media Access Control peripheral.
     pub struct EMAC => 0x20070000, bouffalo_hal::emac::RegisterBlock;
+    /// Generic DAC, ADC and ACOMP interface control peripheral.
+    pub struct GPIP => 0x20002000, bouffalo_hal::gpip::RegisterBlock;
 }
+
+uart! { UART0: 0, UART1: 1, }
+
+spi! { SPI0: 0, }
+
+i2c! { I2C0: 0, I2C1: 1, }
+
+pwm! { PWM, }
 
 /// BL616 GPIO pad.
 pub struct Pad<const N: usize> {
@@ -51,6 +117,13 @@ pub struct Pad<const N: usize> {
 }
 
 impl_pad_v2! { Pad: GLBv2 }
+
+pad_uart! {
+    Pad;
+    (0 => 0, 1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6, 7 => 7, 8 => 8, 9 => 9, 10 => 10, 11 => 11,
+    12 => 0, 13 => 1, 14 => 2, 15 => 3, 16 => 4, 17 => 5, 18 => 6, 19 => 7, 20 => 8, 21 => 9, 22 => 10, 23 => 11,
+    24 => 0, 25 => 1, 26 => 2, 27 => 3, 28 => 4, 29 => 5, 30 => 6, 31 => 7, 32 => 8, 33 => 9, 34 => 10,): IntoUartPad;
+}
 
 /// Available GPIO pads for BL616.
 pub struct Pads {
@@ -170,29 +243,151 @@ impl Pads {
     }
 }
 
-pub use bouffalo_hal::clocks::Clocks;
-
 // Used by macros only.
 #[allow(unused)]
 #[doc(hidden)]
 #[inline(always)]
-pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals<'static>, Clocks) {
+pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals, Clocks) {
     use embedded_time::rate::Hertz;
     let peripherals = Peripherals {
         glb: GLBv2 { _private: () },
         gpio: Pads::__new(),
-        uart_muxes: bouffalo_hal::uart::UartMuxes::__uart_muxes_from_glb(&GLBv2 { _private: () }),
+        uart_muxes: UartMuxes::__new(),
         uart0: UART0 { _private: () },
         uart1: UART1 { _private: () },
-        spi: SPI { _private: () },
+        spi0: SPI0 { _private: () },
         i2c0: I2C0 { _private: () },
         pwm: PWM { _private: () },
         i2c1: I2C1 { _private: () },
+        timer: TIMER { _private: () },
+        ir: IR { _private: () },
+        dbi: DBI { _private: () },
+        i2s: I2S { _private: () },
+        auadc: AUADC { _private: () },
+        dma0: DMA0 { _private: () },
+        psram: PSRAM { _private: () },
+        audac: AUDAC { _private: () },
+        efuse: EFUSE { _private: () },
+        sdh: SDH { _private: () },
+        usb: USBv1 { _private: () },
         hbn: HBN { _private: () },
         emac: EMAC { _private: () },
+        gpip: GPIP { _private: () },
+        lz4d: LZ4D { _private: () },
     };
     let clocks = Clocks {
         xtal: Hertz(xtal_hz),
     };
     (peripherals, clocks)
+}
+
+/// Available UART signal multiplexers for BL616.
+pub struct UartMuxes {
+    /// Multiplexer of UART signal 0.
+    pub sig0: UartMux<0>,
+    /// Multiplexer of UART signal 1.
+    pub sig1: UartMux<1>,
+    /// Multiplexer of UART signal 2.
+    pub sig2: UartMux<2>,
+    /// Multiplexer of UART signal 3.
+    pub sig3: UartMux<3>,
+    /// Multiplexer of UART signal 4.
+    pub sig4: UartMux<4>,
+    /// Multiplexer of UART signal 5.
+    pub sig5: UartMux<5>,
+    /// Multiplexer of UART signal 6.
+    pub sig6: UartMux<6>,
+    /// Multiplexer of UART signal 7.
+    pub sig7: UartMux<7>,
+    /// Multiplexer of UART signal 8.
+    pub sig8: UartMux<8>,
+    /// Multiplexer of UART signal 9.
+    pub sig9: UartMux<9>,
+    /// Multiplexer of UART signal 10.
+    pub sig10: UartMux<10>,
+    /// Multiplexer of UART signal 11.
+    pub sig11: UartMux<11>,
+}
+
+// Internal function, do not use.
+impl UartMuxes {
+    #[inline]
+    fn __new() -> Self {
+        UartMuxes {
+            sig0: UartMux { _private: () },
+            sig1: UartMux { _private: () },
+            sig2: UartMux { _private: () },
+            sig3: UartMux { _private: () },
+            sig4: UartMux { _private: () },
+            sig5: UartMux { _private: () },
+            sig6: UartMux { _private: () },
+            sig7: UartMux { _private: () },
+            sig8: UartMux { _private: () },
+            sig9: UartMux { _private: () },
+            sig10: UartMux { _private: () },
+            sig11: UartMux { _private: () },
+        }
+    }
+}
+
+/// Global peripheral UART signal multiplexer.
+///
+/// This structure only owns the signal multiplexer for signal number `I`.
+pub struct UartMux<const I: usize> {
+    _private: (),
+}
+
+impl<const N: usize> bouffalo_hal::uart::IntoUartSignal<'static, N> for UartMux<N> {
+    #[inline]
+    fn into_transmit<const I: usize>(
+        self,
+        pad: impl bouffalo_hal::uart::IntoUartPad<'static, N>,
+    ) -> bouffalo_hal::uart::Transmit<'static, I> {
+        use bouffalo_hal::uart::MuxTxd;
+        let glb = &*GLBv2 { _private: () };
+        let config = glb.uart_mux_group[N >> 3]
+            .read()
+            .set_signal(N & 0x7, MuxTxd::<I>::signal());
+        unsafe { glb.uart_mux_group[N >> 3].write(config) };
+        bouffalo_hal::uart::Transmit::__new(glb, pad.into_uart_pad())
+    }
+    #[inline]
+    fn into_receive<const I: usize>(
+        self,
+        pad: impl bouffalo_hal::uart::IntoUartPad<'static, N>,
+    ) -> bouffalo_hal::uart::Receive<'static, I> {
+        use bouffalo_hal::uart::MuxRxd;
+        let glb = &*GLBv2 { _private: () };
+        let config = glb.uart_mux_group[N >> 3]
+            .read()
+            .set_signal(N & 0x7, MuxRxd::<I>::signal());
+        unsafe { glb.uart_mux_group[N >> 3].write(config) };
+        bouffalo_hal::uart::Receive::__new(glb, pad.into_uart_pad())
+    }
+    #[inline]
+    fn into_request_to_send<const I: usize>(
+        self,
+        pad: impl bouffalo_hal::uart::IntoUartPad<'static, N>,
+    ) -> bouffalo_hal::uart::RequestToSend<'static, I> {
+        use bouffalo_hal::uart::MuxRts;
+        let glb = &*GLBv2 { _private: () };
+        let config = glb.uart_mux_group[N >> 3]
+            .read()
+            .set_signal(N & 0x7, MuxRts::<I>::signal());
+        unsafe { glb.uart_mux_group[N >> 3].write(config) };
+        bouffalo_hal::uart::RequestToSend::__new(glb, pad.into_uart_pad())
+    }
+    #[inline]
+    fn into_clear_to_send<const I: usize>(
+        self,
+        pad: impl bouffalo_hal::uart::IntoUartPad<'static, N>,
+    ) -> bouffalo_hal::uart::ClearToSend<'static, I> {
+        use bouffalo_hal::uart::MuxCts;
+        let glb = &*GLBv2 { _private: () };
+        let config = glb.uart_mux_group[N >> 3]
+            .read()
+            .set_signal(N & 0x7, MuxCts::<I>::signal());
+        unsafe { glb.uart_mux_group[N >> 3].write(config) };
+        bouffalo_hal::uart::ClearToSend::__new(glb, pad.into_uart_pad())
+    }
 }

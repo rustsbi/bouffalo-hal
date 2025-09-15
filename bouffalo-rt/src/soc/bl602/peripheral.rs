@@ -20,20 +20,14 @@ pub struct Peripherals {
     pub timer: TIMER,
     /// Infrared remote control peripheral.
     pub ir: IR,
-    /// I2S audio peripheral.
-    pub i2s: I2S,
     /// Direct Memory Access peripheral 0.
     pub dma0: DMA0,
-    /// Ethernet Media Access Control peripheral.
-    pub emac: EMAC,
-    /// Universal Serial Bus peripheral.
-    pub usb: USBv1,
     /// Hibernation control peripheral.
     pub hbn: HBN,
-    /// Generic DAC, ADC and ACOMP interface control peripheral.
-    pub gpip: GPIP,
     /// Efuse peripheral.
     pub efuse: EFUSE,
+    /// Generic DAC, ADC and ACOMP interface control peripheral.
+    pub gpip: GPIP,
 }
 
 soc! {
@@ -53,20 +47,14 @@ soc! {
     pub struct TIMER => 0x4000A500, bouffalo_hal::timer::RegisterBlock;
     /// Infrared remote control peripheral.
     pub struct IR => 0x4000A600, bouffalo_hal::ir::RegisterBlock;
-    /// I2S audio peripheral.
-    pub struct I2S => 0x4000AA00, bouffalo_hal::i2s::RegisterBlock;
     /// Direct Memory Access peripheral 0.
     pub struct DMA0 => 0x4000C000, bouffalo_hal::dma::RegisterBlock;
-    /// Ethernet Media Access Control peripheral.
-    pub struct EMAC => 0x4000D000, bouffalo_hal::emac::RegisterBlock;
-    /// Universal Serial Bus peripheral.
-    pub struct USBv1 => 0x4000D800, bouffalo_hal::usb::v1::RegisterBlock;
     /// Hibernation control peripheral.
     pub struct HBN => 0x4000F000, bouffalo_hal::hbn::RegisterBlock;
-    /// Generic DAC, ADC and ACOMP interface control peripheral.
-    pub struct GPIP => 0x40002000, bouffalo_hal::gpip::RegisterBlock;
     /// Efuse peripheral.
     pub struct EFUSE => 0x40007000, bouffalo_hal::efuse::RegisterBlock;
+    /// Generic DAC, ADC and ACOMP interface control peripheral.
+    pub struct GPIP => 0x40002000, bouffalo_hal::gpip::RegisterBlock;
 }
 
 uart! { UART0: 0, UART1: 1, }
@@ -77,14 +65,14 @@ i2c! { I2C0: 0, }
 
 pwm! { PWM, }
 
-/// BL702 GPIO pad.
+/// BL602 GPIO pad.
 pub struct Pad<const N: usize> {
     _private: (),
 }
 
 impl_pad_v1! { Pad: GLBv1 }
 
-/// Available GPIO pads for BL702.
+/// Available GPIO pads for BL602.
 pub struct Pads {
     /// GPIO I/O 0.
     pub io0: Pad<0>,
@@ -132,24 +120,6 @@ pub struct Pads {
     pub io21: Pad<21>,
     /// GPIO I/O 22.
     pub io22: Pad<22>,
-    /// GPIO I/O 23.
-    pub io23: Pad<23>,
-    /// GPIO I/O 24.
-    pub io24: Pad<24>,
-    /// GPIO I/O 25.
-    pub io25: Pad<25>,
-    /// GPIO I/O 26.
-    pub io26: Pad<26>,
-    /// GPIO I/O 27.
-    pub io27: Pad<27>,
-    /// GPIO I/O 28.
-    pub io28: Pad<28>,
-    /// GPIO I/O 29.
-    pub io29: Pad<29>,
-    /// GPIO I/O 30.
-    pub io30: Pad<30>,
-    /// GPIO I/O 31.
-    pub io31: Pad<31>,
 }
 
 // Internal function, do not use.
@@ -180,20 +150,11 @@ impl Pads {
             io20: Pad { _private: () },
             io21: Pad { _private: () },
             io22: Pad { _private: () },
-            io23: Pad { _private: () },
-            io24: Pad { _private: () },
-            io25: Pad { _private: () },
-            io26: Pad { _private: () },
-            io27: Pad { _private: () },
-            io28: Pad { _private: () },
-            io29: Pad { _private: () },
-            io30: Pad { _private: () },
-            io31: Pad { _private: () },
         }
     }
 }
 
-// TODO: BL702 clock tree configuration.
+// TODO: BL602 clock tree configuration.
 // Used by macros only.
 #[allow(unused)]
 #[doc(hidden)]
@@ -210,13 +171,10 @@ pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals, Clocks) {
         pwm: PWM { _private: () },
         timer: TIMER { _private: () },
         ir: IR { _private: () },
-        i2s: I2S { _private: () },
         dma0: DMA0 { _private: () },
-        emac: EMAC { _private: () },
-        usb: USBv1 { _private: () },
         hbn: HBN { _private: () },
-        gpip: GPIP { _private: () },
         efuse: EFUSE { _private: () },
+        gpip: GPIP { _private: () },
     };
     let clocks = Clocks {
         xtal: Hertz(xtal_hz),
