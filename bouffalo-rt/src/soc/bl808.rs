@@ -139,11 +139,24 @@ unsafe extern "C" fn start() -> ! {
         addi    t4, t4, 4
         j       1b
     1:",
-        // TODO trap support
-        // TODO pmp support
+        "   la      t0, {trap_entry}
+        ori     t0, t0, {trap_mode}
+        csrw    mtvec, t0",
+        "   li      t1, {stack_protect_pmp_address_begin}
+        csrw    pmpaddr0, t1
+        li      t1, {stack_protect_pmp_address_end}
+        csrw    pmpaddr1, t1
+        li      t2, {stack_protect_pmp_flags}
+        csrw    pmpcfg0, t2",
         "   call  {main}",
         stack = sym STACK,
         hart_stack_size = const LEN_STACK_LP,
+        trap_entry = sym trap_vectored,
+        trap_mode = const 1, // RISC-V standard vectored trap
+        // Set PMP entry to block U/S-mode stack access (TOR, no R/W/X permissions)
+        stack_protect_pmp_address_begin = const {0x62030000 >> 2},
+        stack_protect_pmp_address_end = const {(0x62030000 + 160 * 1024) >> 2},
+        stack_protect_pmp_flags = const 0b00001000 << 8,
         main = sym main,
     )
 }
@@ -161,6 +174,7 @@ unsafe extern "Rust" {
 // Alignment of this function is ensured by `build.rs` script.
 #[cfg(any(
     all(feature = "bl808-mcu", target_arch = "riscv32"),
+    all(feature = "bl808-lp", target_arch = "riscv32"),
     all(feature = "bl808-dsp", target_arch = "riscv64")
 ))]
 #[unsafe(link_section = ".trap.trap-entry")]
@@ -200,7 +214,8 @@ unsafe extern "C" fn trap_vectored() -> ! {
 
 #[cfg(any(
     all(feature = "bl808-mcu", target_arch = "riscv32"),
-    all(feature = "bl808-dsp", target_arch = "riscv64")
+    all(feature = "bl808-dsp", target_arch = "riscv64"),
+    all(feature = "bl808-lp", target_arch = "riscv32")
 ))]
 #[unsafe(naked)]
 unsafe extern "C" fn reserved() -> ! {
@@ -212,11 +227,130 @@ unsafe extern "C" {
     fn exceptions(tf: &mut crate::arch::rvi::TrapFrame);
 }
 
-// TODO exceptions_trampoline for bl808-mcu
+#[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
+unsafe extern "C" {
+    fn exceptions(tf: &mut crate::arch::rvi::TrapFrame);
+}
+
+#[cfg(all(feature = "bl808-lp", target_arch = "riscv32"))]
+unsafe extern "C" {
+    fn exceptions(tf: &mut crate::arch::rve::TrapFrame);
+}
+
 #[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
 #[unsafe(naked)]
 unsafe extern "C" fn exceptions_trampoline() -> ! {
-    unsafe { core::arch::naked_asm!("") }
+    core::arch::naked_asm!(
+        "addi   sp, sp, -19*4",
+        "sw     ra, 0*4(sp)",
+        "sw     t0, 1*4(sp)",
+        "sw     t1, 2*4(sp)",
+        "sw     t2, 3*4(sp)",
+        "sw     a0, 4*4(sp)",
+        "sw     a1, 5*4(sp)",
+        "sw     a2, 6*4(sp)",
+        "sw     a3, 7*4(sp)",
+        "sw     a4, 8*4(sp)",
+        "sw     a5, 9*4(sp)",
+        "sw     a6, 10*4(sp)",
+        "sw     a7, 11*4(sp)",
+        "sw     t3, 12*4(sp)",
+        "sw     t4, 13*4(sp)",
+        "sw     t5, 14*4(sp)",
+        "sw     t6, 15*4(sp)",
+        "csrr   t0, mcause",
+        "sw     t0, 16*4(sp)",
+        "csrr   t1, mepc",
+        "sw     t1, 17*4(sp)",
+        "csrr   t2, mstatus",
+        "sw     t2, 18*4(sp)",
+        // "csrs   mstatus, 8", // TODO: disallow nested interrupt by now
+        "mv     a0, sp",
+        "call   {rust_exceptions}",
+        "lw     t0, 16*4(sp)",
+        "csrw   mcause, t0",
+        "lw     t1, 17*4(sp)",
+        "csrw   mepc, t1",
+        "lw     t2, 18*4(sp)",
+        "csrw   mstatus, t2",
+        "lw     ra, 0*4(sp)",
+        "lw     t0, 1*4(sp)",
+        "lw     t1, 2*4(sp)",
+        "lw     t2, 3*4(sp)",
+        "lw     a0, 4*4(sp)",
+        "lw     a1, 5*4(sp)",
+        "lw     a2, 6*4(sp)",
+        "lw     a3, 7*4(sp)",
+        "lw     a4, 8*4(sp)",
+        "lw     a5, 9*4(sp)",
+        "lw     a6, 10*4(sp)",
+        "lw     a7, 11*4(sp)",
+        "lw     t3, 12*4(sp)",
+        "lw     t4, 13*4(sp)",
+        "lw     t5, 14*4(sp)",
+        "lw     t6, 15*4(sp)",
+        "addi   sp, sp, 19*4",
+        "mret",
+        rust_exceptions = sym exceptions,
+    )
+}
+
+#[cfg(all(feature = "bl808-lp", target_arch = "riscv32"))]
+#[unsafe(naked)]
+unsafe extern "C" fn exceptions_trampoline() -> ! {
+    core::arch::naked_asm!(
+        "addi   sp, sp, -19*4",
+        "sw     ra, 0*4(sp)",
+        "sw     t0, 1*4(sp)",
+        "sw     t1, 2*4(sp)",
+        "sw     t2, 3*4(sp)",
+        "sw     a0, 4*4(sp)",
+        "sw     a1, 5*4(sp)",
+        "sw     a2, 6*4(sp)",
+        "sw     a3, 7*4(sp)",
+        "sw     a4, 8*4(sp)",
+        "sw     a5, 9*4(sp)",
+        "sw     a6, 10*4(sp)",
+        "sw     a7, 11*4(sp)",
+        "sw     t3, 12*4(sp)",
+        "sw     t4, 13*4(sp)",
+        "sw     t5, 14*4(sp)",
+        "sw     t6, 15*4(sp)",
+        "csrr   t0, mcause",
+        "sw     t0, 16*4(sp)",
+        "csrr   t1, mepc",
+        "sw     t1, 17*4(sp)",
+        "csrr   t2, mstatus",
+        "sw     t2, 18*4(sp)",
+        // "csrs   mstatus, 8", // TODO: disallow nested interrupt by now
+        "mv     a0, sp",
+        "call   {rust_exceptions}",
+        "lw     t0, 16*4(sp)",
+        "csrw   mcause, t0",
+        "lw     t1, 17*4(sp)",
+        "csrw   mepc, t1",
+        "lw     t2, 18*4(sp)",
+        "csrw   mstatus, t2",
+        "lw     ra, 0*4(sp)",
+        "lw     t0, 1*4(sp)",
+        "lw     t1, 2*4(sp)",
+        "lw     t2, 3*4(sp)",
+        "lw     a0, 4*4(sp)",
+        "lw     a1, 5*4(sp)",
+        "lw     a2, 6*4(sp)",
+        "lw     a3, 7*4(sp)",
+        "lw     a4, 8*4(sp)",
+        "lw     a5, 9*4(sp)",
+        "lw     a6, 10*4(sp)",
+        "lw     a7, 11*4(sp)",
+        "lw     t3, 12*4(sp)",
+        "lw     t4, 13*4(sp)",
+        "lw     t5, 14*4(sp)",
+        "lw     t6, 15*4(sp)",
+        "addi   sp, sp, 19*4",
+        "mret",
+        rust_exceptions = sym exceptions,
+    )
 }
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
@@ -277,11 +411,120 @@ unsafe extern "C" fn exceptions_trampoline() -> ! {
     )
 }
 
-// TODO machine_external_trampoline for bl808-mcu
 #[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
 #[unsafe(naked)]
 unsafe extern "C" fn machine_external_trampoline() -> ! {
-    core::arch::naked_asm!("")
+    core::arch::naked_asm!(
+        "addi   sp, sp, -19*4",
+        "sw     ra, 0*4(sp)",
+        "sw     t0, 1*4(sp)",
+        "sw     t1, 2*4(sp)",
+        "sw     t2, 3*4(sp)",
+        "sw     a0, 4*4(sp)",
+        "sw     a1, 5*4(sp)",
+        "sw     a2, 6*4(sp)",
+        "sw     a3, 7*4(sp)",
+        "sw     a4, 8*4(sp)",
+        "sw     a5, 9*4(sp)",
+        "sw     a6, 10*4(sp)",
+        "sw     a7, 11*4(sp)",
+        "sw     t3, 12*4(sp)",
+        "sw     t4, 13*4(sp)",
+        "sw     t5, 14*4(sp)",
+        "sw     t6, 15*4(sp)",
+        "csrr   t0, mcause",
+        "sw     t0, 16*4(sp)",
+        "csrr   t1, mepc",
+        "sw     t1, 17*4(sp)",
+        "csrr   t2, mstatus",
+        "sw     t2, 18*4(sp)",
+        // "csrs   mstatus, 8", // TODO: disallow nested interrupt by now
+        "mv     a0, sp",
+        "call   {rust_all_traps}",
+        "lw     t0, 16*4(sp)",
+        "csrw   mcause, t0",
+        "lw     t1, 17*4(sp)",
+        "csrw   mepc, t1",
+        "lw     t2, 18*4(sp)",
+        "csrw   mstatus, t2",
+        "lw     ra, 0*4(sp)",
+        "lw     t0, 1*4(sp)",
+        "lw     t1, 2*4(sp)",
+        "lw     t2, 3*4(sp)",
+        "lw     a0, 4*4(sp)",
+        "lw     a1, 5*4(sp)",
+        "lw     a2, 6*4(sp)",
+        "lw     a3, 7*4(sp)",
+        "lw     a4, 8*4(sp)",
+        "lw     a5, 9*4(sp)",
+        "lw     a6, 10*4(sp)",
+        "lw     a7, 11*4(sp)",
+        "lw     t3, 12*4(sp)",
+        "lw     t4, 13*4(sp)",
+        "lw     t5, 14*4(sp)",
+        "lw     t6, 15*4(sp)",
+        "addi   sp, sp, 19*4",
+        "mret",
+        rust_all_traps = sym rust_bl808_mcu_machine_external,
+    )
+}
+
+#[cfg(all(feature = "bl808-lp", target_arch = "riscv32"))]
+#[unsafe(naked)]
+unsafe extern "C" fn machine_external_trampoline() -> ! {
+    core::arch::naked_asm!(
+        "addi   sp, sp, -19*4",
+        "sw     ra, 0*4(sp)",
+        "sw     t0, 1*4(sp)",
+        "sw     t1, 2*4(sp)",
+        "sw     t2, 3*4(sp)",
+        "sw     a0, 4*4(sp)",
+        "sw     a1, 5*4(sp)",
+        "sw     a2, 6*4(sp)",
+        "sw     a3, 7*4(sp)",
+        "sw     a4, 8*4(sp)",
+        "sw     a5, 9*4(sp)",
+        "sw     a6, 10*4(sp)",
+        "sw     a7, 11*4(sp)",
+        "sw     t3, 12*4(sp)",
+        "sw     t4, 13*4(sp)",
+        "sw     t5, 14*4(sp)",
+        "sw     t6, 15*4(sp)",
+        "csrr   t0, mcause",
+        "sw     t0, 16*4(sp)",
+        "csrr   t1, mepc",
+        "sw     t1, 17*4(sp)",
+        "csrr   t2, mstatus",
+        "sw     t2, 18*4(sp)",
+        // "csrs   mstatus, 8", // TODO: disallow nested interrupt by now
+        "mv     a0, sp",
+        "call   {rust_all_traps}",
+        "lw     t0, 16*4(sp)",
+        "csrw   mcause, t0",
+        "lw     t1, 17*4(sp)",
+        "csrw   mepc, t1",
+        "lw     t2, 18*4(sp)",
+        "csrw   mstatus, t2",
+        "lw     ra, 0*4(sp)",
+        "lw     t0, 1*4(sp)",
+        "lw     t1, 2*4(sp)",
+        "lw     t2, 3*4(sp)",
+        "lw     a0, 4*4(sp)",
+        "lw     a1, 5*4(sp)",
+        "lw     a2, 6*4(sp)",
+        "lw     a3, 7*4(sp)",
+        "lw     a4, 8*4(sp)",
+        "lw     a5, 9*4(sp)",
+        "lw     a6, 10*4(sp)",
+        "lw     a7, 11*4(sp)",
+        "lw     t3, 12*4(sp)",
+        "lw     t4, 13*4(sp)",
+        "lw     t5, 14*4(sp)",
+        "lw     t6, 15*4(sp)",
+        "addi   sp, sp, 19*4",
+        "mret",
+        rust_all_traps = sym rust_bl808_lp_machine_external,
+    )
 }
 
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
@@ -351,6 +594,30 @@ fn rust_bl808_dsp_machine_external(_tf: &mut crate::arch::rvi::TrapFrame) {
             unsafe { (D0_INTERRUPT_HANDLERS[idx - 16])() };
         }
         plic.complete(D0Machine, RawPlicSource(source));
+    }
+}
+
+#[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
+fn rust_bl808_mcu_machine_external(_tf: &mut crate::arch::rvi::TrapFrame) {
+    let plic: PLIC = unsafe { core::mem::transmute(()) };
+    if let Some(source) = plic.claim(M0Machine) {
+        let idx = source.get() as usize;
+        if idx >= 16 && idx < 16 + 64 {
+            unsafe { (M0_LP_INTERRUPT_HANDLERS[idx - 16])() };
+        }
+        plic.complete(M0Machine, RawPlicSource(source));
+    }
+}
+
+#[cfg(all(feature = "bl808-lp", target_arch = "riscv32"))]
+fn rust_bl808_lp_machine_external(_tf: &mut crate::arch::rve::TrapFrame) {
+    let plic: PLIC = unsafe { core::mem::transmute(()) };
+    if let Some(source) = plic.claim(LpMachine) {
+        let idx = source.get() as usize;
+        if idx >= 16 && idx < 16 + 64 {
+            unsafe { (M0_LP_INTERRUPT_HANDLERS[idx - 16])() };
+        }
+        plic.complete(LpMachine, RawPlicSource(source));
     }
 }
 
@@ -425,6 +692,77 @@ static D0_INTERRUPT_HANDLERS: [unsafe extern "C" fn(); 67] = [
     pds,
 ];
 
+#[cfg(any(
+    all(feature = "bl808-mcu", target_arch = "riscv32"),
+    all(feature = "bl808-lp", target_arch = "riscv32")
+))]
+static M0_LP_INTERRUPT_HANDLERS: [unsafe extern "C" fn(); 64] = [
+    bmx_mcu_bus_err,
+    bmx_mcu_to,
+    m0_reserved2,
+    ipc_m0,
+    audio,
+    rf_top_int0,
+    rf_top_int1,
+    lz4d,
+    gauge_itf,
+    sec_eng_id1_sha_aes_trng_pka_gmac,
+    sec_eng_id0_sha_aes_trng_pka_gmac,
+    sec_eng_id1_cdet,
+    sec_eng_id0_cdet,
+    sf_ctrl_id1,
+    sf_ctrl_id0,
+    dma0_all,
+    dma1_all,
+    sdh,
+    mm_all,
+    irtx,
+    irrx,
+    usb,
+    aupdm_touch,
+    m0_reserved23,
+    emac,
+    gpadc_dma,
+    efuse,
+    spi0,
+    uart0,
+    uart1,
+    uart2,
+    gpio_dma,
+    i2c0,
+    pwm,
+    ipc_rsvd,
+    ipc_lp,
+    timer0_ch0,
+    timer0_ch1,
+    timer0_wdt,
+    i2c1,
+    i2s,
+    ana_ocp_out_to_cpu_0,
+    ana_ocp_out_to_cpu_1,
+    ana_ocp_out_to_cpu_2,
+    gpio_int0,
+    dm,
+    bt,
+    m154_req_ack,
+    m154_int,
+    m154_aes,
+    pds_wakeup,
+    hbn_out0,
+    hbn_out1,
+    bor,
+    wifi,
+    bz_phy_int,
+    ble,
+    mac_txrx_timer,
+    mac_txrx_misc,
+    mac_rx_trg,
+    mac_tx_trg,
+    mac_gen,
+    mac_port_trg,
+    wifi_ipc_public,
+];
+
 #[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
 unsafe extern "C" {
     fn bmx_dsp_bus_err();
@@ -496,6 +834,77 @@ unsafe extern "C" {
     fn pds();
 }
 
+#[cfg(any(
+    all(feature = "bl808-mcu", target_arch = "riscv32"),
+    all(feature = "bl808-lp", target_arch = "riscv32")
+))]
+unsafe extern "C" {
+    fn bmx_mcu_bus_err();
+    fn bmx_mcu_to();
+    fn m0_reserved2();
+    fn ipc_m0();
+    fn audio();
+    fn rf_top_int0();
+    fn rf_top_int1();
+    fn lz4d();
+    fn gauge_itf();
+    fn sec_eng_id1_sha_aes_trng_pka_gmac();
+    fn sec_eng_id0_sha_aes_trng_pka_gmac();
+    fn sec_eng_id1_cdet();
+    fn sec_eng_id0_cdet();
+    fn sf_ctrl_id1();
+    fn sf_ctrl_id0();
+    fn dma0_all();
+    fn dma1_all();
+    fn sdh();
+    fn mm_all();
+    fn irtx();
+    fn irrx();
+    fn usb();
+    fn aupdm_touch();
+    fn m0_reserved23();
+    fn emac();
+    fn gpadc_dma();
+    fn efuse();
+    fn spi0();
+    fn uart0();
+    fn uart1();
+    fn uart2();
+    fn gpio_dma();
+    fn i2c0();
+    fn pwm();
+    fn ipc_rsvd();
+    fn ipc_lp();
+    fn timer0_ch0();
+    fn timer0_ch1();
+    fn timer0_wdt();
+    fn i2c1();
+    fn i2s();
+    fn ana_ocp_out_to_cpu_0();
+    fn ana_ocp_out_to_cpu_1();
+    fn ana_ocp_out_to_cpu_2();
+    fn gpio_int0();
+    fn dm();
+    fn bt();
+    fn m154_req_ack();
+    fn m154_int();
+    fn m154_aes();
+    fn pds_wakeup();
+    fn hbn_out0();
+    fn hbn_out1();
+    fn bor();
+    fn wifi();
+    fn bz_phy_int();
+    fn ble();
+    fn mac_txrx_timer();
+    fn mac_txrx_misc();
+    fn mac_rx_trg();
+    fn mac_tx_trg();
+    fn mac_gen();
+    fn mac_port_trg();
+    fn wifi_ipc_public();
+}
+
 /// D0 core machine mode context.
 pub struct D0Machine;
 
@@ -506,10 +915,38 @@ impl plic::HartContext for D0Machine {
     }
 }
 
-#[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
+/// M0 core machine mode context.
+pub struct M0Machine;
+
+impl plic::HartContext for M0Machine {
+    #[inline]
+    fn index(self) -> usize {
+        1
+    }
+}
+
+/// LP core machine mode context.
+pub struct LpMachine;
+
+impl plic::HartContext for LpMachine {
+    #[inline]
+    fn index(self) -> usize {
+        2
+    }
+}
+
+#[cfg(any(
+    all(feature = "bl808-dsp", target_arch = "riscv64"),
+    all(feature = "bl808-mcu", target_arch = "riscv32"),
+    all(feature = "bl808-lp", target_arch = "riscv32")
+))]
 struct RawPlicSource(core::num::NonZeroU32);
 
-#[cfg(all(feature = "bl808-dsp", target_arch = "riscv64"))]
+#[cfg(any(
+    all(feature = "bl808-dsp", target_arch = "riscv64"),
+    all(feature = "bl808-mcu", target_arch = "riscv32"),
+    all(feature = "bl808-lp", target_arch = "riscv32")
+))]
 impl plic::InterruptSource for RawPlicSource {
     #[inline]
     fn id(self) -> core::num::NonZeroU32 {
@@ -619,4 +1056,11 @@ pub enum McuLpInterrupt {
     HbnOut0 = 16 + 51,
     /// HBN out 1 interrupt.
     HbnOut1 = 16 + 52,
+}
+
+impl plic::InterruptSource for McuLpInterrupt {
+    #[inline]
+    fn id(self) -> core::num::NonZeroU32 {
+        core::num::NonZeroU32::new(self as u32).unwrap()
+    }
 }

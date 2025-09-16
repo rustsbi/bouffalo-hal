@@ -45,7 +45,7 @@ jobs:
         # TOOLCHAIN: [stable] # TODO
         TOOLCHAIN: [nightly]
         EXAMPLES: [gpio-demo, i2c-demo, i2c-screen-demo, jtag-demo, lz4d-demo, psram-demo, pwm-demo, 
-          sdcard-demo, sdcard-gpt-demo, sdh-demo, sdh-dma-demo, spi-demo, uart-demo, uart-async-demo, uart-cli-demo]
+          sdcard-demo, sdcard-gpt-demo, sdh-demo, sdh-dma-demo, spi-demo, uart-demo, uart-async-demo, uart-cli-demo, adc-dma-demo]
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -70,7 +70,7 @@ jobs:
       matrix:
         TARGET: [riscv32imac-unknown-none-elf]
         TOOLCHAIN: [nightly]
-        EXAMPLES: [uart-bl616-demo, uart-dma-demo, adc-tsen-demo, adc-poll-demo, adc-poll-diff-demo, adc-poll-onechan-demo, adc-vbat-demo]
+        EXAMPLES: [uart-bl616-demo, uart-dma-demo, adc-tsen-demo, adc-poll-demo, adc-poll-diff-demo, adc-poll-onechan-demo, adc-vbat-demo, adc-async-demo]
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1

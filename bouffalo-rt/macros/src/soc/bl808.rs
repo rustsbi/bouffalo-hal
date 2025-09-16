@@ -17,6 +17,24 @@ pub(crate) const BL808_DSP_INTERRUPTS: [&'static str; 67] = [
     "wl_all",	        "pds",
 ];
 
-// TODO const BL808_MCU_INTERRUPTS
-
-// TODO const BL808_LP_INTERRUPTS
+// MCU and LP cores share the same interrupt sources (MCU is M0, LP is Low Power)
+#[rustfmt::skip]
+#[cfg(any(feature = "bl808-mcu", feature = "bl808-lp"))]
+pub(crate) const BL808_MCU_LP_INTERRUPTS: [&'static str; 64] = [
+    "bmx_mcu_bus_err",      "bmx_mcu_to",           "m0_reserved2",         "ipc_m0",
+    "audio",                "rf_top_int0",          "rf_top_int1",          "lz4d",
+    "gauge_itf",            "sec_eng_id1_sha_aes_trng_pka_gmac", "sec_eng_id0_sha_aes_trng_pka_gmac", "sec_eng_id1_cdet",
+    "sec_eng_id0_cdet",     "sf_ctrl_id1",          "sf_ctrl_id0",          "dma0_all",
+    "dma1_all",             "sdh",                  "mm_all",               "irtx",
+    "irrx",                 "usb",                  "aupdm_touch",          "m0_reserved23",
+    "emac",                 "gpadc_dma",            "efuse",                "spi0",
+    "uart0",                "uart1",                "uart2",                "gpio_dma",
+    "i2c0",                 "pwm",                  "ipc_rsvd",             "ipc_lp",
+    "timer0_ch0",           "timer0_ch1",           "timer0_wdt",           "i2c1",
+    "i2s",                  "ana_ocp_out_to_cpu_0", "ana_ocp_out_to_cpu_1", "ana_ocp_out_to_cpu_2",
+    "gpio_int0",            "dm",                   "bt",                   "m154_req_ack",
+    "m154_int",             "m154_aes",             "pds_wakeup",           "hbn_out0",
+    "hbn_out1",             "bor",                  "wifi",                 "bz_phy_int",
+    "ble",                  "mac_txrx_timer",       "mac_txrx_misc",        "mac_rx_trg",
+    "mac_tx_trg",           "mac_gen",              "mac_port_trg",         "wifi_ipc_public",
+];

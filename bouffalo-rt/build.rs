@@ -155,7 +155,75 @@ SECTIONS {
     /DISCARD/ : {
         *(.eh_frame)
     }
-}";
+}
+/* exceptions */
+PROVIDE(exceptions = default_handler);
+/* interrupts */
+PROVIDE(bmx_mcu_bus_err = default_handler);
+PROVIDE(bmx_mcu_to = default_handler);
+PROVIDE(m0_reserved2 = default_handler);
+PROVIDE(ipc_m0 = default_handler);
+PROVIDE(audio = default_handler);
+PROVIDE(rf_top_int0 = default_handler);
+PROVIDE(rf_top_int1 = default_handler);
+PROVIDE(lz4d = default_handler);
+PROVIDE(gauge_itf = default_handler);
+PROVIDE(sec_eng_id1_sha_aes_trng_pka_gmac = default_handler);
+PROVIDE(sec_eng_id0_sha_aes_trng_pka_gmac = default_handler);
+PROVIDE(sec_eng_id1_cdet = default_handler);
+PROVIDE(sec_eng_id0_cdet = default_handler);
+PROVIDE(sf_ctrl_id1 = default_handler);
+PROVIDE(sf_ctrl_id0 = default_handler);
+PROVIDE(dma0_all = default_handler);
+PROVIDE(dma1_all = default_handler);
+PROVIDE(sdh = default_handler);
+PROVIDE(mm_all = default_handler);
+PROVIDE(irtx = default_handler);
+PROVIDE(irrx = default_handler);
+PROVIDE(usb = default_handler);
+PROVIDE(aupdm_touch = default_handler);
+PROVIDE(m0_reserved23 = default_handler);
+PROVIDE(emac = default_handler);
+PROVIDE(gpadc_dma = default_handler);
+PROVIDE(efuse = default_handler);
+PROVIDE(spi0 = default_handler);
+PROVIDE(uart0 = default_handler);
+PROVIDE(uart1 = default_handler);
+PROVIDE(uart2 = default_handler);
+PROVIDE(gpio_dma = default_handler);
+PROVIDE(i2c0 = default_handler);
+PROVIDE(pwm = default_handler);
+PROVIDE(ipc_rsvd = default_handler);
+PROVIDE(ipc_lp = default_handler);
+PROVIDE(timer0_ch0 = default_handler);
+PROVIDE(timer0_ch1 = default_handler);
+PROVIDE(timer0_wdt = default_handler);
+PROVIDE(i2c1 = default_handler);
+PROVIDE(i2s = default_handler);
+PROVIDE(ana_ocp_out_to_cpu_0 = default_handler);
+PROVIDE(ana_ocp_out_to_cpu_1 = default_handler);
+PROVIDE(ana_ocp_out_to_cpu_2 = default_handler);
+PROVIDE(gpio_int0 = default_handler);
+PROVIDE(dm = default_handler);
+PROVIDE(bt = default_handler);
+PROVIDE(m154_req_ack = default_handler);
+PROVIDE(m154_int = default_handler);
+PROVIDE(m154_aes = default_handler);
+PROVIDE(pds_wakeup = default_handler);
+PROVIDE(hbn_out0 = default_handler);
+PROVIDE(hbn_out1 = default_handler);
+PROVIDE(bor = default_handler);
+PROVIDE(wifi = default_handler);
+PROVIDE(bz_phy_int = default_handler);
+PROVIDE(ble = default_handler);
+PROVIDE(mac_txrx_timer = default_handler);
+PROVIDE(mac_txrx_misc = default_handler);
+PROVIDE(mac_rx_trg = default_handler);
+PROVIDE(mac_tx_trg = default_handler);
+PROVIDE(mac_gen = default_handler);
+PROVIDE(mac_port_trg = default_handler);
+PROVIDE(wifi_ipc_public = default_handler);
+";
 
 #[cfg(feature = "bl808-dsp")]
 const LINKER_SCRIPT_BL808_DSP: &[u8] = b"
@@ -369,7 +437,75 @@ SECTIONS {
     /DISCARD/ : {
         *(.eh_frame)
     }
-}";
+}
+/* exceptions */
+PROVIDE(exceptions = default_handler);
+/* interrupts */
+PROVIDE(bmx_mcu_bus_err = default_handler);
+PROVIDE(bmx_mcu_to = default_handler);
+PROVIDE(m0_reserved2 = default_handler);
+PROVIDE(ipc_m0 = default_handler);
+PROVIDE(audio = default_handler);
+PROVIDE(rf_top_int0 = default_handler);
+PROVIDE(rf_top_int1 = default_handler);
+PROVIDE(lz4d = default_handler);
+PROVIDE(gauge_itf = default_handler);
+PROVIDE(sec_eng_id1_sha_aes_trng_pka_gmac = default_handler);
+PROVIDE(sec_eng_id0_sha_aes_trng_pka_gmac = default_handler);
+PROVIDE(sec_eng_id1_cdet = default_handler);
+PROVIDE(sec_eng_id0_cdet = default_handler);
+PROVIDE(sf_ctrl_id1 = default_handler);
+PROVIDE(sf_ctrl_id0 = default_handler);
+PROVIDE(dma0_all = default_handler);
+PROVIDE(dma1_all = default_handler);
+PROVIDE(sdh = default_handler);
+PROVIDE(mm_all = default_handler);
+PROVIDE(irtx = default_handler);
+PROVIDE(irrx = default_handler);
+PROVIDE(usb = default_handler);
+PROVIDE(aupdm_touch = default_handler);
+PROVIDE(m0_reserved23 = default_handler);
+PROVIDE(emac = default_handler);
+PROVIDE(gpadc_dma = default_handler);
+PROVIDE(efuse = default_handler);
+PROVIDE(spi0 = default_handler);
+PROVIDE(uart0 = default_handler);
+PROVIDE(uart1 = default_handler);
+PROVIDE(uart2 = default_handler);
+PROVIDE(gpio_dma = default_handler);
+PROVIDE(i2c0 = default_handler);
+PROVIDE(pwm = default_handler);
+PROVIDE(ipc_rsvd = default_handler);
+PROVIDE(ipc_lp = default_handler);
+PROVIDE(timer0_ch0 = default_handler);
+PROVIDE(timer0_ch1 = default_handler);
+PROVIDE(timer0_wdt = default_handler);
+PROVIDE(i2c1 = default_handler);
+PROVIDE(i2s = default_handler);
+PROVIDE(ana_ocp_out_to_cpu_0 = default_handler);
+PROVIDE(ana_ocp_out_to_cpu_1 = default_handler);
+PROVIDE(ana_ocp_out_to_cpu_2 = default_handler);
+PROVIDE(gpio_int0 = default_handler);
+PROVIDE(dm = default_handler);
+PROVIDE(bt = default_handler);
+PROVIDE(m154_req_ack = default_handler);
+PROVIDE(m154_int = default_handler);
+PROVIDE(m154_aes = default_handler);
+PROVIDE(pds_wakeup = default_handler);
+PROVIDE(hbn_out0 = default_handler);
+PROVIDE(hbn_out1 = default_handler);
+PROVIDE(bor = default_handler);
+PROVIDE(wifi = default_handler);
+PROVIDE(bz_phy_int = default_handler);
+PROVIDE(ble = default_handler);
+PROVIDE(mac_txrx_timer = default_handler);
+PROVIDE(mac_txrx_misc = default_handler);
+PROVIDE(mac_rx_trg = default_handler);
+PROVIDE(mac_tx_trg = default_handler);
+PROVIDE(mac_gen = default_handler);
+PROVIDE(mac_port_trg = default_handler);
+PROVIDE(wifi_ipc_public = default_handler);
+";
 
 #[cfg(feature = "bl702")]
 const LINKER_SCRIPT_BL702: &[u8] = b"
