@@ -111,6 +111,8 @@ i2c! { I2C0: 0, I2C1: 1, }
 
 pwm! { PWM, }
 
+lz4d! { LZ4D, }
+
 /// BL616 GPIO pad.
 pub struct Pad<const N: usize> {
     _private: (),
