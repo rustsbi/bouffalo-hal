@@ -23,3 +23,5 @@
 | `adc-poll-onechan-demo`       | √     |
 | `adc-vbat-demo`       | √     |
 | `adc-tsen-demo`       | √     |
+| `adc-dma-demo`       | √     |
+| `adc-async-demo`       | √     |

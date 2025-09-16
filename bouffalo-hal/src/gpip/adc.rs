@@ -6,6 +6,16 @@ use crate::{
 use cfg_if::cfg_if;
 use core::ops::Deref;
 
+/// ADC interrupt status.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct AdcIntStatus {
+    pub neg_saturation: bool,
+    pub pos_saturation: bool,
+    pub fifo_underrun: bool,
+    pub fifo_overrun: bool,
+    pub adc_ready: bool,
+}
+
 /// ADC conversion result structure
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct AdcResult {
@@ -725,6 +735,103 @@ impl<G: Deref<Target = RegisterBlock>> Gpip<G> {
             ((v0 as f32 - v1 as f32) - self.tsen_offset as f32) / 7.753
         } else {
             0.0
+        }
+    }
+
+    /// Enable or disable ADC receive interrupt mask.
+    #[inline]
+    pub fn adc_rxint_mask(&mut self, mask: bool) {
+        unsafe {
+            if mask {
+                self.gpip.gpadc_config.modify(|val| val.disable_adc_ready());
+            } else {
+                self.gpip.gpadc_config.modify(|val| val.enable_adc_ready());
+            }
+        }
+    }
+
+    /// Get ADC interrupt status.
+    #[inline]
+    pub fn adc_get_intstatus(&self, hbn: &hbn::RegisterBlock) -> AdcIntStatus {
+        let config_val = self.gpip.gpadc_config.read();
+
+        AdcIntStatus {
+            neg_saturation: hbn
+                .gpadc_interrupt_state
+                .read()
+                .if_neg_satur_interrupt_occurs(),
+            pos_saturation: hbn
+                .gpadc_interrupt_state
+                .read()
+                .if_pos_satur_interrupt_occurs(),
+            fifo_underrun: config_val.if_fifo_underrun_occurs(),
+            fifo_overrun: config_val.if_fifo_overrun_occurs(),
+            adc_ready: config_val.is_adc_ready(),
+        }
+    }
+
+    /// Clear ADC interrupt status.
+    #[inline]
+    pub fn adc_int_clear(&mut self, int_clear: AdcIntStatus, hbn: &hbn::RegisterBlock) {
+        unsafe {
+            // Clear ADC ready interrupt
+            if int_clear.adc_ready {
+                self.gpip
+                    .gpadc_config
+                    .modify(|val| val.set_adc_ready_clr_bit(0));
+                self.gpip
+                    .gpadc_config
+                    .modify(|val| val.set_adc_ready_clr_bit(1));
+                self.gpip
+                    .gpadc_config
+                    .modify(|val| val.set_adc_ready_clr_bit(0));
+            }
+
+            // Clear FIFO underrun interrupt
+            if int_clear.fifo_underrun {
+                self.gpip
+                    .gpadc_config
+                    .modify(|val| val.set_fifo_underrun_clr_bit(0));
+                self.gpip
+                    .gpadc_config
+                    .modify(|val| val.set_fifo_underrun_clr_bit(1));
+                self.gpip
+                    .gpadc_config
+                    .modify(|val| val.set_fifo_underrun_clr_bit(0));
+            }
+
+            // Clear FIFO overrun interrupt
+            if int_clear.fifo_overrun {
+                self.gpip
+                    .gpadc_config
+                    .modify(|val| val.set_fifo_overrun_clr_bit(0));
+                self.gpip
+                    .gpadc_config
+                    .modify(|val| val.set_fifo_overrun_clr_bit(1));
+                self.gpip
+                    .gpadc_config
+                    .modify(|val| val.set_fifo_overrun_clr_bit(0));
+            }
+
+            // Clear positive saturation interrupt
+            if int_clear.pos_saturation {
+                hbn.gpadc_interrupt_state
+                    .modify(|val| val.set_pos_satur_interrupt(false));
+                hbn.gpadc_interrupt_state
+                    .modify(|val| val.set_pos_satur_interrupt(true));
+                hbn.gpadc_interrupt_state
+                    .modify(|val| val.set_pos_satur_interrupt(true));
+            }
+
+            // Clear negative saturation interrupt
+            if int_clear.neg_saturation {
+                hbn.gpadc_interrupt_state
+                    .modify(|val| val.set_neg_satur_interrupt(false));
+                hbn.gpadc_interrupt_state
+                    .modify(|val| val.set_neg_satur_interrupt(true));
+                hbn.gpadc_interrupt_state
+                    .modify(|val| val.set_neg_satur_interrupt(true));
+            }
         }
     }
 }

@@ -2117,10 +2117,28 @@ impl GpadcInterruptState {
     pub fn is_neg_satur_interrupt_enabled(self) -> bool {
         self.0 & Self::NEG_SATUR_MASK == 0
     }
+    /// Set positive saturation interrupt bit.
+    #[inline]
+    pub fn set_pos_satur_interrupt(self, set: bool) -> Self {
+        Self(if set {
+            self.0 | Self::POS_SATUR
+        } else {
+            self.0 & !Self::POS_SATUR
+        })
+    }
     /// Clear positive saturation interrupt.
     #[inline]
     pub fn clear_pos_satur_interrupt(self) -> Self {
         Self(self.0 | Self::POS_SATUR_CLR)
+    }
+    /// Set negative saturation interrupt bit.
+    #[inline]
+    pub fn set_neg_satur_interrupt(self, set: bool) -> Self {
+        Self(if set {
+            self.0 | Self::NEG_SATUR
+        } else {
+            self.0 & !Self::NEG_SATUR
+        })
     }
     /// Clear negative saturation interrupt.
     #[inline]

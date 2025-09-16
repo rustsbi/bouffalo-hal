@@ -26,6 +26,8 @@ members = [
     "examples/peripherals/psram-demo",
     "examples/peripherals/sdh-demo",
     "examples/peripherals/sdh-dma-demo",
+    "examples/peripherals/adc-dma-demo",
+    "examples/peripherals/adc-async-demo",
     "examples/peripherals/adc-tsen-demo",
     "examples/peripherals/adc-poll-demo",
     "examples/peripherals/adc-poll-diff-demo",
