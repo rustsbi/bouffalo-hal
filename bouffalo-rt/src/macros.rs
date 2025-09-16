@@ -241,9 +241,9 @@ impl<'a> bouffalo_hal::lz4d::Lz4dExt<'a> for &'a mut $LZ4Dx {
     fn decompress<R, W>(self, input: core::pin::Pin<R>, output: core::pin::Pin<W>)
         -> bouffalo_hal::lz4d::Decompress<'a, R, W>
     where
-        R: core::ops::Deref + 'static,
+        R: core::ops::Deref + 'a,
         R::Target: as_slice::AsSlice<Element = u8>,
-        W: core::ops::DerefMut + 'static,
+        W: core::ops::DerefMut + 'a,
         W::Target: as_slice::AsMutSlice<Element = u8>,
     {
         bouffalo_hal::lz4d::Decompress::new(self, input, output)

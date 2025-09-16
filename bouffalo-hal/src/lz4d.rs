@@ -217,9 +217,9 @@ impl<'a, R, W> Decompress<'a, R, W> {
     #[inline]
     pub fn new(lz4d: impl Instance<'a>, input: Pin<R>, output: Pin<W>) -> Self
     where
-        R: Deref + 'static,
+        R: Deref + 'a,
         R::Target: AsSlice<Element = u8>,
-        W: DerefMut + 'static,
+        W: DerefMut + 'a,
         W::Target: AsMutSlice<Element = u8>,
     {
         let lz4d = lz4d.register_block();
@@ -286,9 +286,9 @@ pub trait Lz4dExt<'a>: Sized {
     /// Create and start an LZ4D decompression request.
     fn decompress<R, W>(self, input: Pin<R>, output: Pin<W>) -> Decompress<'a, R, W>
     where
-        R: Deref + 'static,
+        R: Deref + 'a,
         R::Target: AsSlice<Element = u8>,
-        W: DerefMut + 'static,
+        W: DerefMut + 'a,
         W::Target: AsMutSlice<Element = u8>;
 }
 
