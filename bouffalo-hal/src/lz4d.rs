@@ -207,12 +207,33 @@ pub enum Interrupt {
 }
 
 /// Progress on an ongoing decompression procedure.
-pub struct Decompress<'a, LZ4D, R, W> {
-    lz4d: &'a LZ4D,
+pub struct Decompress<'a, R, W> {
+    lz4d: &'a RegisterBlock,
     resource: Resources<R, W>,
 }
 
-impl<'a, LZ4D: Deref<Target = RegisterBlock>, R, W> Decompress<'a, LZ4D, R, W> {
+impl<'a, R, W> Decompress<'a, R, W> {
+    /// Create a new LZ4 decompressor instance.
+    #[inline]
+    pub fn new(lz4d: impl Instance<'a>, input: Pin<R>, output: Pin<W>) -> Self
+    where
+        R: Deref + 'static,
+        R::Target: AsSlice<Element = u8>,
+        W: DerefMut + 'static,
+        W::Target: AsMutSlice<Element = u8>,
+    {
+        let lz4d = lz4d.register_block();
+        unsafe {
+            lz4d.config.modify(|v| v.disable());
+            lz4d.source_start
+                .write(SourceStart(input.as_slice().as_ptr() as u32));
+            lz4d.destination_start
+                .write(DestinationStart(output.as_slice().as_ptr() as u32));
+            lz4d.config.modify(|v| v.enable());
+        }
+        let resource = Resources { input, output };
+        Decompress { lz4d, resource }
+    }
     /// Checks whether the decompression is still ongoing.
     #[inline]
     pub fn is_ongoing(&self) -> bool {
@@ -261,9 +282,9 @@ pub struct Resources<R, W> {
 }
 
 /// Extend constructor to owned LZ4D register blocks.
-pub trait Lz4dExt: Sized {
+pub trait Lz4dExt<'a>: Sized {
     /// Create and start an LZ4D decompression request.
-    fn decompress<R, W>(&self, input: Pin<R>, output: Pin<W>) -> Decompress<Self, R, W>
+    fn decompress<R, W>(self, input: Pin<R>, output: Pin<W>) -> Decompress<'a, R, W>
     where
         R: Deref + 'static,
         R::Target: AsSlice<Element = u8>,
@@ -271,30 +292,10 @@ pub trait Lz4dExt: Sized {
         W::Target: AsMutSlice<Element = u8>;
 }
 
-impl<T: Deref<Target = RegisterBlock>> Lz4dExt for T {
-    /// Create and start an LZ4D decompression request.
-    #[inline]
-    fn decompress<R, W>(&self, input: Pin<R>, output: Pin<W>) -> Decompress<Self, R, W>
-    where
-        R: Deref + 'static,
-        R::Target: AsSlice<Element = u8>,
-        W: DerefMut + 'static,
-        W::Target: AsMutSlice<Element = u8>,
-    {
-        unsafe {
-            self.config.modify(|v| v.disable());
-            self.source_start
-                .write(SourceStart(input.as_slice().as_ptr() as u32));
-            self.destination_start
-                .write(DestinationStart(output.as_slice().as_ptr() as u32));
-            self.config.modify(|v| v.enable());
-        }
-        let resource = Resources { input, output };
-        Decompress {
-            lz4d: self,
-            resource,
-        }
-    }
+/// Peripheral instance for LZ4D.
+pub trait Instance<'a> {
+    /// Retrieve register block from this instance.
+    fn register_block(self) -> &'a RegisterBlock;
 }
 
 #[cfg(test)]

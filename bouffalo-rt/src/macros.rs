@@ -204,6 +204,55 @@ impl<'a> bouffalo_hal::pwm::Instance<'a> for &'a mut $PWMx {
     };
 }
 
+macro_rules! lz4d {
+    ($($LZ4Dx: ty,)+) => {
+    $(
+impl bouffalo_hal::lz4d::Instance<'static> for $LZ4Dx {
+    #[inline]
+    fn register_block(self) -> &'static bouffalo_hal::lz4d::RegisterBlock {
+        unsafe { &*Self::ptr() }
+    }
+}
+
+impl<'a> bouffalo_hal::lz4d::Instance<'a> for &'a mut $LZ4Dx {
+    #[inline]
+    fn register_block(self) -> &'a bouffalo_hal::lz4d::RegisterBlock {
+        &*self
+    }
+}
+
+impl bouffalo_hal::lz4d::Lz4dExt<'static> for $LZ4Dx {
+    #[inline]
+    fn decompress<R, W>(self, input: core::pin::Pin<R>, output: core::pin::Pin<W>)
+        -> bouffalo_hal::lz4d::Decompress<'static, R, W>
+    where
+        R: core::ops::Deref + 'static,
+        R::Target: as_slice::AsSlice<Element = u8>,
+        W: core::ops::DerefMut + 'static,
+        W::Target: as_slice::AsMutSlice<Element = u8>,
+    {
+        bouffalo_hal::lz4d::Decompress::new(self, input, output)
+    }
+}
+
+impl<'a> bouffalo_hal::lz4d::Lz4dExt<'a> for &'a mut $LZ4Dx {
+    /// Create and start an LZ4D decompression request.
+    #[inline]
+    fn decompress<R, W>(self, input: core::pin::Pin<R>, output: core::pin::Pin<W>)
+        -> bouffalo_hal::lz4d::Decompress<'a, R, W>
+    where
+        R: core::ops::Deref + 'static,
+        R::Target: as_slice::AsSlice<Element = u8>,
+        W: core::ops::DerefMut + 'static,
+        W::Target: as_slice::AsMutSlice<Element = u8>,
+    {
+        bouffalo_hal::lz4d::Decompress::new(self, input, output)
+    }
+}
+    )+
+    };
+}
+
 macro_rules! impl_pad_v2 {
     ($Pad: ident: $GLBv2: ident) => {
         impl<'a, const N: usize> bouffalo_hal::gpio::Instance<'a> for &'a mut $Pad<N> {

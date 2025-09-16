@@ -128,6 +128,8 @@ i2c! { I2C0: 0, I2C1: 1, I2C2: 2, I2C3: 3, }
 
 pwm! { PWM, }
 
+lz4d! { LZ4D, }
+
 /// BL808 GPIO pad.
 pub struct Pad<const N: usize> {
     _private: (),
