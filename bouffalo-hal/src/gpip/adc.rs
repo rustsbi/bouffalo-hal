@@ -776,63 +776,88 @@ impl<G: Deref<Target = RegisterBlock>> Gpip<G> {
         unsafe {
             // Clear ADC ready interrupt
             if int_clear.adc_ready {
-                self.gpip
-                    .gpadc_config
-                    .modify(|val| val.set_adc_ready_clr_bit(0));
-                self.gpip
-                    .gpadc_config
-                    .modify(|val| val.set_adc_ready_clr_bit(1));
-                self.gpip
-                    .gpadc_config
-                    .modify(|val| val.set_adc_ready_clr_bit(0));
+                Self::clear_interrupt_pattern(
+                    |v| {
+                        self.gpip
+                            .gpadc_config
+                            .modify(|val| val.set_adc_ready_clr_bit(v))
+                    },
+                    0,
+                    1,
+                );
             }
 
             // Clear FIFO underrun interrupt
             if int_clear.fifo_underrun {
-                self.gpip
-                    .gpadc_config
-                    .modify(|val| val.set_fifo_underrun_clr_bit(0));
-                self.gpip
-                    .gpadc_config
-                    .modify(|val| val.set_fifo_underrun_clr_bit(1));
-                self.gpip
-                    .gpadc_config
-                    .modify(|val| val.set_fifo_underrun_clr_bit(0));
+                Self::clear_interrupt_pattern(
+                    |v| {
+                        self.gpip
+                            .gpadc_config
+                            .modify(|val| val.set_fifo_underrun_clr_bit(v))
+                    },
+                    0,
+                    1,
+                );
             }
 
             // Clear FIFO overrun interrupt
             if int_clear.fifo_overrun {
-                self.gpip
-                    .gpadc_config
-                    .modify(|val| val.set_fifo_overrun_clr_bit(0));
-                self.gpip
-                    .gpadc_config
-                    .modify(|val| val.set_fifo_overrun_clr_bit(1));
-                self.gpip
-                    .gpadc_config
-                    .modify(|val| val.set_fifo_overrun_clr_bit(0));
+                Self::clear_interrupt_pattern(
+                    |v| {
+                        self.gpip
+                            .gpadc_config
+                            .modify(|val| val.set_fifo_overrun_clr_bit(v))
+                    },
+                    0,
+                    1,
+                );
             }
 
             // Clear positive saturation interrupt
             if int_clear.pos_saturation {
-                hbn.gpadc_interrupt_state
-                    .modify(|val| val.set_pos_satur_interrupt(false));
-                hbn.gpadc_interrupt_state
-                    .modify(|val| val.set_pos_satur_interrupt(true));
-                hbn.gpadc_interrupt_state
-                    .modify(|val| val.set_pos_satur_interrupt(true));
+                Self::clear_interrupt_pattern(
+                    |v| {
+                        hbn.gpadc_interrupt_state
+                            .modify(|val| val.set_pos_satur_interrupt(v))
+                    },
+                    false,
+                    true,
+                );
             }
 
             // Clear negative saturation interrupt
             if int_clear.neg_saturation {
-                hbn.gpadc_interrupt_state
-                    .modify(|val| val.set_neg_satur_interrupt(false));
-                hbn.gpadc_interrupt_state
-                    .modify(|val| val.set_neg_satur_interrupt(true));
-                hbn.gpadc_interrupt_state
-                    .modify(|val| val.set_neg_satur_interrupt(true));
+                Self::clear_interrupt_pattern(
+                    |v| {
+                        hbn.gpadc_interrupt_state
+                            .modify(|val| val.set_neg_satur_interrupt(v))
+                    },
+                    false,
+                    true,
+                );
             }
         }
+    }
+
+    /// Performs the hardware-required three-step sequence for proper interrupt clearing.
+    ///
+    /// Some hardware interrupt controllers require a 0→1→0 (or false→true→false) pattern
+    /// to properly acknowledge and clear pending interrupts. This sequence works as follows:
+    /// 1. Write 0: Ensure the bit is in a known clear state.
+    /// 2. Write 1: Trigger the interrupt clear mechanism in hardware.
+    /// 3. Write 0: Return the bit to the inactive state.
+    ///
+    /// The positive edge (0→1 transition) followed by a return to inactive state is necessary
+    /// for proper hardware interrupt acknowledgement and clearing.
+    #[inline]
+    fn clear_interrupt_pattern<F, T>(mut f: F, zero: T, one: T)
+    where
+        F: FnMut(T),
+        T: Copy,
+    {
+        f(zero);
+        f(one);
+        f(zero);
     }
 }
 

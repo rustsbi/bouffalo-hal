@@ -5,6 +5,24 @@ mod peripheral;
 pub use image_header::*;
 pub use peripheral::*;
 
+// PMP (Physical Memory Protection) configuration constants
+// Stack protection memory regions for different cores
+
+// MCU and LP cores stack protection region
+const MCU_LP_STACK_PROTECT_BASE: u32 = 0x62030000;
+const MCU_LP_STACK_PROTECT_SIZE: u32 = 160 * 1024; // 160KB
+
+// DSP core stack protection region
+const DSP_STACK_PROTECT_BASE: u32 = 0x3F000000;
+const DSP_STACK_PROTECT_SIZE: u32 = 32 * 1024; // 32KB
+
+// PMP flags: TOR (Top of Range) mode with no read/write/execute permissions
+// This blocks U/S-mode access to the protected stack region
+const PMP_TOR_NO_PERMISSIONS: u32 = 0b00001000 << 8; // 0x800
+
+// Address shift for PMP registers (addresses are stored as physical_addr >> 2)
+const PMP_ADDR_SHIFT: u32 = 2;
+
 #[cfg(all(feature = "bl808-mcu", target_arch = "riscv32"))]
 #[unsafe(naked)]
 #[unsafe(link_section = ".text.entry")]
@@ -50,9 +68,9 @@ unsafe extern "C" fn start() -> ! {
         trap_entry = sym trap_vectored,
         trap_mode = const 1, // RISC-V standard vectored trap
         // Set PMP entry to block U/S-mode stack access (TOR, no R/W/X permissions)
-        stack_protect_pmp_address_begin = const {0x62030000 >> 2},
-        stack_protect_pmp_address_end = const {(0x62030000 + 160 * 1024) >> 2},
-        stack_protect_pmp_flags = const 0b00001000 << 8,
+        stack_protect_pmp_address_begin = const {MCU_LP_STACK_PROTECT_BASE >> PMP_ADDR_SHIFT},
+        stack_protect_pmp_address_end = const {(MCU_LP_STACK_PROTECT_BASE + MCU_LP_STACK_PROTECT_SIZE) >> PMP_ADDR_SHIFT},
+        stack_protect_pmp_flags = const PMP_TOR_NO_PERMISSIONS,
         main = sym main,
     )
 }
@@ -102,9 +120,9 @@ unsafe extern "C" fn start() -> ! {
         trap_entry = sym trap_vectored,
         trap_mode = const 1, // RISC-V standard vectored trap
         // Set PMP entry to block U/S-mode stack access (TOR, no R/W/X permissions)
-        stack_protect_pmp_address_begin = const {0x3F000000 >> 2},
-        stack_protect_pmp_address_end = const {(0x3F000000 + 32 * 1024) >> 2},
-        stack_protect_pmp_flags = const 0b00001000 << 8,
+        stack_protect_pmp_address_begin = const {DSP_STACK_PROTECT_BASE >> PMP_ADDR_SHIFT},
+        stack_protect_pmp_address_end = const {(DSP_STACK_PROTECT_BASE + DSP_STACK_PROTECT_SIZE) >> PMP_ADDR_SHIFT},
+        stack_protect_pmp_flags = const PMP_TOR_NO_PERMISSIONS,
         main = sym main,
     )
 }
@@ -154,9 +172,9 @@ unsafe extern "C" fn start() -> ! {
         trap_entry = sym trap_vectored,
         trap_mode = const 1, // RISC-V standard vectored trap
         // Set PMP entry to block U/S-mode stack access (TOR, no R/W/X permissions)
-        stack_protect_pmp_address_begin = const {0x62030000 >> 2},
-        stack_protect_pmp_address_end = const {(0x62030000 + 160 * 1024) >> 2},
-        stack_protect_pmp_flags = const 0b00001000 << 8,
+        stack_protect_pmp_address_begin = const {MCU_LP_STACK_PROTECT_BASE >> PMP_ADDR_SHIFT},
+        stack_protect_pmp_address_end = const {(MCU_LP_STACK_PROTECT_BASE + MCU_LP_STACK_PROTECT_SIZE) >> PMP_ADDR_SHIFT},
+        stack_protect_pmp_flags = const PMP_TOR_NO_PERMISSIONS,
         main = sym main,
     )
 }
@@ -299,7 +317,7 @@ unsafe extern "C" fn exceptions_trampoline() -> ! {
 #[unsafe(naked)]
 unsafe extern "C" fn exceptions_trampoline() -> ! {
     core::arch::naked_asm!(
-        "addi   sp, sp, -19*4",
+        "addi   sp, sp, -13*4",
         "sw     ra, 0*4(sp)",
         "sw     t0, 1*4(sp)",
         "sw     t1, 2*4(sp)",
@@ -310,26 +328,20 @@ unsafe extern "C" fn exceptions_trampoline() -> ! {
         "sw     a3, 7*4(sp)",
         "sw     a4, 8*4(sp)",
         "sw     a5, 9*4(sp)",
-        "sw     a6, 10*4(sp)",
-        "sw     a7, 11*4(sp)",
-        "sw     t3, 12*4(sp)",
-        "sw     t4, 13*4(sp)",
-        "sw     t5, 14*4(sp)",
-        "sw     t6, 15*4(sp)",
         "csrr   t0, mcause",
-        "sw     t0, 16*4(sp)",
+        "sw     t0, 10*4(sp)",
         "csrr   t1, mepc",
-        "sw     t1, 17*4(sp)",
+        "sw     t1, 11*4(sp)",
         "csrr   t2, mstatus",
-        "sw     t2, 18*4(sp)",
+        "sw     t2, 12*4(sp)",
         // "csrs   mstatus, 8", // TODO: disallow nested interrupt by now
         "mv     a0, sp",
         "call   {rust_exceptions}",
-        "lw     t0, 16*4(sp)",
+        "lw     t0, 10*4(sp)",
         "csrw   mcause, t0",
-        "lw     t1, 17*4(sp)",
+        "lw     t1, 11*4(sp)",
         "csrw   mepc, t1",
-        "lw     t2, 18*4(sp)",
+        "lw     t2, 12*4(sp)",
         "csrw   mstatus, t2",
         "lw     ra, 0*4(sp)",
         "lw     t0, 1*4(sp)",
@@ -341,13 +353,7 @@ unsafe extern "C" fn exceptions_trampoline() -> ! {
         "lw     a3, 7*4(sp)",
         "lw     a4, 8*4(sp)",
         "lw     a5, 9*4(sp)",
-        "lw     a6, 10*4(sp)",
-        "lw     a7, 11*4(sp)",
-        "lw     t3, 12*4(sp)",
-        "lw     t4, 13*4(sp)",
-        "lw     t5, 14*4(sp)",
-        "lw     t6, 15*4(sp)",
-        "addi   sp, sp, 19*4",
+        "addi   sp, sp, 13*4",
         "mret",
         rust_exceptions = sym exceptions,
     )
@@ -473,7 +479,7 @@ unsafe extern "C" fn machine_external_trampoline() -> ! {
 #[unsafe(naked)]
 unsafe extern "C" fn machine_external_trampoline() -> ! {
     core::arch::naked_asm!(
-        "addi   sp, sp, -19*4",
+        "addi   sp, sp, -13*4",
         "sw     ra, 0*4(sp)",
         "sw     t0, 1*4(sp)",
         "sw     t1, 2*4(sp)",
@@ -484,26 +490,20 @@ unsafe extern "C" fn machine_external_trampoline() -> ! {
         "sw     a3, 7*4(sp)",
         "sw     a4, 8*4(sp)",
         "sw     a5, 9*4(sp)",
-        "sw     a6, 10*4(sp)",
-        "sw     a7, 11*4(sp)",
-        "sw     t3, 12*4(sp)",
-        "sw     t4, 13*4(sp)",
-        "sw     t5, 14*4(sp)",
-        "sw     t6, 15*4(sp)",
         "csrr   t0, mcause",
-        "sw     t0, 16*4(sp)",
+        "sw     t0, 10*4(sp)",
         "csrr   t1, mepc",
-        "sw     t1, 17*4(sp)",
+        "sw     t1, 11*4(sp)",
         "csrr   t2, mstatus",
-        "sw     t2, 18*4(sp)",
+        "sw     t2, 12*4(sp)",
         // "csrs   mstatus, 8", // TODO: disallow nested interrupt by now
         "mv     a0, sp",
         "call   {rust_all_traps}",
-        "lw     t0, 16*4(sp)",
+        "lw     t0, 10*4(sp)",
         "csrw   mcause, t0",
-        "lw     t1, 17*4(sp)",
+        "lw     t1, 11*4(sp)",
         "csrw   mepc, t1",
-        "lw     t2, 18*4(sp)",
+        "lw     t2, 12*4(sp)",
         "csrw   mstatus, t2",
         "lw     ra, 0*4(sp)",
         "lw     t0, 1*4(sp)",
@@ -515,13 +515,7 @@ unsafe extern "C" fn machine_external_trampoline() -> ! {
         "lw     a3, 7*4(sp)",
         "lw     a4, 8*4(sp)",
         "lw     a5, 9*4(sp)",
-        "lw     a6, 10*4(sp)",
-        "lw     a7, 11*4(sp)",
-        "lw     t3, 12*4(sp)",
-        "lw     t4, 13*4(sp)",
-        "lw     t5, 14*4(sp)",
-        "lw     t6, 15*4(sp)",
-        "addi   sp, sp, 19*4",
+        "addi   sp, sp, 13*4",
         "mret",
         rust_all_traps = sym rust_bl808_lp_machine_external,
     )

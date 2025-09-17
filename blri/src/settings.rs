@@ -13,6 +13,7 @@ pub struct BlriConfig {
     pub baudrate: u32,
     pub reset: bool,
     pub console: bool,
+    pub verbose: bool,
 }
 
 impl Default for BlriConfig {
@@ -26,6 +27,7 @@ impl Default for BlriConfig {
             baudrate: 2000000,
             reset: false,
             console: false,
+            verbose: false,
         }
     }
 }
@@ -226,6 +228,7 @@ impl BlriConfig {
         package: Option<String>,
         reset: bool,
         console: bool,
+        verbose: bool,
     ) -> Result<(bool, bool), Box<dyn std::error::Error>> {
         // Check for conflicts with current configuration
         let mut conflicts = Vec::new();
@@ -274,6 +277,10 @@ impl BlriConfig {
             conflicts.push(format!("Console: {} -> {}", self.console, console));
         }
 
+        if self.verbose != verbose {
+            conflicts.push(format!("Verbose: {} -> {}", self.verbose, verbose));
+        }
+
         // If there are conflicts, ask first confirmation
         if !conflicts.is_empty() {
             println!();
@@ -316,6 +323,7 @@ impl BlriConfig {
         package: Option<String>,
         reset: bool,
         console: bool,
+        verbose: bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Update configuration with current values
         self.port = Some(port.to_string());
@@ -325,6 +333,7 @@ impl BlriConfig {
         self.package = package;
         self.reset = reset;
         self.console = console;
+        self.verbose = verbose;
         self.update_binary_path();
 
         println!();

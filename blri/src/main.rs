@@ -21,6 +21,17 @@ use std::{
     time::Duration,
 };
 
+/// Device startup delay in milliseconds - time to wait for device to boot and stabilize
+// Timing constants
+const DEVICE_STARTUP_DELAY_MS: u64 = 1500; // Delay between device initialization and starting console
+const ISP_HANDSHAKE_DELAY_MS: u64 = 50; // ISP handshake timing
+const ISP_SETUP_DELAY_MS: u64 = 300; // ISP setup delay
+const GENERAL_OPERATION_DELAY_MS: u64 = 100; // General operation delays
+const SERIAL_TIMEOUT_MS: u64 = 100; // Serial communication timeout
+const DEVICE_READY_DELAY_MS: u64 = 500; // Device ready wait time
+const RETRY_DELAY_MS: u64 = 200; // Retry operation delay
+const POLL_INTERVAL_MS: u64 = 10; // Polling interval for status checks
+
 #[derive(Parser)]
 #[clap(name = "blri")]
 #[clap(about = "Bouffalo ROM image helper")]
@@ -86,6 +97,9 @@ struct Run {
     /// Open serial console after flashing is complete
     #[arg(long, default_value_t = false)]
     console: bool,
+    /// Enable verbose debug output
+    #[arg(short, long, default_value_t = false)]
+    verbose: bool,
 }
 
 #[derive(Args)]
@@ -96,6 +110,9 @@ struct DefaultRun {
     /// Override console setting
     #[arg(long)]
     console: Option<bool>,
+    /// Override verbose setting
+    #[arg(short, long)]
+    verbose: Option<bool>,
 }
 
 #[derive(Args)]
@@ -307,12 +324,6 @@ fn select_baudrate() -> u32 {
     }
 }
 
-#[allow(dead_code)]
-fn use_or_select_flash_port(port_parameter: &Option<String>) -> String {
-    let (port, _) = use_or_select_flash_port_and_baudrate(port_parameter, Some(2000000));
-    port
-}
-
 fn flash_image(
     image: impl AsRef<Path>,
     port: &str,
@@ -419,11 +430,11 @@ impl UartIsp {
         ];
 
         serial.write(USB_INIT).expect("send usb_init");
-        sleep(Duration::from_millis(50));
+        sleep(Duration::from_millis(ISP_HANDSHAKE_DELAY_MS));
         serial.write(&[0x55; 300]).expect("send sync");
-        sleep(Duration::from_millis(300));
+        sleep(Duration::from_millis(ISP_SETUP_DELAY_MS));
         serial.write(HANDSHAKE).expect("send handshake");
-        sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(GENERAL_OPERATION_DELAY_MS));
         serial
             .clear(serialport::ClearBuffer::Input)
             .expect("clear input buffer");
@@ -564,10 +575,10 @@ fn query_response(mut serial: impl Read, response_payload: bool) -> Result<u16, 
 fn open_serial_console(port: &str, is_console_mode: bool, baudrate: u32) {
     // Wait for device to start and collect initial output
     println!("Waiting for device to start...");
-    thread::sleep(Duration::from_millis(1500));
+    thread::sleep(Duration::from_millis(DEVICE_STARTUP_DELAY_MS));
 
     let mut serial = match serialport::new(port, baudrate)
-        .timeout(Duration::from_millis(100))
+        .timeout(Duration::from_millis(SERIAL_TIMEOUT_MS))
         .open()
     {
         Ok(port) => port,
@@ -577,7 +588,7 @@ fn open_serial_console(port: &str, is_console_mode: bool, baudrate: u32) {
         }
     };
 
-    thread::sleep(Duration::from_millis(500));
+    thread::sleep(Duration::from_millis(DEVICE_READY_DELAY_MS));
 
     // Collect all buffered data before showing banner
     let mut all_buffered_data = String::new();
@@ -589,13 +600,13 @@ fn open_serial_console(port: &str, is_console_mode: bool, baudrate: u32) {
                 let data = String::from_utf8_lossy(&buffer[..bytes_read]);
                 all_buffered_data.push_str(&data);
                 if i < 3 {
-                    thread::sleep(Duration::from_millis(100));
+                    thread::sleep(Duration::from_millis(GENERAL_OPERATION_DELAY_MS));
                 } else {
-                    thread::sleep(Duration::from_millis(200));
+                    thread::sleep(Duration::from_millis(RETRY_DELAY_MS));
                 }
             }
             _ => {
-                thread::sleep(Duration::from_millis(100));
+                thread::sleep(Duration::from_millis(GENERAL_OPERATION_DELAY_MS));
                 if i > 5 && all_buffered_data.is_empty() {
                     break;
                 }
@@ -701,7 +712,7 @@ fn open_serial_console(port: &str, is_console_mode: bool, baudrate: u32) {
                     let _ = stdout().flush();
                 }
                 Ok(_) => {
-                    thread::sleep(Duration::from_millis(10));
+                    thread::sleep(Duration::from_millis(POLL_INTERVAL_MS));
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
                     // Timeout is expected, continue
@@ -717,7 +728,7 @@ fn open_serial_console(port: &str, is_console_mode: bool, baudrate: u32) {
 
     // Handle keyboard input and send to device
     while running.load(Ordering::SeqCst) {
-        if event::poll(Duration::from_millis(100)).unwrap_or(false) {
+        if event::poll(Duration::from_millis(GENERAL_OPERATION_DELAY_MS)).unwrap_or(false) {
             match event::read() {
                 Ok(Event::Key(key_event)) => {
                     if key_event.modifiers.contains(KeyModifiers::CONTROL)
@@ -872,7 +883,7 @@ fn open_serial_console_fallback(
                     let _ = stdout().flush();
                 }
                 Ok(_) => {
-                    thread::sleep(Duration::from_millis(10));
+                    thread::sleep(Duration::from_millis(POLL_INTERVAL_MS));
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
                     continue;
@@ -965,7 +976,7 @@ fn open_serial_monitor_only(_port: &str, mut serial: Box<dyn serialport::SerialP
                 }
             }
             Ok(_) => {
-                thread::sleep(Duration::from_millis(10));
+                thread::sleep(Duration::from_millis(POLL_INTERVAL_MS));
             }
             Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
                 continue;
@@ -992,6 +1003,7 @@ fn handle_default_command(default_run: DefaultRun, config: &mut BlriConfig) {
             if let Some(package) = &config.package {
                 println!("  Package: {}", package);
             }
+            println!("  Verbose: {}", if config.verbose { "Yes" } else { "No" });
             println!("  Binary: {}", binary_path.display());
             println!();
 
@@ -1006,6 +1018,7 @@ fn handle_default_command(default_run: DefaultRun, config: &mut BlriConfig) {
                 config.package.clone(),
                 default_run.reset.unwrap_or(config.reset),
                 default_run.console.unwrap_or(config.console),
+                default_run.verbose.unwrap_or(config.verbose),
             );
         } else {
             println!(
@@ -1041,6 +1054,7 @@ fn run_with_unified_config(
     package: Option<String>,
     reset: bool,
     console: bool,
+    verbose: bool,
 ) {
     // Use provided port or select one
     let (final_port, final_baudrate) = if let Some(port) = port {
@@ -1058,6 +1072,7 @@ fn run_with_unified_config(
         package.clone(),
         reset,
         console,
+        verbose,
     ) {
         Ok(result) => result,
         Err(e) => {
@@ -1109,6 +1124,7 @@ fn run_with_unified_config(
                     package,
                     reset,
                     console,
+                    verbose,
                 ) {
                     println!("Error saving configuration: {}", e);
                 }
@@ -1137,6 +1153,7 @@ fn handle_run_command(run: Run, config: &mut BlriConfig) {
                     if let Some(package) = &config.package {
                         println!("  Package: {}", package);
                     }
+                    println!("  Verbose: {}", if config.verbose { "Yes" } else { "No" });
                     println!("  Binary: {}", binary_path.display());
                     println!();
                     binary_path
@@ -1172,7 +1189,6 @@ fn handle_run_command(run: Run, config: &mut BlriConfig) {
 
     // Extract build parameters from environment and binary path
     let args: Vec<String> = std::env::args().collect();
-    println!("🔧 Program args: {:?}", args);
 
     // Method 1: Try environment variables set by cargo
     let mut target = None;
@@ -1181,15 +1197,9 @@ fn handle_run_command(run: Run, config: &mut BlriConfig) {
 
     // Check all environment variables for debugging
     let env_vars: Vec<(String, String)> = std::env::vars().collect();
-    for (key, value) in &env_vars {
-        if key.starts_with("CARGO_") {
-            println!("  {}: {}", key, value);
-        }
-    }
 
     // Extract target from binary path
     let binary_path = input_file.to_string_lossy();
-    println!("🔧 Binary path: {}", binary_path);
 
     // Parse target from path like: target/riscv64imac-unknown-none-elf/release/uart-demo
     let path_parts: Vec<&str> = binary_path.split('/').collect();
@@ -1214,6 +1224,19 @@ fn handle_run_command(run: Run, config: &mut BlriConfig) {
         release = true;
     }
 
+    // Debug output only when verbose flag is enabled
+    if run.verbose {
+        println!("🔧 Program args: {:?}", args);
+        println!("🔧 Binary path: {}", binary_path);
+
+        // Print environment variables for debugging
+        for (key, value) in &env_vars {
+            if key.starts_with("CARGO_") {
+                println!("  {}: {}", key, value);
+            }
+        }
+    }
+
     // Extract package name from binary file name
     if let Some(file_name) = input_file.file_name() {
         package = Some(file_name.to_string_lossy().to_string());
@@ -1236,11 +1259,14 @@ fn handle_run_command(run: Run, config: &mut BlriConfig) {
             .unwrap_or(false);
     }
 
-    println!("🔧 Detected build parameters:");
-    println!("  Target: {:?}", target);
-    println!("  Release: {}", release);
-    println!("  Package: {:?}", package);
-    println!();
+    // Debug output for detected build parameters (only when verbose flag is enabled)
+    if run.verbose {
+        println!("🔧 Detected build parameters:");
+        println!("  Target: {:?}", target);
+        println!("  Release: {}", release);
+        println!("  Package: {:?}", package);
+        println!();
+    }
 
     // Use unified run logic
     run_with_unified_config(
@@ -1253,14 +1279,6 @@ fn handle_run_command(run: Run, config: &mut BlriConfig) {
         package,
         run.reset,
         run.console,
+        run.verbose,
     );
-}
-
-// Helper function to extract argument values from command line
-#[allow(dead_code)]
-fn extract_arg_value(args: &[String], flag: &str) -> Option<String> {
-    args.iter()
-        .position(|arg| arg == flag)
-        .and_then(|pos| args.get(pos + 1))
-        .cloned()
 }

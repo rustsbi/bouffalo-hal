@@ -76,8 +76,12 @@ impl SerialState {
     /// Use this waker set to handle interrupt.
     #[inline]
     pub fn on_interrupt(&self) {
-        let uart =
-            unsafe { &*(self.ref_to_serial.load(Ordering::Acquire) as *const RegisterBlock) };
+        let ptr = self.ref_to_serial.load(Ordering::Acquire);
+        if ptr == 0 {
+            // Pointer is invalid; do not attempt to dereference.
+            return;
+        }
+        let uart = unsafe { &*(ptr as *const RegisterBlock) };
         let state = uart.interrupt_state.read();
         for (interrupt, waker) in [
             (Interrupt::ReceiveFifoReady, &self.receive_ready),

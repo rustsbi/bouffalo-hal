@@ -17,16 +17,31 @@ use bouffalo_rt::{
 };
 use core::{
     future::Future,
-    task::{Context, Poll, Waker},
+    sync::atomic::{AtomicBool, Ordering},
+    task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
 };
 use embedded_time::rate::*;
 use panic_halt as _;
 
 static ADC_STATE: AdcState = AdcState::new();
 
+/// TASK_WAKE_FLAG is used to synchronize between the ADC interrupt handler and the main async task.
+///
+/// - The interrupt handler sets this flag to `true` when an interrupt occurs, indicating that the main task should wake up and poll the future again.
+/// - The main task checks this flag in its loop; if set, it clears the flag and continues polling without sleeping.
+/// - This mechanism ensures that the main task responds promptly to ADC events signaled by the interrupt.
+///
+/// This flag is essential for proper async operation because:
+/// 1. Without it, the main task would use `Waker::noop()` which never wakes the task
+/// 2. The task would sleep indefinitely with `wfi()` waiting for interrupts
+/// 3. When interrupts occur, this flag bridges the gap between hardware events and software task scheduling
+static TASK_WAKE_FLAG: AtomicBool = AtomicBool::new(false);
+
 #[interrupt]
 fn gpadc_dma() {
     ADC_STATE.on_interrupt();
+    // Wake the main task after handling interrupt
+    TASK_WAKE_FLAG.store(true, Ordering::Release);
 }
 
 async fn async_main(p: Peripherals, c: Clocks) {
@@ -112,8 +127,23 @@ async fn async_main(p: Peripherals, c: Clocks) {
 fn main(p: Peripherals, c: Clocks) -> ! {
     p.plic.set_threshold(M0Machine, 0);
     let mut fut = core::pin::pin!(async_main(p, c));
-    let waker = Waker::noop();
-    let mut ctx = Context::from_waker(waker);
+
+    // Create a simple waker that sets a flag when called
+    unsafe fn wake_fn(_: *const ()) {
+        TASK_WAKE_FLAG.store(true, Ordering::Release);
+    }
+
+    unsafe fn clone_fn(data: *const ()) -> RawWaker {
+        RawWaker::new(data, &VTABLE)
+    }
+
+    unsafe fn noop(_: *const ()) {}
+
+    static VTABLE: RawWakerVTable = RawWakerVTable::new(clone_fn, wake_fn, wake_fn, noop);
+
+    let raw_waker = RawWaker::new(core::ptr::null(), &VTABLE);
+    let waker = unsafe { Waker::from_raw(raw_waker) };
+    let mut ctx = Context::from_waker(&waker);
 
     unsafe {
         riscv::register::mie::set_mext();
@@ -123,7 +153,14 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     loop {
         match fut.as_mut().poll(&mut ctx) {
             Poll::Ready(_) => break,
-            Poll::Pending => riscv::asm::wfi(),
+            Poll::Pending => {
+                // Check if we were woken up before going to sleep
+                if TASK_WAKE_FLAG.load(Ordering::Acquire) {
+                    TASK_WAKE_FLAG.store(false, Ordering::Release);
+                    continue; // Don't sleep, poll again
+                }
+                riscv::asm::wfi();
+            }
         }
     }
 
