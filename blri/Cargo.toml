@@ -16,6 +16,12 @@ serialport = { version = "4.3", default-features = false }
 object = "0.36.7"
 same-file = "1.0.6"
 bouffalo-rt = { path = "../bouffalo-rt", features = ["image_fuse"] }
+ctrlc = "3.4"
+crossterm = "0.27"
+colored = "2.1"
+toml = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+home = "0.5"
 
 [dev-dependencies]
 tempfile = "3.12.0"

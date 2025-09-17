@@ -478,8 +478,8 @@ where
     pub(crate) adc_reference_channel: Option<GpadcChannel>,
     pub(crate) adc_reference_mv: i32,
     pub(crate) tsen_offset: u32,
-    pub(crate) dac_config: Option<DacConfig>,
-    pub(crate) dac_calibration_complete: bool,
+    pub(crate) _dac_config: Option<DacConfig>,
+    pub(crate) _dac_calibration_complete: bool,
 }
 
 impl<G: Deref<Target = RegisterBlock>> Gpip<G> {
@@ -488,7 +488,7 @@ impl<G: Deref<Target = RegisterBlock>> Gpip<G> {
     pub fn new(
         gpip: G,
         adc_config: Option<AdcConfig>,
-        dac_config: Option<DacConfig>,
+        _dac_config: Option<DacConfig>,
         glb: &glb::v2::RegisterBlock,
         hbn: &hbn::RegisterBlock,
     ) -> Self {
@@ -635,8 +635,8 @@ impl<G: Deref<Target = RegisterBlock>> Gpip<G> {
             adc_reference_channel: None,
             adc_reference_mv: -1,
             tsen_offset: 0,
-            dac_config,
-            dac_calibration_complete: false,
+            _dac_config,
+            _dac_calibration_complete: false,
         }
     }
 }

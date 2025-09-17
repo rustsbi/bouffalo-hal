@@ -1,5 +1,6 @@
 [alias]
 blri = "run --package blri --release --"
+blri-default = "run --package blri --release -- default"
 
 [target.'cfg(target_os = "none")']
 runner = "cargo blri run"

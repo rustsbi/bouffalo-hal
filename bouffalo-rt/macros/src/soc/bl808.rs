@@ -1,5 +1,6 @@
 #[rustfmt::skip]
 #[cfg(feature = "bl808-dsp")]
+#[allow(dead_code)]
 pub(crate) const BL808_DSP_INTERRUPTS: [&'static str; 67] = [
     "bmx_dsp_bus_err",	"dsp_reserved1",	"dsp_reserved2",	"dsp_reserved3",	"uart3",
     "i2c2",	            "i2c3",	            "spi1",	            "dsp_reserved4",	"dsp_reserved5",
@@ -20,6 +21,7 @@ pub(crate) const BL808_DSP_INTERRUPTS: [&'static str; 67] = [
 // MCU and LP cores share the same interrupt sources (MCU is M0, LP is Low Power)
 #[rustfmt::skip]
 #[cfg(any(feature = "bl808-mcu", feature = "bl808-lp"))]
+#[allow(dead_code)]
 pub(crate) const BL808_MCU_LP_INTERRUPTS: [&'static str; 64] = [
     "bmx_mcu_bus_err",      "bmx_mcu_to",           "m0_reserved2",         "ipc_m0",
     "audio",                "rf_top_int0",          "rf_top_int1",          "lz4d",

@@ -1,4 +1,5 @@
 mod isp;
+pub mod settings;
 use bouffalo_rt::soc::bl808::HalBootheader;
 use bouffalo_rt::{BFLB_BOOT2_HEADER_MAGIC, BasicConfigFlags};
 use clap::Args;
