@@ -12,6 +12,9 @@ use bouffalo_rt::{Clocks, Peripherals, entry};
 use embedded_time::rate::*;
 use panic_halt as _;
 
+/// Number of initial ADC samples to skip due to invalid data
+const SKIP_INITIAL_SAMPLES: usize = 10;
+
 #[entry]
 fn main(p: Peripherals, c: Clocks) -> ! {
     let tx = p.uart_muxes.sig2.into_transmit(p.gpio.io14);
@@ -82,7 +85,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
 
         gpip.adc_parse_result(value, result, &p.hbn);
 
-        for res in result.iter().skip(10) {
+        for res in result.iter().skip(SKIP_INITIAL_SAMPLES) {
             writeln!(
                 serial,
                 "Channel {:?} value = 0x{:08X}, millivolt = {}mv.",

@@ -139,7 +139,12 @@ impl AdcState {
     /// Use this waker set to handle ADC interrupt.
     #[inline]
     pub fn on_interrupt(&self) {
-        let gpip = unsafe { &*(self.ref_to_gpip.load(Ordering::Acquire) as *const RegisterBlock) };
+        let ptr = self.ref_to_gpip.load(Ordering::Acquire);
+        if ptr == 0 {
+            // Pointer is invalid; do not attempt to dereference.
+            return;
+        }
+        let gpip = unsafe { &*(ptr as *const RegisterBlock) };
 
         // Check interrupt status
         let int_ready = gpip.gpadc_config.read().is_adc_ready();

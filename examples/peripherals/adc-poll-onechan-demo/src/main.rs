@@ -12,6 +12,9 @@ use bouffalo_rt::{Clocks, Peripherals, entry};
 use embedded_time::rate::*;
 use panic_halt as _;
 
+/// Number of initial ADC samples to discard due to invalid data
+const INITIAL_SAMPLES_TO_DISCARD: usize = 10;
+
 #[entry]
 fn main(p: Peripherals, c: Clocks) -> ! {
     let tx = p.uart_muxes.sig2.into_transmit(p.gpio.io14);
@@ -46,10 +49,10 @@ fn main(p: Peripherals, c: Clocks) -> ! {
             core::hint::spin_loop();
         }
 
-        if i > 9 {
+        if i >= INITIAL_SAMPLES_TO_DISCARD {
             raw_data += gpip.adc_get_raw_data();
         } else {
-            // Discard initial 10 samples
+            // Discard initial samples due to invalid data
             let _ = gpip.adc_get_raw_data();
         }
     }

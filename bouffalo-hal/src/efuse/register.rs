@@ -878,8 +878,8 @@ where
         &self,
         dev: TrimDev,
         reload: bool,
-        _glb: Option<&glb::v1::RegisterBlock>,
-        _hbn: Option<&hbn::RegisterBlock>,
+        glb: Option<&glb::v1::RegisterBlock>,
+        hbn: Option<&hbn::RegisterBlock>,
     ) -> Result<TrimData, EfuseError> {
         // Find trim configuration for the device
         let trim_cfg = match get_trim_cfg_by_dev(dev) {
@@ -901,8 +901,8 @@ where
 
         // For BL602/BL702, save and switch CPU clock
         #[cfg(any(feature = "bl702", feature = "bl602"))]
-        let clock_state = if let (Some(glb_reg), Some(hbn_reg)) = (_glb, _hbn) {
-            Some(efuse_switch_cpu_clock_save(_glb_reg, hbn_reg))
+        let clock_state = if let (Some(glb_reg), Some(hbn_reg)) = (glb, hbn) {
+            Some(efuse_switch_cpu_clock_save(glb_reg, hbn_reg))
         } else {
             None
         };
