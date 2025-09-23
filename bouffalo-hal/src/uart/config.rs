@@ -1,5 +1,4 @@
-use super::{BitPeriod, DataConfig, ReceiveConfig, TransmitConfig};
-use crate::clocks::Clocks;
+use super::{BitPeriod, ClockSource, DataConfig, ReceiveConfig, TransmitConfig};
 use embedded_time::rate::{Baud, Extensions};
 
 /// Serial configuration.
@@ -87,13 +86,10 @@ impl Default for Config {
 #[inline]
 pub(crate) fn uart_config<'a, const I: usize, T: super::signal::IntoSignals<'a, I>>(
     config: Config,
-    clocks: &Clocks,
+    clocks: impl ClockSource,
     _pads: &T,
 ) -> Result<(BitPeriod, DataConfig, TransmitConfig, ReceiveConfig), ConfigError> {
-    let uart_clock = match clocks.uart_clock::<I>() {
-        Some(freq) => freq,
-        None => return Err(ConfigError::ClockSource),
-    };
+    let uart_clock = clocks.uart_clock::<I>();
     let transmit_interval = uart_clock.0 / config.transmit_baudrate.0;
     let receive_interval = uart_clock.0 / config.receive_baudrate.0;
     if transmit_interval > 65535 {
@@ -133,8 +129,6 @@ pub enum ConfigError {
     ReceiveBaudrateTooHigh,
     /// Impossibly low baudrate for current bus clock frequency.
     ReceiveBaudrateTooLow,
-    /// Clock source unavailable.
-    ClockSource,
 }
 
 /// Order of the bits transmitted and received on the wire.

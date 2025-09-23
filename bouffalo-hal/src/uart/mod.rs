@@ -1,5 +1,4 @@
 //! Universal Asynchronous Receiver/Transmitter.
-use crate::clocks::Clocks;
 
 mod register;
 pub use register::*;
@@ -18,6 +17,8 @@ pub use asynch::*;
 mod signal;
 pub use signal::*;
 
+use embedded_time::rate::Hertz;
+
 /// Extend constructor to owned UART register blocks.
 pub trait UartExt<'a, const I: usize> {
     /// Creates a polling serial instance, without interrupt or DMA configurations.
@@ -25,14 +26,14 @@ pub trait UartExt<'a, const I: usize> {
         self,
         config: Config,
         pads: impl IntoSignals<'a, I>,
-        clocks: &Clocks,
+        clocks: impl ClockSource,
     ) -> Result<BlockingSerial<'a>, ConfigError>;
     /// Creates an interrupt driven async/await serial instance without DMA configurations.
     fn with_interrupt(
         self,
         config: Config,
         pads: impl IntoSignals<'a, I>,
-        clocks: &Clocks,
+        clocks: impl ClockSource,
         state: &'static SerialState,
     ) -> Result<AsyncSerial<'a>, ConfigError>;
 }
@@ -45,3 +46,9 @@ pub trait Instance<'a> {
 
 /// UART instance with a peripheral number.
 pub trait Numbered<'a, const I: usize>: Instance<'a> {}
+
+/// UART clock source.
+pub trait ClockSource {
+    /// Clock frequency in hertz.
+    fn uart_clock<const I: usize>(self) -> Hertz;
+}
