@@ -1,5 +1,7 @@
 //! System-on-Chip clock configuration.
 
+pub mod v2;
+
 use embedded_time::rate::Hertz;
 
 /// Clock settings for current chip.
@@ -24,5 +26,12 @@ impl Clocks {
             3..=4 => Some(Hertz(160_000_000)),
             _ => unreachable!(),
         }
+    }
+}
+
+impl<'a> crate::uart::ClockSource for &'a Clocks {
+    #[inline]
+    fn uart_clock<const I: usize>(self) -> Hertz {
+        self.uart_clock::<I>().unwrap()
     }
 }

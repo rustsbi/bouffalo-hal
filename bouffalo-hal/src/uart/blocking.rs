@@ -1,7 +1,7 @@
 use super::{
-    Config, ConfigError, Error, Instance, Numbered, RegisterBlock, signal::IntoSignals, uart_config,
+    ClockSource, Config, ConfigError, Error, Instance, Numbered, RegisterBlock,
+    signal::IntoSignals, uart_config,
 };
-use crate::clocks::Clocks;
 use core::marker::PhantomData;
 
 /// Managed blocking serial peripheral.
@@ -17,12 +17,12 @@ impl<'a> BlockingSerial<'a> {
         uart: impl Numbered<'a, I>,
         config: Config,
         pads: impl IntoSignals<'a, I>,
-        clocks: &Clocks,
+        clocks: impl ClockSource,
     ) -> Result<Self, ConfigError> {
         let uart = uart.register_block();
         // Calculate transmit interval and register values from configuration.
         let (bit_period, data_config, transmit_config, receive_config) =
-            uart_config(config, &clocks, &pads)?;
+            uart_config(config, clocks, &pads)?;
 
         // Write bit period.
         unsafe { uart.bit_period.write(bit_period) };

@@ -2,6 +2,8 @@
 
 pub mod image_header;
 mod peripheral;
+
+pub use bouffalo_hal::clocks::v2::Clocks;
 pub use image_header::*;
 pub use peripheral::*;
 
@@ -1057,4 +1059,12 @@ impl plic::InterruptSource for McuLpInterrupt {
     fn id(self) -> core::num::NonZeroU32 {
         core::num::NonZeroU32::new(self as u32).unwrap()
     }
+}
+
+// Used by macros only.
+#[allow(unused)]
+#[doc(hidden)]
+#[inline(always)]
+pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals, Clocks) {
+    (Peripherals::__new(), Clocks::__new(xtal_hz))
 }

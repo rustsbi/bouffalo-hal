@@ -99,7 +99,7 @@ $(
             self,
             config: bouffalo_hal::uart::Config,
             pads: impl bouffalo_hal::uart::IntoSignals<'a, $i>,
-            clocks: &Clocks,
+            clocks: impl bouffalo_hal::uart::ClockSource,
         ) -> Result<bouffalo_hal::uart::BlockingSerial<'a>, bouffalo_hal::uart::ConfigError> {
             bouffalo_hal::uart::BlockingSerial::new_freerun(self, config, pads, clocks)
         }
@@ -108,7 +108,7 @@ $(
             self,
             config: bouffalo_hal::uart::Config,
             pads: impl bouffalo_hal::uart::IntoSignals<'a, $i>,
-            clocks: &Clocks,
+            clocks: impl bouffalo_hal::uart::ClockSource,
             state: &'static bouffalo_hal::uart::SerialState,
         ) -> Result<bouffalo_hal::uart::AsyncSerial<'a>, bouffalo_hal::uart::ConfigError> {
             bouffalo_hal::uart::AsyncSerial::new(self, config, pads, clocks, state)
@@ -121,7 +121,7 @@ $(
             self,
             config: bouffalo_hal::uart::Config,
             pads: impl bouffalo_hal::uart::IntoSignals<'static, $i>,
-            clocks: &Clocks,
+            clocks: impl bouffalo_hal::uart::ClockSource,
         ) -> Result<bouffalo_hal::uart::BlockingSerial<'static>, bouffalo_hal::uart::ConfigError> {
             bouffalo_hal::uart::BlockingSerial::new_freerun(self, config, pads, clocks)
         }
@@ -130,7 +130,7 @@ $(
             self,
             config: bouffalo_hal::uart::Config,
             pads: impl bouffalo_hal::uart::IntoSignals<'static, $i>,
-            clocks: &Clocks,
+            clocks: impl bouffalo_hal::uart::ClockSource,
             state: &'static bouffalo_hal::uart::SerialState,
         ) -> Result<bouffalo_hal::uart::AsyncSerial<'static>, bouffalo_hal::uart::ConfigError> {
             bouffalo_hal::uart::AsyncSerial::new(self, config, pads, clocks, state)

@@ -1,4 +1,3 @@
-pub use bouffalo_hal::clocks::Clocks;
 use bouffalo_hal::{
     dma::{EightChannels, FourChannels, Periph4Dma01, Periph4Dma2},
     gpio::{Alternate, FlexPad},
@@ -175,46 +174,6 @@ pad_i2c! {
         24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44,): IntoI2cScl<3>, into_i2c_scl;
     (1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23,
         25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45,): IntoI2cSda<3>, into_i2c_sda;
-}
-
-// Used by macros only.
-#[allow(unused)]
-#[doc(hidden)]
-#[inline(always)]
-pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals, Clocks) {
-    use embedded_time::rate::Hertz;
-    let peripherals = Peripherals {
-        glb: GLBv2 { _private: () },
-        gpio: Pads::__new(),
-        uart_muxes: UartMuxes::__new(),
-        uart0: UART0 { _private: () },
-        uart1: UART1 { _private: () },
-        spi0: SPI0 { _private: () },
-        i2c0: I2C0 { _private: () },
-        pwm: PWM { _private: () },
-        i2c1: I2C1 { _private: () },
-        uart2: UART2 { _private: () },
-        lz4d: LZ4D { _private: () },
-        hbn: HBN { _private: () },
-        emac: EMAC { _private: () },
-        uart3: UART3 { _private: () },
-        i2c2: I2C2 { _private: () },
-        i2c3: I2C3 { _private: () },
-        spi1: SPI1 { _private: () },
-        plic: PLIC { _private: () },
-        mmglb: MMGLB { _private: () },
-        psram: PSRAM { _private: () },
-        sdh: SDH { _private: () },
-        dma0: DMA0 { _private: () },
-        dma1: DMA1 { _private: () },
-        dma2: DMA2 { _private: () },
-        gpip: GPIP { _private: () },
-        efuse: EFUSE { _private: () },
-    };
-    let clocks = Clocks {
-        xtal: Hertz(xtal_hz),
-    };
-    (peripherals, clocks)
 }
 
 /// Available UART signal multiplexers for BL808.
@@ -475,6 +434,40 @@ impl Pads {
             io43: Pad { _private: () },
             io44: Pad { _private: () },
             io45: Pad { _private: () },
+        }
+    }
+}
+
+impl Peripherals {
+    #[inline]
+    pub(crate) fn __new() -> Self {
+        Self {
+            glb: GLBv2 { _private: () },
+            gpio: Pads::__new(),
+            uart_muxes: UartMuxes::__new(),
+            uart0: UART0 { _private: () },
+            uart1: UART1 { _private: () },
+            spi0: SPI0 { _private: () },
+            i2c0: I2C0 { _private: () },
+            pwm: PWM { _private: () },
+            i2c1: I2C1 { _private: () },
+            uart2: UART2 { _private: () },
+            lz4d: LZ4D { _private: () },
+            hbn: HBN { _private: () },
+            emac: EMAC { _private: () },
+            uart3: UART3 { _private: () },
+            i2c2: I2C2 { _private: () },
+            i2c3: I2C3 { _private: () },
+            spi1: SPI1 { _private: () },
+            plic: PLIC { _private: () },
+            mmglb: MMGLB { _private: () },
+            psram: PSRAM { _private: () },
+            sdh: SDH { _private: () },
+            dma0: DMA0 { _private: () },
+            dma1: DMA1 { _private: () },
+            dma2: DMA2 { _private: () },
+            gpip: GPIP { _private: () },
+            efuse: EFUSE { _private: () },
         }
     }
 }
