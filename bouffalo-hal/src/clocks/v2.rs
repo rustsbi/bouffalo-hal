@@ -9,6 +9,10 @@ pub struct Clocks {
     pub xtal: Hertz,
     /// Root clock source.
     pub root_source: hbn::RootClockSource,
+    /// MCU domain root clock source.
+    pub mcu_root_clock_source: hbn::RootClockSource2,
+    /// Bus clock (`bclk`) divide parameter.
+    pub bus_clock_divide: u8,
     /// Shared clock source for UART peripherals.
     pub uart_source: hbn::UartClockSource,
     /// Shared clock divide parameter for UART peripherals.
@@ -28,7 +32,9 @@ impl Clocks {
         Clocks {
             xtal: Hertz(xtal_hz),
             root_source: hbn::RootClockSource::Xtal,
-            uart_source: hbn::UartClockSource::Xclk,
+            mcu_root_clock_source: hbn::RootClockSource2::Pllsel,
+            bus_clock_divide: 3,
+            uart_source: hbn::UartClockSource::McuBclk,
             uart_divide: 0,
             uart_enable: true,
         }
@@ -45,11 +51,17 @@ impl Clocks {
     #[inline]
     pub fn uart_clock_mux_output(&self) -> Hertz {
         match self.uart_source {
-            hbn::UartClockSource::McuBclk => todo!(),
+            hbn::UartClockSource::McuBclk => Hertz(80_000_000), // TODO: calculate from mcu_root_clock_source, pll_sel, etc.
             hbn::UartClockSource::MuxPll160M => todo!(),
             hbn::UartClockSource::Xclk => self.xclk(),
         }
     }
+    /// Get the frequency of the UART peripherals.
+    #[inline]
+    pub fn uart_clock(&self) -> Hertz {
+        self.uart_clock_mux_output() / (self.uart_divide as u32 + 1)
+    }
+    // TODO dsp_uart_0_clock() and dsp_uart_1_clock()
 }
 
 impl<'a> crate::uart::ClockSource for &'a Clocks {
@@ -57,7 +69,7 @@ impl<'a> crate::uart::ClockSource for &'a Clocks {
     fn uart_clock<const I: usize>(self) -> Hertz {
         match I {
             // TODO verify this match arm
-            0..=2 => self.uart_clock_mux_output() / (self.uart_divide as u32 + 1),
+            0..=2 => self.uart_clock(),
             // TODO calculate from Clocks structure fields
             3..=4 => Hertz(160_000_000),
             _ => unreachable!(),
