@@ -196,22 +196,38 @@ impl Global {
             _ => unreachable!(),
         }
     }
+
     /// Set uart clock source.
     #[inline]
     pub const fn set_uart_clock_source(self, val: UartClockSource) -> Self {
-        Self(
-            (self.0 & !((Self::UART_CLOCK_SOURCE_1 << 13) | Self::UART_CLOCK_SOURCE_2))
-                | ((val as u32) << 15),
-        )
+        let mut bits = self.0 & !(Self::UART_CLOCK_SOURCE_1 | Self::UART_CLOCK_SOURCE_2);
+
+        let (hi, lo) = match val {
+            UartClockSource::McuBclk => (false, false),
+            UartClockSource::MuxPll160M => (false, true),
+            UartClockSource::Xclk => (true, false),
+        };
+
+        if lo {
+            bits |= Self::UART_CLOCK_SOURCE_1;
+        }
+        if hi {
+            bits |= Self::UART_CLOCK_SOURCE_2;
+        }
+
+        Self(bits)
     }
+
     /// Get uart clock source.
     #[inline]
     pub const fn uart_clock_source(self) -> UartClockSource {
-        match (self.0 & ((Self::UART_CLOCK_SOURCE_1 << 13) | Self::UART_CLOCK_SOURCE_2)) >> 15 {
-            0 => UartClockSource::McuBclk,
-            1 => UartClockSource::MuxPll160M,
-            2 => UartClockSource::Xclk,
-            _ => unreachable!(),
+        let lo = (self.0 & Self::UART_CLOCK_SOURCE_1) != 0;
+        let hi = (self.0 & Self::UART_CLOCK_SOURCE_2) != 0;
+        match (hi, lo) {
+            (false, false) => UartClockSource::McuBclk,
+            (false, true) => UartClockSource::MuxPll160M,
+            (true, false) => UartClockSource::Xclk,
+            (true, true) => unreachable!(),
         }
     }
 }
