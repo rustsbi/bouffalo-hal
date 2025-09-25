@@ -1,13 +1,12 @@
-use crate::clocks::Clocks;
 use crate::glb;
 use crate::gpio::{self, Alternate};
 use core::marker::PhantomData;
 use embedded_time::rate::Hertz;
 
 use super::{
-    Instance,
+    Clock, Instance,
     pwm_pad::PwmPin,
-    register::{ClockSource, RegisterBlock},
+    register::RegisterBlock,
     signal::{HasPwmExternalBreak, HasPwmSignal, Negative, Positive, Signal0, Signal1},
 };
 
@@ -75,19 +74,15 @@ impl<'a, S, const I: usize> Channels<'a, S, I> {
     ///
     /// Clock settings would affect all the channels in the PWM group.
     #[inline]
-    pub fn set_clock(&mut self, frequency: Hertz, source: ClockSource, clocks: &Clocks) {
-        let source_freq = match source {
-            ClockSource::Xclk => clocks.xclk(),
-            ClockSource::Bclk => todo!(),
-            ClockSource::F32kClk => todo!(),
-        };
+    pub fn set_clock(&mut self, frequency: Hertz, choice: super::ClockSource, source: impl Clock) {
+        let source_freq = source.pwm_clock(choice);
         let clock_divisor = source_freq.0 / frequency.0;
         if !(1..=65535).contains(&clock_divisor) {
             panic!("impossible frequency");
         }
         unsafe {
             self.pwm.group[I].group_config.modify(|val| {
-                val.set_clock_source(source)
+                val.set_clock_source(choice)
                     .set_clock_divide(clock_divisor as u16)
             })
         };

@@ -29,9 +29,21 @@ impl Clocks {
     }
 }
 
-impl<'a> crate::uart::ClockSource for &'a Clocks {
+impl<'a> crate::uart::Clock for &'a Clocks {
     #[inline]
     fn uart_clock<const I: usize>(self) -> Hertz {
         self.uart_clock::<I>().unwrap()
+    }
+}
+
+impl<'a> crate::pwm::Clock for &'a Clocks {
+    #[inline]
+    fn pwm_clock(self, choice: crate::pwm::ClockSource) -> Hertz {
+        use crate::pwm::ClockSource;
+        match choice {
+            ClockSource::Xclk => Hertz(40_000_000),
+            ClockSource::Bclk => todo!(),
+            ClockSource::F32kClk => todo!(),
+        }
     }
 }

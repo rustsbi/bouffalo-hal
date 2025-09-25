@@ -64,7 +64,7 @@ impl Clocks {
     // TODO dsp_uart_0_clock() and dsp_uart_1_clock()
 }
 
-impl<'a> crate::uart::ClockSource for &'a Clocks {
+impl<'a> crate::uart::Clock for &'a Clocks {
     #[inline]
     fn uart_clock<const I: usize>(self) -> Hertz {
         match I {
@@ -73,6 +73,18 @@ impl<'a> crate::uart::ClockSource for &'a Clocks {
             // TODO calculate from Clocks structure fields
             3..=4 => Hertz(160_000_000),
             _ => unreachable!(),
+        }
+    }
+}
+
+impl<'a> crate::pwm::Clock for &'a Clocks {
+    #[inline]
+    fn pwm_clock(self, choice: crate::pwm::ClockSource) -> Hertz {
+        use crate::pwm::ClockSource;
+        match choice {
+            ClockSource::Xclk => self.xclk(),
+            ClockSource::Bclk => todo!(),
+            ClockSource::F32kClk => todo!(),
         }
     }
 }

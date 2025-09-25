@@ -1,6 +1,6 @@
 use super::{
-    ClockSource, Config, ConfigError, Error, Instance, Numbered, RegisterBlock,
-    signal::IntoSignals, uart_config,
+    Clock, Config, ConfigError, Error, Instance, Numbered, RegisterBlock, signal::IntoSignals,
+    uart_config,
 };
 use core::marker::PhantomData;
 
@@ -17,7 +17,7 @@ impl<'a> BlockingSerial<'a> {
         uart: impl Numbered<'a, I>,
         config: Config,
         pads: impl IntoSignals<'a, I>,
-        clocks: impl ClockSource,
+        clocks: impl Clock,
     ) -> Result<Self, ConfigError> {
         let uart = uart.register_block();
         // Calculate transmit interval and register values from configuration.

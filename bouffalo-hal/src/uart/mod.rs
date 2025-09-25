@@ -26,14 +26,14 @@ pub trait UartExt<'a, const I: usize> {
         self,
         config: Config,
         pads: impl IntoSignals<'a, I>,
-        clocks: impl ClockSource,
+        clocks: impl Clock,
     ) -> Result<BlockingSerial<'a>, ConfigError>;
     /// Creates an interrupt driven async/await serial instance without DMA configurations.
     fn with_interrupt(
         self,
         config: Config,
         pads: impl IntoSignals<'a, I>,
-        clocks: impl ClockSource,
+        clocks: impl Clock,
         state: &'static SerialState,
     ) -> Result<AsyncSerial<'a>, ConfigError>;
 }
@@ -48,7 +48,7 @@ pub trait Instance<'a> {
 pub trait Numbered<'a, const I: usize>: Instance<'a> {}
 
 /// UART clock source.
-pub trait ClockSource {
+pub trait Clock {
     /// Clock frequency in hertz.
     fn uart_clock<const I: usize>(self) -> Hertz;
 }
