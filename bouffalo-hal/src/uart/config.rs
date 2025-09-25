@@ -1,4 +1,4 @@
-use super::{BitPeriod, ClockSource, DataConfig, ReceiveConfig, TransmitConfig};
+use super::{BitPeriod, Clock, DataConfig, ReceiveConfig, TransmitConfig};
 use embedded_time::rate::{Baud, Extensions};
 
 /// Serial configuration.
@@ -86,7 +86,7 @@ impl Default for Config {
 #[inline]
 pub(crate) fn uart_config<'a, const I: usize, T: super::signal::IntoSignals<'a, I>>(
     config: Config,
-    clocks: impl ClockSource,
+    clocks: impl Clock,
     _pads: &T,
 ) -> Result<(BitPeriod, DataConfig, TransmitConfig, ReceiveConfig), ConfigError> {
     let uart_clock = clocks.uart_clock::<I>();

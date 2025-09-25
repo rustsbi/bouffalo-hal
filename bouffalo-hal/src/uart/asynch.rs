@@ -1,5 +1,5 @@
 use super::{
-    ClockSource, Config, ConfigError, Error, Interrupt, InterruptClear, Numbered, RegisterBlock,
+    Clock, Config, ConfigError, Error, Interrupt, InterruptClear, Numbered, RegisterBlock,
     signal::IntoSignals, uart_config,
 };
 use core::{
@@ -25,7 +25,7 @@ impl<'a> AsyncSerial<'a> {
         uart: impl Numbered<'a, I>,
         config: Config,
         pads: impl IntoSignals<'a, I>,
-        clocks: impl ClockSource,
+        clocks: impl Clock,
         state: &'a SerialState,
     ) -> Result<Self, ConfigError> {
         let uart = uart.register_block();
