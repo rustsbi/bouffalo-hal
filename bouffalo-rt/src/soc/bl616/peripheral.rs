@@ -1,4 +1,4 @@
-pub use bouffalo_hal::clocks::Clocks;
+pub use bouffalo_hal::clocks::v2::Clocks;
 use bouffalo_hal::{
     gpio::{Alternate, FlexPad},
     uart::IntoUartPad,
@@ -245,44 +245,6 @@ impl Pads {
     }
 }
 
-// Used by macros only.
-#[allow(unused)]
-#[doc(hidden)]
-#[inline(always)]
-pub fn __rom_init_params(xtal_hz: u32) -> (Peripherals, Clocks) {
-    use embedded_time::rate::Hertz;
-    let peripherals = Peripherals {
-        glb: GLBv2 { _private: () },
-        gpio: Pads::__new(),
-        uart_muxes: UartMuxes::__new(),
-        uart0: UART0 { _private: () },
-        uart1: UART1 { _private: () },
-        spi0: SPI0 { _private: () },
-        i2c0: I2C0 { _private: () },
-        pwm: PWM { _private: () },
-        i2c1: I2C1 { _private: () },
-        timer: TIMER { _private: () },
-        ir: IR { _private: () },
-        dbi: DBI { _private: () },
-        i2s: I2S { _private: () },
-        auadc: AUADC { _private: () },
-        dma0: DMA0 { _private: () },
-        psram: PSRAM { _private: () },
-        audac: AUDAC { _private: () },
-        efuse: EFUSE { _private: () },
-        sdh: SDH { _private: () },
-        usb: USBv1 { _private: () },
-        hbn: HBN { _private: () },
-        emac: EMAC { _private: () },
-        gpip: GPIP { _private: () },
-        lz4d: LZ4D { _private: () },
-    };
-    let clocks = Clocks {
-        xtal: Hertz(xtal_hz),
-    };
-    (peripherals, clocks)
-}
-
 /// Available UART signal multiplexers for BL616.
 pub struct UartMuxes {
     /// Multiplexer of UART signal 0.
@@ -391,5 +353,37 @@ impl<const N: usize> bouffalo_hal::uart::IntoUartSignal<'static, N> for UartMux<
             .set_signal(N & 0x7, MuxCts::<I>::signal());
         unsafe { glb.uart_mux_group[N >> 3].write(config) };
         bouffalo_hal::uart::ClearToSend::__new(glb, pad.into_uart_pad())
+    }
+}
+
+impl Peripherals {
+    #[inline]
+    pub(crate) fn __new() -> Self {
+        Peripherals {
+            glb: GLBv2 { _private: () },
+            gpio: Pads::__new(),
+            uart_muxes: UartMuxes::__new(),
+            uart0: UART0 { _private: () },
+            uart1: UART1 { _private: () },
+            spi0: SPI0 { _private: () },
+            i2c0: I2C0 { _private: () },
+            pwm: PWM { _private: () },
+            i2c1: I2C1 { _private: () },
+            timer: TIMER { _private: () },
+            ir: IR { _private: () },
+            dbi: DBI { _private: () },
+            i2s: I2S { _private: () },
+            auadc: AUADC { _private: () },
+            dma0: DMA0 { _private: () },
+            psram: PSRAM { _private: () },
+            audac: AUDAC { _private: () },
+            efuse: EFUSE { _private: () },
+            sdh: SDH { _private: () },
+            usb: USBv1 { _private: () },
+            hbn: HBN { _private: () },
+            emac: EMAC { _private: () },
+            gpip: GPIP { _private: () },
+            lz4d: LZ4D { _private: () },
+        }
     }
 }

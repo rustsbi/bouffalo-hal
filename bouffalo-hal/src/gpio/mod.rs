@@ -71,7 +71,7 @@
 //! ```no_run
 //! # use embedded_time::rate::*;
 //! # use bouffalo_hal::{
-//! #     clocks::Clocks,
+//! #     clocks::v1::Clocks,
 //! #     gpio::IntoPadv2,
 //! #     uart::{BitOrder, Config, Parity, StopBits, WordLength},
 //! # };
