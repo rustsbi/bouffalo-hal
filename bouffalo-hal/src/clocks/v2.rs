@@ -1,3 +1,5 @@
+//! SoC clocks for BL808 and BL616.
+
 use crate::hbn;
 use embedded_time::rate::Hertz;
 

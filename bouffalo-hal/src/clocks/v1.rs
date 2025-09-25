@@ -1,8 +1,7 @@
-//! System-on-Chip clock configuration.
-
-pub mod v2;
-
+//! SoC clocks for BL602, BL702.
 use embedded_time::rate::Hertz;
+
+// TODO refactor this module, don't hardcode clock frequencies here.
 
 /// Clock settings for current chip.
 #[derive(Debug, Clone)]

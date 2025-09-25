@@ -1,4 +1,4 @@
-pub use bouffalo_hal::clocks::Clocks;
+pub use bouffalo_hal::clocks::v1::Clocks;
 
 /// Peripherals available on ROM start.
 pub struct Peripherals {
