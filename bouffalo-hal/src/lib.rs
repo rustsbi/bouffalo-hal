@@ -23,6 +23,7 @@ pub mod i2c;
 pub mod i2s;
 pub mod ir;
 pub mod lz4d;
+pub mod pds;
 pub mod psram;
 pub mod pwm;
 pub mod sdio;
