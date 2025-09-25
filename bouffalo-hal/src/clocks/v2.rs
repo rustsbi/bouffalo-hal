@@ -70,7 +70,6 @@ impl<'a> crate::uart::Clock for &'a Clocks {
     #[inline]
     fn uart_clock<const I: usize>(self) -> Hertz {
         match I {
-            // TODO verify this match arm
             0..=2 => self.uart_clock(),
             // TODO calculate from Clocks structure fields
             3..=4 => Hertz(160_000_000),
