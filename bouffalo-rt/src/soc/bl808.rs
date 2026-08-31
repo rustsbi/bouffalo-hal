@@ -911,6 +911,13 @@ impl plic::HartContext for D0Machine {
     }
 }
 
+impl plic_legacy::HartContext for D0Machine {
+    #[inline]
+    fn index(self) -> usize {
+        0
+    }
+}
+
 /// M0 core machine mode context.
 pub struct M0Machine;
 
@@ -921,10 +928,24 @@ impl plic::HartContext for M0Machine {
     }
 }
 
+impl plic_legacy::HartContext for M0Machine {
+    #[inline]
+    fn index(self) -> usize {
+        1
+    }
+}
+
 /// LP core machine mode context.
 pub struct LpMachine;
 
 impl plic::HartContext for LpMachine {
+    #[inline]
+    fn index(self) -> usize {
+        2
+    }
+}
+
+impl plic_legacy::HartContext for LpMachine {
     #[inline]
     fn index(self) -> usize {
         2
@@ -944,6 +965,18 @@ struct RawPlicSource(core::num::NonZeroU32);
     all(feature = "bl808-lp", target_arch = "riscv32")
 ))]
 impl plic::InterruptSource for RawPlicSource {
+    #[inline]
+    fn id(self) -> core::num::NonZeroU32 {
+        self.0
+    }
+}
+
+#[cfg(any(
+    all(feature = "bl808-dsp", target_arch = "riscv64"),
+    all(feature = "bl808-mcu", target_arch = "riscv32"),
+    all(feature = "bl808-lp", target_arch = "riscv32")
+))]
+impl plic_legacy::InterruptSource for RawPlicSource {
     #[inline]
     fn id(self) -> core::num::NonZeroU32 {
         self.0
@@ -1004,6 +1037,13 @@ impl plic::InterruptSource for DspInterrupt {
     }
 }
 
+impl plic_legacy::InterruptSource for DspInterrupt {
+    #[inline]
+    fn id(self) -> core::num::NonZeroU32 {
+        core::num::NonZeroU32::new(self as u32).unwrap()
+    }
+}
+
 /// MCU and Low-Power core interrupt source.
 pub enum McuLpInterrupt {
     /// DMA0 all interrupt.
@@ -1055,6 +1095,13 @@ pub enum McuLpInterrupt {
 }
 
 impl plic::InterruptSource for McuLpInterrupt {
+    #[inline]
+    fn id(self) -> core::num::NonZeroU32 {
+        core::num::NonZeroU32::new(self as u32).unwrap()
+    }
+}
+
+impl plic_legacy::InterruptSource for McuLpInterrupt {
     #[inline]
     fn id(self) -> core::num::NonZeroU32 {
         core::num::NonZeroU32::new(self as u32).unwrap()

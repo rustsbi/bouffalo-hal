@@ -42,7 +42,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     }
 
     let time_source = MyTimeSource {};
-    let mut volume_mgr = VolumeManager::new(sdcard, time_source);
+    let volume_mgr = VolumeManager::new(sdcard, time_source);
     let volume0 = volume_mgr
         .open_raw_volume(embedded_sdmmc::VolumeIdx(0))
         .unwrap();
@@ -51,6 +51,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     volume_mgr
         .iterate_dir(root_dir, |entry| {
             writeln!(serial, "Entry: {:?}", entry).ok();
+            core::ops::ControlFlow::Continue(())
         })
         .unwrap();
 

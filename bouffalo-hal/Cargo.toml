@@ -10,20 +10,22 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-volatile-register = "0.2.1"
+volatile-register = "0.2.2"
 embedded-hal = "1.0.0"
 embedded-hal-nb = "1.0.0"
-embedded-io = "0.6.1"
+embedded-io = "0.7.1"
 embedded-time = "0.12.1"
-cfg-if = "1.0.0"
+cfg-if = "1.0.4"
 as-slice = "0.2.1"
 nb = "1.1.0"
 # For backward compatibility only. 
 embedded-hal-027 = { package = "embedded-hal", version = "0.2.7" }
-embedded-io-async = "0.6.1"
+# For compatibility with embedded-cli 0.2.1.
+embedded-io-06 = { package = "embedded-io", version = "0.6.1" }
+embedded-io-async = "0.7.0"
 atomic-waker = "1.1.2"
-embedded-sdmmc = "0.8.1"
-riscv = "0.13.0"
+embedded-sdmmc = "0.10.0"
+riscv = "0.16.1"
 
 [dev-dependencies]
 

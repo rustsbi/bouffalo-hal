@@ -70,12 +70,7 @@ impl<'a, T: InnerSdh<'a>> BlockDevice for Sdcard<'a, T> {
     type Error = core::convert::Infallible;
 
     #[inline]
-    fn read(
-        &self,
-        blocks: &mut [Block],
-        start_block_idx: BlockIdx,
-        _reason: &str,
-    ) -> Result<(), Self::Error> {
+    fn read(&self, blocks: &mut [Block], start_block_idx: BlockIdx) -> Result<(), Self::Error> {
         for (i, block) in blocks.iter_mut().enumerate() {
             self.sdh.sdh_read_block(block, start_block_idx.0 + i as u32);
         }

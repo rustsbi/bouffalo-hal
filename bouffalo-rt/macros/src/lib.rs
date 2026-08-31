@@ -45,7 +45,7 @@ pub fn entry(args: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     let attrs = f.attrs;
-    let unsafety = f.sig.unsafety;
+    let unsafety = f.sig.safety;
     let stmts = f.block.stmts;
     let inputs = f.sig.inputs;
 
@@ -118,7 +118,7 @@ pub fn interrupt(args: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     let attrs = f.attrs;
-    let unsafety = f.sig.unsafety;
+    let unsafety = f.sig.safety;
     let stmts = f.block.stmts;
     let ident = f.sig.ident;
     let output = f.sig.output;
@@ -181,7 +181,7 @@ pub fn exception(args: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     let attrs = f.attrs;
-    let unsafety = f.sig.unsafety;
+    let unsafety = f.sig.safety;
     let stmts = f.block.stmts;
     let ident = f.sig.ident;
     let output = f.sig.output;

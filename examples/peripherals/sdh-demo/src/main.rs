@@ -50,7 +50,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     sdh.init(&mut serial, true);
     let sdcard = Sdcard::new(&mut sdh);
     let time_source = MyTimeSource {};
-    let mut volume_mgr = VolumeManager::new(sdcard, time_source);
+    let volume_mgr = VolumeManager::new(sdcard, time_source);
     let volume_res = volume_mgr.open_raw_volume(embedded_sdmmc::VolumeIdx(0));
     if let Err(e) = volume_res {
         writeln!(serial, "Failed to open volume: {:?}", e).ok();
@@ -62,6 +62,7 @@ fn main(p: Peripherals, c: Clocks) -> ! {
     volume_mgr
         .iterate_dir(root_dir, |entry| {
             writeln!(serial, "Entry: {:?}", entry).ok();
+            core::ops::ControlFlow::Continue(())
         })
         .unwrap();
     volume_mgr.close_dir(root_dir).unwrap();

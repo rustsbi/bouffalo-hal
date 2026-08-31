@@ -12,10 +12,10 @@ bouffalo-rt = { path = "../../../bouffalo-rt", features = ["bl808-dsp"] }
 panic-halt = "1.0.0"
 embedded-hal = "1.0.0"
 embedded-time = "0.12.1"
-riscv = "0.13.0"
+riscv = "0.16.1"
 cst816s = "1.0.1"
 mipidsi = "0.10.0"
-embedded-graphics = "0.8.1"
+embedded-graphics = "0.8.2"
 
 [[bin]]
 name = "i2c-screen-demo"

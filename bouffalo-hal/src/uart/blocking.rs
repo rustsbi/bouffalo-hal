@@ -182,11 +182,19 @@ impl<'a> embedded_io::ErrorType for BlockingSerial<'a> {
     type Error = Error;
 }
 
+impl<'a> embedded_io_06::ErrorType for BlockingSerial<'a> {
+    type Error = Error;
+}
+
 impl<'a> embedded_hal_nb::serial::ErrorType for BlockingSerial<'a> {
     type Error = Error;
 }
 
 impl<'a> embedded_io::ErrorType for BlockingTransmitHalf<'a> {
+    type Error = Error;
+}
+
+impl<'a> embedded_io_06::ErrorType for BlockingTransmitHalf<'a> {
     type Error = Error;
 }
 
@@ -198,11 +206,26 @@ impl<'a> embedded_io::ErrorType for BlockingReceiveHalf<'a> {
     type Error = Error;
 }
 
+impl<'a> embedded_io_06::ErrorType for BlockingReceiveHalf<'a> {
+    type Error = Error;
+}
+
 impl<'a> embedded_hal_nb::serial::ErrorType for BlockingReceiveHalf<'a> {
     type Error = Error;
 }
 
 impl<'a> embedded_io::Write for BlockingSerial<'a> {
+    #[inline]
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        uart_write(&self.uart, buf)
+    }
+    #[inline]
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        uart_flush(&self.uart)
+    }
+}
+
+impl<'a> embedded_io_06::Write for BlockingSerial<'a> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         uart_write(&self.uart, buf)
@@ -231,6 +254,13 @@ impl<'a> embedded_io::Read for BlockingSerial<'a> {
     }
 }
 
+impl<'a> embedded_io_06::Read for BlockingSerial<'a> {
+    #[inline]
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        uart_read(&self.uart, buf)
+    }
+}
+
 impl<'a> embedded_hal_nb::serial::Read for BlockingSerial<'a> {
     #[inline]
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
@@ -239,6 +269,17 @@ impl<'a> embedded_hal_nb::serial::Read for BlockingSerial<'a> {
 }
 
 impl<'a> embedded_io::Write for BlockingTransmitHalf<'a> {
+    #[inline]
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        uart_write(&self.uart, buf)
+    }
+    #[inline]
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        uart_flush(&self.uart)
+    }
+}
+
+impl<'a> embedded_io_06::Write for BlockingTransmitHalf<'a> {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         uart_write(&self.uart, buf)
@@ -261,6 +302,13 @@ impl<'a> embedded_hal_nb::serial::Write for BlockingTransmitHalf<'a> {
 }
 
 impl<'a> embedded_io::Read for BlockingReceiveHalf<'a> {
+    #[inline]
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        uart_read(&self.uart, buf)
+    }
+}
+
+impl<'a> embedded_io_06::Read for BlockingReceiveHalf<'a> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         uart_read(&self.uart, buf)

@@ -16,7 +16,7 @@ struct Chosen<'a> {
 }
 
 /// Set the bootargs of the dtb.
-pub fn set_bootargs(new_bootargs: &String<128>) -> Result<(), Error<()>> {
+pub fn set_bootargs(new_bootargs: &String<128>) -> Result<(), Error<core::convert::Infallible>> {
     match DtbPtr::from_raw(OPAQUE_ADDRESS as *mut u8) {
         Ok(ptr) => {
             // Get the aligned size of the dtb.

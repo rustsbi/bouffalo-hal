@@ -8,16 +8,18 @@ edition = "2024"
 [dependencies]
 bouffalo-rt-macros = { path = "macros" }
 bouffalo-hal = { version = "0.0.0", path = "../bouffalo-hal" }
-crc = "3.2.1"
-cfg-if = "1.0.0"
+crc = "3.4.0"
+cfg-if = "1.0.4"
 embedded-time = "0.12.1"
-plic = "0.0.2"
+plic = "0.0.3"
+# XuanTie still exposes PLIC APIs bound to plic 0.0.2 traits.
+plic-legacy = { package = "plic", version = "0.0.2" }
 as-slice = "0.2.1"
-xuantie-riscv = { git = "https://github.com/rustsbi/xuantie", rev = "fe7ec712" }
+xuantie-riscv = { git = "https://github.com/rustsbi/xuantie", rev = "b0837ce0dd373481f70deab30fb139da7f8cae06" }
 
-serde = { version = "1.0.219", optional = true }
+serde = { version = "1.0.229", optional = true }
 serde-diff = { version = "0.4.1", optional = true }
-serde_json = { version = "1.0.140", optional = true }
+serde_json = { version = "1.0.151", optional = true }
 [dev-dependencies]
 treediff = { version = "5.0.0", features = ["with-serde-json"] }
 bouffalo-rt = { path = ".", features = ["image_fuse"] }

@@ -7,21 +7,21 @@ edition = "2024"
 
 [dependencies]
 byteorder = "1.5.0"
-clap = { version = "4.5.18", features = ["derive"] }
-crc = "3.2.1"
-sha2 = "0.10.8"
-thiserror = "2.0.3"
-inquire = "0.7.5"
-serialport = { version = "4.3", default-features = false }
-object = "0.36.7"
+clap = { version = "4.6.6", features = ["derive"] }
+crc = "3.4.0"
+sha2 = "0.11.0"
+thiserror = "2.0.20"
+inquire = "0.9.4"
+serialport = { version = "4.10", default-features = false }
+object = "0.40.0"
 same-file = "1.0.6"
 bouffalo-rt = { path = "../bouffalo-rt", features = ["image_fuse"] }
-ctrlc = "3.4"
-crossterm = "0.27"
-colored = "2.1"
-toml = "0.8"
+ctrlc = "3.5"
+crossterm = "0.29"
+colored = "3.1"
+toml = "1.1"
 serde = { version = "1.0", features = ["derive"] }
 home = "0.5"
 
 [dev-dependencies]
-tempfile = "3.12.0"
+tempfile = "3.27.0"

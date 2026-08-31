@@ -11,7 +11,7 @@ bouffalo-hal = { path = "../../../bouffalo-hal" }
 bouffalo-rt = { path = "../../../bouffalo-rt" }
 panic-halt = "1.0.0"
 embedded-hal = "1.0.0"
-riscv = "0.13.0"
+riscv = "0.16.1"
 
 [[bin]]
 name = "gpio-demo"

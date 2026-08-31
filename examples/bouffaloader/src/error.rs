@@ -2,7 +2,7 @@
 #[derive(Debug)]
 pub enum Error<BE>
 where
-    BE: core::fmt::Debug,
+    BE: core::error::Error,
 {
     /// An underlying block device error.
     BlockDevice(embedded_sdmmc::Error<BE>),
@@ -16,7 +16,7 @@ where
 
 impl<BE> From<embedded_sdmmc::Error<BE>> for Error<BE>
 where
-    BE: core::fmt::Debug,
+    BE: core::error::Error,
 {
     #[inline]
     fn from(value: embedded_sdmmc::Error<BE>) -> Self {

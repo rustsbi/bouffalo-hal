@@ -83,6 +83,7 @@ impl SerialState {
         let uart = unsafe { &*(ptr as *const RegisterBlock) };
         let state = uart.interrupt_state.read();
         for (interrupt, waker) in [
+            (Interrupt::TransmitEnd, &self.transmit_ready),
             (Interrupt::ReceiveFifoReady, &self.receive_ready),
             (Interrupt::TransmitFifoReady, &self.transmit_ready),
         ] {
@@ -163,6 +164,48 @@ async fn uart_write_async(
 }
 
 #[inline]
+async fn uart_flush_async(
+    uart: &RegisterBlock,
+    registry: &atomic_waker::AtomicWaker,
+) -> Result<(), Error> {
+    struct InterruptGuard<'a>(&'a RegisterBlock);
+
+    impl Drop for InterruptGuard<'_> {
+        fn drop(&mut self) {
+            unsafe {
+                self.0
+                    .interrupt_enable
+                    .modify(|val| val.disable_interrupt(Interrupt::TransmitEnd));
+            }
+        }
+    }
+
+    let _guard = InterruptGuard(uart);
+    core::future::poll_fn(|cx| {
+        if !uart.bus_state.read().transmit_busy() {
+            return Poll::Ready(());
+        }
+
+        registry.register(cx.waker());
+        unsafe {
+            uart.interrupt_clear
+                .write(InterruptClear::default().clear_interrupt(Interrupt::TransmitEnd));
+            uart.interrupt_enable
+                .modify(|val| val.enable_interrupt(Interrupt::TransmitEnd));
+        }
+
+        if uart.bus_state.read().transmit_busy() {
+            Poll::Pending
+        } else {
+            Poll::Ready(())
+        }
+    })
+    .await;
+
+    Ok(())
+}
+
+#[inline]
 async fn uart_read_async(
     uart: &RegisterBlock,
     buf: &mut [u8],
@@ -195,6 +238,11 @@ impl<'a> embedded_io_async::Write for AsyncSerial<'a> {
     #[inline]
     async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         uart_write_async(&self.uart, buf, &self.state.transmit_ready).await
+    }
+
+    #[inline]
+    async fn flush(&mut self) -> Result<(), Self::Error> {
+        uart_flush_async(&self.uart, &self.state.transmit_ready).await
     }
 }
 

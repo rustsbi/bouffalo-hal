@@ -21,6 +21,30 @@ use embedded_time::rate::*;
 use heapless::String;
 use panic_halt as _;
 
+struct CliWriter<W>(W);
+
+impl<W> embedded_io_06::ErrorType for CliWriter<W>
+where
+    W: embedded_io::Write,
+    W::Error: embedded_io_06::Error,
+{
+    type Error = W::Error;
+}
+
+impl<W> embedded_io_06::Write for CliWriter<W>
+where
+    W: embedded_io::Write,
+    W::Error: embedded_io_06::Error,
+{
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        embedded_io::Write::write(&mut self.0, buf)
+    }
+
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        embedded_io::Write::flush(&mut self.0)
+    }
+}
+
 static DYNAMIC_INFO: DynamicInfo = DynamicInfo {
     magic: 0x4942534f,
     version: 2,
@@ -112,7 +136,10 @@ fn run_cli<
 >(
     d: &mut Device<W, R, L, SDH, PADS>,
     b: &mut String<128>,
-) -> ! {
+) -> !
+where
+    <W as embedded_io::ErrorType>::Error: embedded_io_06::Error,
+{
     #[derive(Command)]
     enum Base<'a> {
         /// Print out 'Hello world!'.
@@ -166,7 +193,7 @@ fn run_cli<
     writeln!(d.tx, "For command helps, type 'help'.").ok();
 
     let (command_buffer, history_buffer) = ([0; 128], [0; 128]);
-    let writer = unsafe { ptr::read(&d.tx as *const _) };
+    let writer = CliWriter(unsafe { ptr::read(&d.tx as *const _) });
     let mut cli = CliBuilder::default()
         .writer(writer)
         .command_buffer(command_buffer)

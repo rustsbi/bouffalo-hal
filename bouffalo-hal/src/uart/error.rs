@@ -1,3 +1,5 @@
+use core::fmt;
+
 /// Serial error.
 #[derive(Debug)]
 #[non_exhaustive]
@@ -12,10 +14,30 @@ pub enum Error {
     Parity,
 }
 
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Framing => write!(f, "UART framing error"),
+            Self::Noise => write!(f, "UART noise error"),
+            Self::Overrun => write!(f, "UART receive buffer overrun"),
+            Self::Parity => write!(f, "UART parity error"),
+        }
+    }
+}
+
+impl core::error::Error for Error {}
+
 impl embedded_io::Error for Error {
     #[inline(always)]
     fn kind(&self) -> embedded_io::ErrorKind {
         embedded_io::ErrorKind::Other
+    }
+}
+
+impl embedded_io_06::Error for Error {
+    #[inline(always)]
+    fn kind(&self) -> embedded_io_06::ErrorKind {
+        embedded_io_06::ErrorKind::Other
     }
 }
 

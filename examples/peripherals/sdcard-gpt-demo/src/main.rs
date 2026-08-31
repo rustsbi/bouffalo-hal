@@ -31,7 +31,7 @@ impl<T: embedded_sdmmc::BlockDevice> MySdCard<T> {
         if self.cache_lba != lba {
             let mut block = [Block::new()];
             let block_idx = BlockIdx(lba.0.try_into().unwrap());
-            self.sdcard.read(&mut block, block_idx, "").unwrap();
+            self.sdcard.read(&mut block, block_idx).unwrap();
             self.cache.copy_from_slice(block[0].as_slice());
             self.cache_lba = lba;
         }
